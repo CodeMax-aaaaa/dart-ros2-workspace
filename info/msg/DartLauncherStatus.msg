@@ -1,5 +1,3 @@
-# 【电机和遥控器在线位 8位 [1字节]+模式位 1字节+堵转过程状态1字节+发射过程状态1字节
-# ls y dm fw[0:3] rc
 std_msgs/Header header
 bool motor_ls_online 0
 bool motor_y_online 0

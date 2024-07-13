@@ -3,6 +3,8 @@
 #include "lvgl/lvgl.h"
 #include "lv_drivers/display/fbdev.h"
 #include "lv_drivers/indev/evdev.h"
+#include <info/msg/dart_launcher_status.hpp>
+#include <info/msg/dart_param.hpp>
 #include "gui_guider.h"
 #include "events_init.h"
 #include "custom.h"
@@ -19,31 +21,13 @@
 #include "get_ip.hpp"
 
 #define DISP_BUF_SIZE (600 * 1024)
+#define YAW_MAX_ANGLE 491520.0
 
 #include <chrono>
 using namespace std::chrono_literals;
 lv_ui guider_ui;
 
 /*Set in lv_conf.h as `LV_TICK_CUSTOM_SYS_TIME_EXPR`*/
-// uint32_t custom_tick_get()
-// {
-//   static uint64_t start_ms = 0;
-//   if (start_ms == 0)
-//   {
-//     struct timeval tv_start;
-//     gettimeofday(&tv_start, NULL);
-//     start_ms = (tv_start.tv_sec * 1000000 + tv_start.tv_usec) / 1000;
-//   }
-
-//   struct timeval tv_now;
-//   gettimeofday(&tv_now, NULL);
-//   uint64_t now_ms;
-//   now_ms = (tv_now.tv_sec * 1000000 + tv_now.tv_usec) / 1000;
-
-//   uint32_t time_ms = now_ms - start_ms;
-//   return time_ms;
-// }
-
 // custom_tick_get 使用chrono实现，精度到ms
 uint32_t custom_tick_get()
 {
@@ -58,6 +42,16 @@ class NodeLVGLUI : public rclcpp::Node
 public:
   NodeLVGLUI() : Node("lvgl_ui")
   {
+    // Subscribe /dart_controller/dart_launcher_status /dart_controller/dart_launcher_present_param
+    // Publish /dart_controller/dart_launcher_cmd
+    dart_launcher_status_sub_ = this->create_subscription<info::msg::DartLauncherStatus>(
+        "/dart_controller/dart_launcher_status",
+        10, std::bind(&NodeLVGLUI::update_dart_launcher_status_callback, this, std::placeholders::_1));
+
+    dart_launcher_present_param_sub_ = this->create_subscription<info::msg::DartParam>(
+        "/dart_controller/dart_launcher_present_param",
+        10, std::bind(&NodeLVGLUI::update_dart_launcher_present_param_callback, this, std::placeholders::_1));
+
     lv_log_register_print_cb(print_cb);
 
     lv_init();
@@ -96,7 +90,7 @@ public:
     events_init(&guider_ui);
     custom_init(&guider_ui);
 
-    informational_update();
+    update_ip_address();
 
     RCLCPP_INFO(this->get_logger(), "UI thread started");
     /*Handle LVGL tasks*/
@@ -109,7 +103,7 @@ public:
     auto timer_callback_informational_update =
         [this]() -> void
     {
-      informational_update();
+      update_ip_address();
     };
     timer_[0] = this->create_wall_timer(5ms, timer_callback_ui);
     timer_[1] = this->create_wall_timer(1s, timer_callback_informational_update);
@@ -119,13 +113,157 @@ public:
 
 private:
   rclcpp::TimerBase::SharedPtr timer_[2];
+  rclcpp::Subscription<info::msg::DartLauncherStatus>::SharedPtr dart_launcher_status_sub_;
+  rclcpp::Subscription<info::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
 
-  void informational_update();
+  void update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg);
+  void update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg);
+  void update_ip_address();
 };
 
 std::shared_ptr<NodeLVGLUI> node;
 
-void NodeLVGLUI::informational_update()
+void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg)
+{
+  // 离线警告 如果bool任意一个为零则将msgbox取消hidden，内容为"弹鼓/Yaw轴/丝杆/摩擦轮电机/遥控器/C板/裁判离线"，如多个则用 连接并叠加
+  /*
+  bool motor_ls_online 0
+  bool motor_y_online 0
+  bool motor_dm_online 0
+  bool judge_online 0
+  bool[4] motor_fw_online [0,0,0,0]
+  bool rc_online 0
+  bool dart_launcher_online 0
+  */
+  if (msg == nullptr)
+    return;
+
+  std::string msgbox_text = "";
+  if (!msg->motor_ls_online)
+    msgbox_text += "弹鼓 ";
+  if (!msg->motor_y_online)
+    msgbox_text += "Yaw轴 ";
+  if (!msg->motor_dm_online)
+    msgbox_text += "丝杆 ";
+  if (!msg->judge_online)
+    msgbox_text += "裁判 ";
+  if (!msg->rc_online)
+    msgbox_text += "遥控器 ";
+
+  if (!msg->motor_fw_online[0])
+    msgbox_text += "摩擦轮1 ";
+  if (!msg->motor_fw_online[1])
+    msgbox_text += "摩擦轮2 ";
+  if (!msg->motor_fw_online[2])
+    msgbox_text += "摩擦轮3 ";
+  if (!msg->motor_fw_online[3])
+    msgbox_text += "摩擦轮4 ";
+  if (!msg->dart_launcher_online)
+    msgbox_text = "C板 ";
+
+  if (msgbox_text != "")
+  {
+    msgbox_text += "离线  ";
+    if (msgbox_text != lv_label_get_text(lv_msgbox_get_text(guider_ui.Main_msgbox)))
+    {
+      lv_label_set_text(lv_msgbox_get_title(guider_ui.Main_msgbox), "警告");
+      lv_label_set_text(lv_msgbox_get_text(guider_ui.Main_msgbox), msgbox_text.c_str());
+      lv_obj_clear_flag(guider_ui.Main_msgbox, LV_OBJ_FLAG_HIDDEN);
+    }
+  }
+  else
+  {
+    lv_obj_add_flag(guider_ui.Main_msgbox, LV_OBJ_FLAG_HIDDEN);
+  }
+
+  // uint8 dart_state # boot = 100, protect = 101, remote = 102, match = 103-106 Enter Wait Launch Reload, undefined=255
+
+  if (!msg->dart_launcher_online)
+    lv_label_set_text(guider_ui.Main_label_state, "Unknown");
+  else if (msg->dart_state >= 103 && msg->dart_state <= 106)
+  {
+    lv_label_set_text(guider_ui.Main_label_state, "Match");
+    switch (msg->dart_state)
+    {
+    case 103:
+      lv_label_set_text(guider_ui.Main_label_23, "复位中");
+      break;
+    case 104:
+      lv_label_set_text(guider_ui.Main_label_23, "等待中");
+      break;
+    case 105:
+      lv_label_set_text(guider_ui.Main_label_23, "正在推出");
+      break;
+    case 106:
+      lv_label_set_text(guider_ui.Main_label_23, "装填中");
+      break;
+    }
+    lv_label_set_text_fmt(guider_ui.Main_label_launch_progress, "%d/4", msg->dart_launch_process);
+    lv_bar_set_value(guider_ui.Main_bar_launch_progress, (msg->dart_launch_process / 4) * 100, LV_ANIM_OFF);
+  }
+  else
+  {
+    if (msg->motor_dm_resetting || msg->motor_ls_resetting || msg->motor_y_resetting)
+    {
+      lv_label_set_text(guider_ui.Main_label_23, "复位中");
+    }
+    else
+    {
+      lv_label_set_text(guider_ui.Main_label_23, "不适用");
+    }
+
+    if (msg->dart_state == 100)
+      lv_label_set_text(guider_ui.Main_label_state, "Boot");
+    else if (msg->dart_state == 101)
+      lv_label_set_text(guider_ui.Main_label_state, "Protect");
+    else if (msg->dart_state == 102)
+      lv_label_set_text(guider_ui.Main_label_state, "Remote");
+    else
+      lv_label_set_text(guider_ui.Main_label_state, "Unknown");
+
+    lv_label_set_text(guider_ui.Main_label_launch_progress, "0/4");
+    lv_bar_set_value(guider_ui.Main_bar_launch_progress, 0, LV_ANIM_OFF);
+  }
+
+  // float32 voltage[4] 取平均
+  double voltage = 0;
+  int online_count[2];
+  online_count[0] = msg->motor_fw_online[0] + msg->motor_fw_online[1];
+  online_count[1] = msg->motor_fw_online[2] + msg->motor_fw_online[3];
+  if (online_count[0] + online_count[1] > 0)
+  {
+    for (int i = 0; i < 4; i++)
+      voltage += msg->bus_voltage[i];
+    voltage /= online_count[0] + online_count[1];
+  }
+  char voltage_str[10];
+  sprintf(voltage_str, "%.1fV", voltage);
+  if (voltage == 0)
+    lv_label_set_text(guider_ui.Main_label_voltage, "N/A");
+  else
+    lv_label_set_text(guider_ui.Main_label_voltage, voltage_str);
+
+  // 摩擦轮速度
+  int32_t motor_fw_velocity_average[] = {0, 0};
+  if (online_count[0] != 0)
+    motor_fw_velocity_average[0] = (msg->motor_fw_velocity[0] + msg->motor_fw_velocity[1]) / online_count[0];
+  if (online_count[1] != 0)
+    motor_fw_velocity_average[1] = (msg->motor_fw_velocity[2] + msg->motor_fw_velocity[3]) / online_count[1];
+  lv_label_set_text_fmt(guider_ui.Main_label_fw_speed_1, "%d", motor_fw_velocity_average[0]);
+  lv_label_set_text_fmt(guider_ui.Main_label_fw_speed_2, "%d", motor_fw_velocity_average[1]);
+  lv_meter_set_indicator_value(guider_ui.Main_meter_fw_speed_1, guider_ui.Main_meter_fw_speed_1_scale_0_ndline_0, motor_fw_velocity_average[0]);
+  lv_meter_set_indicator_value(guider_ui.Main_meter_fw_speed_2, guider_ui.Main_meter_fw_speed_2_scale_0_ndline_0, motor_fw_velocity_average[1]);
+
+  // Yaw轴角度
+  lv_label_set_text_fmt(guider_ui.Main_label_yaw_angle, "%d", msg->motor_y_angle);
+  lv_bar_set_value(guider_ui.Main_bar_yaw_angle, (msg->motor_y_angle / YAW_MAX_ANGLE) * 100, LV_ANIM_OFF);
+}
+
+void NodeLVGLUI::update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg)
+{
+}
+
+void NodeLVGLUI::update_ip_address()
 {
   // 获取IP地址
   std::string interface = "wlan0";

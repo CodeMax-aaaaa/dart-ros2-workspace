@@ -69,7 +69,7 @@ private:
         //  ext_dart_client_cmd.latest_launch_cmd_time +
         //  ext_game_status.stage_remain_time + 在线判断位】
         // 转发到话题/dart_status/system_status
-        if ((int)canMessage.getCanId() >= 0x700 && (int)canMessage.getCanId() <= 0x709)
+        if ((int)canMessage.getCanId() >= 0x700 && (int)canMessage.getCanId() <= 0x708)
         {
             _lastCanReceiveTime = std::chrono::steady_clock::now();
             switch (canMessage.getRawFrame().can_id)
@@ -146,6 +146,7 @@ private:
                 // 摩擦轮速度比
                 can_frame frame = canMessage.getRawFrame();
                 _dartParamMsg.target_fw_velocity_ratio = ((frame.data[0] << 24) + (frame.data[1] << 16) + (frame.data[2] << 8) + frame.data[3]) / 10000.0;
+                break;
             }
             case 0x708:
             {
@@ -167,13 +168,13 @@ private:
         else if ((int)canMessage.getCanId() >= 0x901 && (int)canMessage.getCanId() <= 0x904)
         {
             can_frame frame = canMessage.getRawFrame();
-            _dartLauncherStatusMsg.motor_fw_velocity[frame.can_id - 0x901] = (frame.data[0] << 24) | (frame.data[1] << 16) | (frame.data[2] << 8) | frame.data[3];
+            _dartLauncherStatusMsg.motor_fw_velocity[(int)canMessage.getCanId() - 0x901] = ((frame.data[0] << 24) | (frame.data[1] << 16) | (frame.data[2] << 8) | frame.data[3])/6;
         }
         // 母线电压
-        else if ((int)canMessage.getCanId() >= 0x1B00 && (int)canMessage.getCanId() <= 0x1BFF)
+        else if ((int)canMessage.getCanId() >= 0x1B00 && (int)canMessage.getCanId() <= 0x1B04)
         {
             can_frame frame = canMessage.getRawFrame();
-            _dartLauncherStatusMsg.bus_voltage[frame.can_id - 0x1B00] = ((frame.data[4] << 8) | frame.data[5]) / 10.0;
+            _dartLauncherStatusMsg.bus_voltage[(int)canMessage.getCanId() - 0x1B00] = ((frame.data[4] << 8) | frame.data[5]) / 10.0;
         }
     }
 
@@ -211,6 +212,7 @@ private:
 public:
     NodeCanAgent() : Node("can_agent"), CanDriver()
     {
+
         RCLCPP_INFO(this->get_logger(), "NodeCanAgent up");
         _defaultSenderId = 0;
         _canFilterMask = 0;
@@ -248,7 +250,11 @@ public:
             {
                 // 判断是否断联
                 if (std::chrono::steady_clock::now() - _lastCanReceiveTime > std::chrono::milliseconds(500))
+                {
                     _dartLauncherStatusMsg.dart_launcher_online = false;
+                    _dartLauncherStatusMsg.judge_online = false;
+                    _judgeMsg.judge_online = false;
+                }
                 else
                     _dartLauncherStatusMsg.dart_launcher_online = true;
 

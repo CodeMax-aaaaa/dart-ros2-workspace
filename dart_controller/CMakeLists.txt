@@ -18,7 +18,7 @@ find_package(info REQUIRED)
 # Add node_lvgl_ui target
 include_directories(include)
 add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp)
-ament_target_dependencies(node_lvgl_ui rclcpp std_msgs)
+ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info)
 
 # Add Lvgl support
 add_subdirectory(lvgl)
@@ -47,5 +47,10 @@ install(TARGETS
     node_lvgl_ui
     node_can_agent
     DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY
+    launch
+    DESTINATION share/${PROJECT_NAME}/
+)
 
 ament_package()
