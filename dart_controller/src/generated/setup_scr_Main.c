@@ -819,7 +819,7 @@ void setup_scr_Main(lv_ui *ui)
 	ui->Main_bar_launch_progress = lv_bar_create(ui->Main_MainView_tab_1);
 	lv_obj_set_style_anim_time(ui->Main_bar_launch_progress, 1000, 0);
 	lv_bar_set_mode(ui->Main_bar_launch_progress, LV_BAR_MODE_NORMAL);
-	lv_bar_set_range(ui->Main_bar_launch_progress, 0, 0);
+	lv_bar_set_range(ui->Main_bar_launch_progress, 0, 100);
 	lv_bar_set_value(ui->Main_bar_launch_progress, 50, LV_ANIM_OFF);
 	lv_obj_set_pos(ui->Main_bar_launch_progress, 57, 443);
 	lv_obj_set_size(ui->Main_bar_launch_progress, 200, 10);
@@ -911,7 +911,7 @@ void setup_scr_Main(lv_ui *ui)
 	lv_label_set_text(ui->Main_label_yaw_location, "N/A");
 	lv_label_set_long_mode(ui->Main_label_yaw_location, LV_LABEL_LONG_WRAP);
 	lv_obj_set_pos(ui->Main_label_yaw_location, 418, 349);
-	lv_obj_set_size(ui->Main_label_yaw_location, 95, 39);
+	lv_obj_set_size(ui->Main_label_yaw_location, 105, 39);
 
 	// Write style for Main_label_yaw_location, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
 	lv_obj_set_style_border_width(ui->Main_label_yaw_location, 0, LV_PART_MAIN | LV_STATE_DEFAULT);

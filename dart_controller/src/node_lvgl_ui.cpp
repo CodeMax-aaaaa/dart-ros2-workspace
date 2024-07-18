@@ -21,7 +21,7 @@
 #include "get_ip.hpp"
 
 #define DISP_BUF_SIZE (600 * 1024)
-#define YAW_MAX_ANGLE 491520.0
+#define YAW_MAX_ANGLE 350000.0
 
 #include <chrono>
 using namespace std::chrono_literals;
@@ -140,11 +140,11 @@ void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherSta
 
   std::string msgbox_text = "";
   if (!msg->motor_ls_online)
-    msgbox_text += "弹鼓 ";
+    msgbox_text += "丝杆 ";
   if (!msg->motor_y_online)
     msgbox_text += "Yaw轴 ";
   if (!msg->motor_dm_online)
-    msgbox_text += "丝杆 ";
+    msgbox_text += "弹鼓 ";
   if (!msg->judge_online)
     msgbox_text += "裁判 ";
   if (!msg->rc_online)
@@ -199,7 +199,7 @@ void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherSta
       break;
     }
     lv_label_set_text_fmt(guider_ui.Main_label_launch_progress, "%d/4", msg->dart_launch_process);
-    lv_bar_set_value(guider_ui.Main_bar_launch_progress, (msg->dart_launch_process / 4) * 100, LV_ANIM_OFF);
+    lv_bar_set_value(guider_ui.Main_bar_launch_progress, msg->dart_launch_process * 25, LV_ANIM_OFF);
   }
   else
   {

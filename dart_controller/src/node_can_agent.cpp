@@ -171,10 +171,10 @@ private:
             _dartLauncherStatusMsg.motor_fw_velocity[(int)canMessage.getCanId() - 0x901] = ((frame.data[0] << 24) | (frame.data[1] << 16) | (frame.data[2] << 8) | frame.data[3])/6;
         }
         // 母线电压
-        else if ((int)canMessage.getCanId() >= 0x1B00 && (int)canMessage.getCanId() <= 0x1B04)
+        else if ((int)canMessage.getCanId() >= 0x1B01 && (int)canMessage.getCanId() <= 0x1B04)
         {
             can_frame frame = canMessage.getRawFrame();
-            _dartLauncherStatusMsg.bus_voltage[(int)canMessage.getCanId() - 0x1B00] = ((frame.data[4] << 8) | frame.data[5]) / 10.0;
+            _dartLauncherStatusMsg.bus_voltage[(int)canMessage.getCanId() - 0x1B01] = ((frame.data[4] << 8) | frame.data[5]) / 10.0;
         }
     }
 
