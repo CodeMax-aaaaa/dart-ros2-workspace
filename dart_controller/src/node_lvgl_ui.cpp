@@ -164,11 +164,11 @@ void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherSta
   if (msgbox_text != "")
   {
     msgbox_text += "离线  ";
+    lv_obj_clear_flag(guider_ui.Main_msgbox, LV_OBJ_FLAG_HIDDEN);
     if (msgbox_text != lv_label_get_text(lv_msgbox_get_text(guider_ui.Main_msgbox)))
     {
       lv_label_set_text(lv_msgbox_get_title(guider_ui.Main_msgbox), "警告");
       lv_label_set_text(lv_msgbox_get_text(guider_ui.Main_msgbox), msgbox_text.c_str());
-      lv_obj_clear_flag(guider_ui.Main_msgbox, LV_OBJ_FLAG_HIDDEN);
     }
   }
   else
