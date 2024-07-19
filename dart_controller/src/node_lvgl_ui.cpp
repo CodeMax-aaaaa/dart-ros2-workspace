@@ -8,6 +8,7 @@
 #include "gui_guider.h"
 #include "events_init.h"
 #include "custom.h"
+#include "dart_config.h"
 
 #include <unistd.h>
 #include <thread>
@@ -25,6 +26,7 @@
 
 #include <chrono>
 using namespace std::chrono_literals;
+using namespace DartConfig;
 lv_ui guider_ui;
 
 /*Set in lv_conf.h as `LV_TICK_CUSTOM_SYS_TIME_EXPR`*/
@@ -42,16 +44,6 @@ class NodeLVGLUI : public rclcpp::Node
 public:
   NodeLVGLUI() : Node("lvgl_ui")
   {
-    // Subscribe /dart_controller/dart_launcher_status /dart_controller/dart_launcher_present_param
-    // Publish /dart_controller/dart_launcher_cmd
-    dart_launcher_status_sub_ = this->create_subscription<info::msg::DartLauncherStatus>(
-        "/dart_controller/dart_launcher_status",
-        10, std::bind(&NodeLVGLUI::update_dart_launcher_status_callback, this, std::placeholders::_1));
-
-    dart_launcher_present_param_sub_ = this->create_subscription<info::msg::DartParam>(
-        "/dart_controller/dart_launcher_present_param",
-        10, std::bind(&NodeLVGLUI::update_dart_launcher_present_param_callback, this, std::placeholders::_1));
-
     lv_log_register_print_cb(print_cb);
 
     lv_init();
@@ -90,6 +82,27 @@ public:
     events_init(&guider_ui);
     custom_init(&guider_ui);
 
+    DartConfig::declareParameters(*this);
+    // Subscribe /dart_controller/dart_launcher_status /dart_controller/dart_launcher_present_param
+    // Publish /dart_controller/dart_launcher_cmd
+    dart_launcher_status_sub_ = this->create_subscription<info::msg::DartLauncherStatus>(
+        "/dart_controller/dart_launcher_status",
+        10, std::bind(&NodeLVGLUI::update_dart_launcher_status_callback, this, std::placeholders::_1));
+
+    dart_launcher_present_param_sub_ = this->create_subscription<info::msg::DartParam>(
+        "/dart_controller/dart_launcher_present_param",
+        rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), std::bind(&NodeLVGLUI::update_dart_launcher_present_param_callback, this, std::placeholders::_1));
+
+    dart_launcher_cmd_pub_ = this->create_publisher<info::msg::DartParam>(
+        "/dart_controller/dart_launcher_param_cmd",
+        rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
+
+    this->add_post_set_parameters_callback(
+        [this](const std::vector<rclcpp::Parameter> parameters)
+        {
+          update_parameters_to_gui();
+        });
+
     update_ip_address();
 
     RCLCPP_INFO(this->get_logger(), "UI thread started");
@@ -97,28 +110,42 @@ public:
     auto timer_callback_ui =
         [this]() -> void
     {
-      lv_timer_handler();
+      while (rclcpp::ok())
+      {
+        lv_timer_handler();
+        std::this_thread::sleep_for(5ms);
+      }
+      lv_obj_clean(lv_scr_act()); // Clean up the active screen
+      lv_timer_handler();         // Call the timer handler
+      lv_deinit();                // Deinitialize LittlevGL
     };
 
-    auto timer_callback_informational_update =
+    auto timer_callback_ip_update =
         [this]() -> void
     {
       update_ip_address();
     };
-    timer_[0] = this->create_wall_timer(5ms, timer_callback_ui);
-    timer_[1] = this->create_wall_timer(1s, timer_callback_informational_update);
+
+    timer_[0] = this->create_wall_timer(1000ms, timer_callback_ip_update);
+    // timer_[1] = this->create_wall_timer(1s, timer_callback_informational_update);
+
+    static std::thread ui_thread(timer_callback_ui);
+    ui_thread.detach();
   }
 
   static void print_cb(const char *buf);
 
 private:
   rclcpp::TimerBase::SharedPtr timer_[2];
+  rclcpp::Publisher<info::msg::DartParam>::SharedPtr dart_launcher_cmd_pub_;
   rclcpp::Subscription<info::msg::DartLauncherStatus>::SharedPtr dart_launcher_status_sub_;
   rclcpp::Subscription<info::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
 
   void update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg);
   void update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg);
   void update_ip_address();
+  void update_parameters_to_gui();
+  void set_switch_state(lv_obj_t *sw, bool state);
 };
 
 std::shared_ptr<NodeLVGLUI> node;
@@ -259,8 +286,34 @@ void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherSta
   lv_bar_set_value(guider_ui.Main_bar_yaw_angle, (msg->motor_y_angle / YAW_MAX_ANGLE) * 100, LV_ANIM_OFF);
 }
 
+void NodeLVGLUI::set_switch_state(lv_obj_t *sw, bool state)
+{
+  if (state)
+  {
+    lv_obj_add_state(sw, LV_STATE_CHECKED);
+  }
+  else
+  {
+    lv_obj_clear_state(sw, LV_STATE_CHECKED);
+  }
+}
+
+void NodeLVGLUI::update_parameters_to_gui()
+{
+  lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_angle, this->get_parameter("target_yaw_angle").as_int());
+  lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_offset, this->get_parameter("target_yaw_angle_offset").as_int());
+  lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed, this->get_parameter("target_fw_velocity").as_int());
+  lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_offset, this->get_parameter("target_fw_velocity_offset").as_int());
+  lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_ratio, this->get_parameter("target_fw_velocity_ratio").as_double());
+  // Switch value
+  set_switch_state(guider_ui.Main_sw_auto_rpm_calibration, this->get_parameter("auto_fw_calibration").as_bool());
+  set_switch_state(guider_ui.Main_sw_auto_yaw_calibration, this->get_parameter("auto_yaw_calibration").as_bool());
+}
+
 void NodeLVGLUI::update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg)
 {
+  loadParametersfromMsg(*this, msg);
+  update_parameters_to_gui();
 }
 
 void NodeLVGLUI::update_ip_address()
@@ -293,9 +346,7 @@ int main(void)
   node = std::make_shared<NodeLVGLUI>();
   rclcpp::spin(node);
   RCLCPP_INFO(node->get_logger(), "UI thread stopped");
-  lv_obj_clean(lv_scr_act()); // Clean up the active screen
-  lv_timer_handler();         // Call the timer handler
-  lv_deinit();                // Deinitialize LittlevGL
+
   rclcpp::shutdown();
   return true;
 }

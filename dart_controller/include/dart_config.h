@@ -6,6 +6,8 @@
 #define DART_CONFIG_H
 
 #define DART_CAN_INTERFACE "can0"
+#include "rclcpp/rclcpp.hpp"
+#include <info/msg/dart_param.hpp>
 
 // 数据定义
 // C板上传状态数据
@@ -24,5 +26,10 @@
 //  ext_dart_client_cmd.latest_launch_cmd_time +
 //  ext_game_status.stage_remain_time + 在线判断位】
 
+namespace DartConfig
+{
+    void declareParameters(rclcpp::Node &node);
+    void loadParametersfromMsg(rclcpp::Node &node, const info::msg::DartParam::SharedPtr msg);
+};
 
 #endif // DART_CONFIG_H
