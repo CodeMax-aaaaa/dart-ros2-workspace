@@ -139,7 +139,7 @@ cv::Mat TopArmorDetect::drawResult()
 }
 
 /**
- * @brief 绘制结果,条参用
+ * @brief 绘制结果,调参用
  */
 cv::Mat TopArmorDetect::debugDraw()
 {

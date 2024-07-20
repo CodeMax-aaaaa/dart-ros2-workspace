@@ -307,6 +307,16 @@ private:
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
+            else if (_dartLauncherStatusMsg.dart_state == 100) // boot
+            {
+                _first_boot = true;
+                while(_dartLauncherStatusMsg.dart_state == 100)
+                {
+                    RCLCPP_INFO(this->get_logger(), "Waiting for launcher to boot");
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
+                continue;
+            }
             else if (_lastReceiveParameterFromCanTime == _lastReceiveParameterFromRosTime) // CAN数据率先更新
                 _lastReceiveParameterFromCanTime = std::chrono::steady_clock::now();
 

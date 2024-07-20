@@ -54,7 +54,8 @@ NodeDartConfig::NodeDartConfig(const std::string &yaml_file)
             loadParameters();
             yaml_file_.erase(yaml_file_.end() - 8, yaml_file_.end()); // remove ".default"
             saveParameters();
-            syncParameters(false);
+            // 让watchFile工作一次
+            last_write_time = fs::file_time_type::min();
             //  response
             response->structure_needs_at_least_one_member = 0;
         });

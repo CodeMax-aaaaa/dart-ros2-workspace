@@ -15,11 +15,12 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(info REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 # Add node_lvgl_ui target
 include_directories(include)
 add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.cpp)
-ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs)
+ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs sensor_msgs)
 
 # Add Lvgl support
 add_subdirectory(lvgl)

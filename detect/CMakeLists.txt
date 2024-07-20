@@ -19,9 +19,11 @@ find_package(OpenCV REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)
+
   # the following line skips cpplint (only works in a git repo)
   # comment the line when this package is in a git repo and when
   # a copyright and  license is added to all source files
@@ -36,23 +38,22 @@ set(SOURCES
   src/detect.cpp
 )
 
-
 add_executable(detect_node ${SOURCES})
 
-ament_target_dependencies(detect_node 
-rclcpp 
-std_msgs 
-geometry_msgs 
-info
-sensor_msgs
-image_transport
-cv_bridge
+ament_target_dependencies(detect_node
+  rclcpp
+  std_msgs
+  geometry_msgs
+  info
+  sensor_msgs
+  image_transport
+  cv_bridge
 )
 
 # link_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/cameraDriver/DHCamera_for_nx/lib)
-
 target_include_directories(detect_node PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/
+
   # ${CMAKE_CURRENT_SOURCE_DIR}/src/camera$Driver/DHCamera_for_nx/
   ${OpenCV_INCLUDE_DIRS}
   ${cv_bridge_INCLUDE_DIRS}
@@ -61,12 +62,10 @@ target_include_directories(detect_node PRIVATE
 )
 
 target_link_libraries(detect_node
-${OpenCV_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 install(TARGETS
-detect_node
+  detect_node
   DESTINATION lib/${PROJECT_NAME}
 )
-
-

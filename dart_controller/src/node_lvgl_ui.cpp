@@ -5,6 +5,8 @@
 #include "lv_drivers/indev/evdev.h"
 #include <info/msg/dart_launcher_status.hpp>
 #include <info/msg/dart_param.hpp>
+#include <std_srvs/srv/empty.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include "gui_guider.h"
 #include "events_init.h"
 #include "custom.h"
@@ -54,6 +56,7 @@ private:
   rclcpp::Publisher<info::msg::DartParam>::SharedPtr dart_launcher_cmd_pub_;
   rclcpp::Subscription<info::msg::DartLauncherStatus>::SharedPtr dart_launcher_status_sub_;
   rclcpp::Subscription<info::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr cv_image_sub_;
 
   std::mutex mutex_ui_;
 
@@ -63,6 +66,7 @@ private:
   void update_parameters_to_gui();
   void set_switch_state(lv_obj_t *sw, bool state);
   rcl_interfaces::msg::SetParametersResult set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters);
+  void update_cv_image(sensor_msgs::msg::Image::SharedPtr msg);
 };
 
 std::shared_ptr<NodeLVGLUI> node;
@@ -72,6 +76,23 @@ void spinbox_event_cb(lv_event_t *event)
   // 调用node->spinbox_event_cb(obj, event);
   if (node && !(node->callback_disabled))
     node->loadParametersfromGUI();
+}
+
+void btn_reload_params_cb(lv_event_t *event)
+{
+  static bool operating = false;
+  if (node && !(operating))
+  {
+    operating = true;
+    auto client = node->create_client<std_srvs::srv::Empty>("/dart_config/reset_all_param_to_default");
+    auto request = std::make_shared<std_srvs::srv::Empty::Request>();
+    auto result = client->async_send_request(request);
+    lv_label_set_text(guider_ui.Main_btn_reload_params_label, "恢复...");
+    // 在future中等待结果
+    result.wait_until(std::chrono::steady_clock::now() + std::chrono::seconds(2));
+    lv_label_set_text(guider_ui.Main_btn_reload_params_label, "恢复默认");
+    operating = false;
+  }
 }
 
 NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
@@ -125,6 +146,8 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
   lv_obj_add_event_cb(guider_ui.Main_sw_auto_rpm_calibration, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(guider_ui.Main_sw_auto_yaw_calibration, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 
+  lv_obj_add_event_cb(guider_ui.Main_btn_reload_params, btn_reload_params_cb, LV_EVENT_CLICKED, NULL);
+
   DartConfig::declareParameters(*this);
   // Subscribe /dart_controller/dart_launcher_status /dart_controller/dart_launcher_present_param
   // Publish /dart_controller/dart_launcher_cmd
@@ -139,6 +162,9 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
   dart_launcher_cmd_pub_ = this->create_publisher<info::msg::DartParam>(
       "/dart_controller/dart_launcher_param_cmd",
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
+
+  cv_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+      "test/image", 10, std::bind(&NodeLVGLUI::update_cv_image, this, std::placeholders::_1));
 
   static auto callback_handle_ = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::set_parameters_callback, this, std::placeholders::_1));
 
@@ -189,7 +215,7 @@ void NodeLVGLUI::loadParametersfromGUI()
   msg.auto_yaw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_yaw_calibration, LV_STATE_CHECKED);
   msg.auto_fw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_rpm_calibration, LV_STATE_CHECKED);
   dart_launcher_cmd_pub_->publish(msg);
-  
+
   callback_disabled = true;
   loadParametersfromMsg(*this, std::make_shared<info::msg::DartParam>(msg));
   callback_disabled = false;
@@ -355,6 +381,38 @@ void NodeLVGLUI::set_switch_state(lv_obj_t *sw, bool state)
   {
     lv_obj_clear_state(sw, LV_STATE_CHECKED);
   }
+}
+
+void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
+{
+  if (msg == nullptr)
+    return;
+  if (!mutex_ui_.try_lock())
+    return;
+  // 假设图像是 8 位单通道灰度图
+  if (msg->encoding != "mono8")
+  {
+    RCLCPP_ERROR(this->get_logger(), "Unsupported image encoding: %s", msg->encoding.c_str());
+    return;
+  }
+
+  lv_color_t *buf = (lv_color_t *)malloc(msg->width * msg->height * sizeof(lv_color_t));
+
+  for (size_t y = 0; y < msg->height; ++y)
+  {
+    for (size_t x = 0; x < msg->width; ++x)
+    {
+      uint8_t pixel = msg->data[y * msg->step + x];
+      lv_color_t color;
+      color.full = (pixel << 8) | pixel; // 将灰度值转换为16位色
+      buf[y * msg->width + x] = color;
+    }
+  }
+
+  lv_canvas_set_buffer(guider_ui.Main_canvas_opencv, buf, msg->width, msg->height, LV_IMG_CF_TRUE_COLOR);
+
+  free(buf);
+  mutex_ui_.unlock();
 }
 
 void NodeLVGLUI::update_parameters_to_gui()
