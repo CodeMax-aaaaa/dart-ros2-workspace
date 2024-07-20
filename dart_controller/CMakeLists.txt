@@ -14,11 +14,12 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(info REQUIRED)
+find_package(std_srvs REQUIRED)
 
 # Add node_lvgl_ui target
 include_directories(include)
 add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.cpp)
-ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info)
+ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs)
 
 # Add Lvgl support
 add_subdirectory(lvgl)
@@ -30,7 +31,7 @@ target_include_directories(lv_drivers PUBLIC lvgl)
 target_include_directories(node_lvgl_ui PUBLIC ${PROJECT_SOURCE_DIR} include src/generated src/custom src/generated/guider_customer_fonts src/generated/guider_fonts src/generated/images)
 
 # 递归添加子目录${PROJECT_SOURCE_DIR}/generated/*
-FILE(GLOB_RECURSE SOURCES src/custom/*.c src/generated/*.c /src/dart_config.cpp) 
+FILE(GLOB_RECURSE SOURCES src/custom/*.c src/generated/*.c /src/dart_config.cpp)
 target_sources(node_lvgl_ui PUBLIC ${SOURCES})
 target_link_libraries(node_lvgl_ui lvgl lv_drivers)
 
@@ -46,12 +47,14 @@ target_link_libraries(node_can_agent libsocketcancpp)
 # Add node_dart_config target
 add_executable(node_dart_config src/node_dart_config.cpp src/dart_config.cpp)
 target_include_directories(node_dart_config PUBLIC include)
+
 # yaml lib
 find_package(yaml-cpp REQUIRED)
 target_link_libraries(node_dart_config yaml-cpp)
 target_link_libraries(node_can_agent yaml-cpp)
+
 # target_link_libraries(node_can_agent yaml-cpp)
-ament_target_dependencies(node_dart_config rclcpp std_msgs info)
+ament_target_dependencies(node_dart_config rclcpp std_msgs info std_srvs)
 
 # Set the path to the YAML file relative to the ROS 2 install directory
 set(YAML_PATH "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config/dart_config.yaml")
@@ -76,5 +79,6 @@ install(DIRECTORY
 )
 
 ament_package()
+
 # Ensure compile_commands.json is generated
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

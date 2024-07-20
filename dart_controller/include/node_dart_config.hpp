@@ -5,6 +5,7 @@
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
 #include <string>
+#include <std_srvs/srv/empty.hpp>
 
 namespace DartConfig
 {
@@ -28,7 +29,10 @@ namespace DartConfig
         std::filesystem::file_time_type last_write_time;
 
         // subscriber
-        rclcpp::Subscription<info::msg::DartParam>::SharedPtr sub_dart_param_;
+        rclcpp::Subscription<info::msg::DartParam>::SharedPtr sub_dart_param_[2];
+
+        // server for reset to default parameter yaml
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr srv_reset_;
     };
 };
 

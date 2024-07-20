@@ -33,7 +33,7 @@ struct CanSetParameter
 
 enum E_Dart_Can_Param_Index
 {
-    VELOCITY_RATIO = 0,
+    VELOCITY_RATIO = 1,
     VELOCITY_FW,
     VELOCITY_FW_OFFSET,
     YAW_ANGLE_WITH_ROUNDS,
@@ -65,6 +65,8 @@ private:
     info::msg::DartParam _dartParamMsg;
     info::msg::Judge _judgeMsg;
 
+    rclcpp::node_interfaces::PostSetParametersCallbackHandle::SharedPtr callback_set_parameter_handle;
+
     std::vector<CanSetParameter> _canSetParameters;
 
     std::shared_ptr<rclcpp::TimerBase> _timer;
@@ -73,16 +75,18 @@ private:
     std::chrono::steady_clock::time_point _lastReceiveParameterFromCanTime;
     std::chrono::steady_clock::time_point _lastReceiveParameterFromRosTime;
 
+    std::shared_ptr<CanDriver> _canWriteDriver;
+
     bool
     active_can_interface()
     {
         try
         {
             RCLCPP_INFO(
-                this->get_logger(), "Activating can interface %s",
+                this->get_logger(), "Activating cans interface %s",
                 DART_CAN_INTERFACE);
-
             initialiseSocketCan();
+            _canWriteDriver = std::make_shared<CanDriver>(DART_CAN_INTERFACE, CAN_RAW);
         }
         // catch any exception
         catch (std::exception &e)
@@ -194,7 +198,7 @@ private:
             {
                 // 摩擦轮速度比
                 can_frame frame = canMessage.getRawFrame();
-                _dartParamMsg.target_fw_velocity_ratio = ((frame.data[0] << 24) + (frame.data[1] << 16) + (frame.data[2] << 8) + frame.data[3]) / 10000.0;
+                _dartParamMsg.target_fw_velocity_ratio = ((frame.data[0] << 24) | (frame.data[1] << 16) | (frame.data[2] << 8) | frame.data[3]) / 10000.0;
                 break;
             }
             case 0x708:
@@ -227,22 +231,32 @@ private:
         }
     }
 
+    std::string stringToHex(const uint8_t &input)
+    {
+        std::stringstream ss;
+        // 使用hex来设置stringstream以16进制输出
+        ss << std::hex << std::setfill('0');
+
+        ss << std::setw(2) << static_cast<int>(input);
+
+        return ss.str();
+    }
+
     void setParameter(int can_id, int param_index, int param_value)
     {
         can_frame frame;
         frame.can_id = can_id;
         frame.can_dlc = 8;
-        frame.data[0] = (param_index >> 8) & 0xFF;
-        frame.data[1] = param_index & 0xFF;
+        frame.data[0] = (int16_t(param_index) >> 8) & 0xFF;
+        frame.data[1] = int16_t(param_index) & 0xFF;
         // 大端模式
-        frame.data[2] = (param_value >> 24) & 0xFF;
-        frame.data[3] = (param_value >> 16) & 0xFF;
-        frame.data[4] = (param_value >> 8) & 0xFF;
-        frame.data[5] = param_value & 0xFF;
+        frame.data[2] = ((int32_t)param_value >> 24) & 0x000000FF;
+        frame.data[3] = ((int32_t)param_value >> 16) & 0x000000FF;
+        frame.data[4] = ((int32_t)param_value >> 8) & 0x000000FF;
+        frame.data[5] = (int32_t)param_value & 0x000000FF;
         frame.data[6] = 0;
         frame.data[7] = 0;
-        sendMessage(CanMessage(frame));
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        _canWriteDriver->sendMessage(CanMessage(frame));
     }
 
     void checkParamChanged()
@@ -256,7 +270,7 @@ private:
             _canSetParameters.push_back(CanSetParameter{"target_fw_velocity", this->get_parameter("target_fw_velocity").as_int()});
         if (_dartParamMsg.target_fw_velocity_offset != this->get_parameter("target_fw_velocity_offset").as_int())
             _canSetParameters.push_back(CanSetParameter{"target_fw_velocity_offset", this->get_parameter("target_fw_velocity_offset").as_int()});
-        if (_dartParamMsg.target_fw_velocity_ratio != this->get_parameter("target_fw_velocity_ratio").as_double())
+        if (int(_dartParamMsg.target_fw_velocity_ratio * 10000) != int(this->get_parameter("target_fw_velocity_ratio").as_double() * 10000))
             _canSetParameters.push_back(CanSetParameter{"target_fw_velocity_ratio", this->get_parameter("target_fw_velocity_ratio").as_double() * 10000});
         for (size_t i = 0; i < 4; i++)
         {
@@ -267,100 +281,155 @@ private:
         }
     }
 
+    void callback_set_parameter(const std::vector<rclcpp::Parameter> &parameters)
+    {
+        _lastReceiveParameterFromRosTime = std::chrono::steady_clock::now();
+        RCLCPP_INFO(this->get_logger(), "Received params from ROS");
+    }
+
+    void loadParametersfromMsg(const info::msg::DartParam::SharedPtr msg)
+    {
+        // 取消回调函数
+        callback_set_parameter_handle.reset();
+        DartConfig::loadParametersfromMsg(*this, msg);
+        // 重新注册回调函数
+        callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeCanAgent::callback_set_parameter, this, std::placeholders::_1));
+    }
+
     void canSetThread()
     {
+        static bool _first_boot = true;
         while (rclcpp::ok())
         {
             checkParamChanged();
             if (_canSetParameters.size() == 0)
+            {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            else if (_lastCanReceiveTime == _lastReceiveParameterFromCanTime) // CAN数据率先更新
-                _lastCanReceiveTime = std::chrono::steady_clock::now();
+                continue;
+            }
+            else if (_lastReceiveParameterFromCanTime == _lastReceiveParameterFromRosTime) // CAN数据率先更新
+                _lastReceiveParameterFromCanTime = std::chrono::steady_clock::now();
+
+            for (auto &param : _canSetParameters)
+            {
+                RCLCPP_INFO(this->get_logger(), "Different parameter: %s , value %d", param.param_name.c_str(), param.param_value);
+            }
 
             // Can parameters are updated from the can bus
-            if (_lastReceiveParameterFromCanTime > _lastReceiveParameterFromRosTime)
+            if (_lastReceiveParameterFromCanTime > _lastReceiveParameterFromRosTime && _first_boot == false)
             {
+                RCLCPP_INFO(this->get_logger(), "Setting parameter from CAN");
                 // update _dartParamMsg from can bus to ros parameter
-                DartConfig::loadParametersfromMsg(*this, std::make_shared<info::msg::DartParam>(_dartParamMsg));
+                loadParametersfromMsg(std::make_shared<info::msg::DartParam>(_dartParamMsg));
                 // send _dartParamMsg to topic
                 static int64_t frame_id = 0;
                 _dartParamMsg.header.stamp = this->now();
                 _dartParamMsg.header.frame_id = std::to_string(frame_id++);
                 _dartParamPublisher->publish(_dartParamMsg);
-                _lastCanReceiveTime = std::chrono::steady_clock::now();
-                _lastReceiveParameterFromCanTime = _lastCanReceiveTime;
-            }
-            else if (_lastReceiveParameterFromCanTime < _lastReceiveParameterFromRosTime)
-            {
-                while (rclcpp::ok())
-                {
-                    for (auto &param : _canSetParameters)
-                    {
-                        RCLCPP_INFO(this->get_logger(), "Setting parameter %s to %d", param.param_name.c_str(), param.param_value);
-                        // set parameter to can bus
-                        if (param.param_name == "target_yaw_angle")
-                        {
-                            setParameter(0x711, YAW_ANGLE_WITH_ROUNDS, param.param_value);
-                        }
-                        else if (param.param_name == "target_yaw_angle_offset")
-                        {
-                            setParameter(0x711, YAW_ANGLE_WITH_ROUNDS_OFFSET, param.param_value);
-                        }
-                        else if (param.param_name == "target_fw_velocity")
-                        {
-                            setParameter(0x711, VELOCITY_FW, param.param_value);
-                        }
-                        else if (param.param_name == "target_fw_velocity_offset")
-                        {
-                            setParameter(0x711, VELOCITY_FW_OFFSET, param.param_value);
-                        }
-                        else if (param.param_name == "target_fw_velocity_ratio")
-                        {
-                            setParameter(0x711, VELOCITY_RATIO, param.param_value);
-                        }
-                        else if (param.param_name == "target_yaw_launch_angle_offset0")
-                        {
-                            setParameter(0x711, LAUNCH_PARAMS_TARGET_YAW_ANGLE_WITH_ROUNDS_OFFSET_0, param.param_value);
-                        }
-                        else if (param.param_name == "target_yaw_launch_angle_offset1")
-                        {
-                            setParameter(0x711, LAUNCH_PARAMS_TARGET_YAW_ANGLE_WITH_ROUNDS_OFFSET_1, param.param_value);
-                        }
-                        else if (param.param_name == "target_yaw_launch_angle_offset2")
-                        {
-                            setParameter(0x711, LAUNCH_PARAMS_TARGET_YAW_ANGLE_WITH_ROUNDS_OFFSET_2, param.param_value);
-                        }
-                        else if (param.param_name == "target_yaw_launch_angle_offset3")
-                        {
-                            setParameter(0x711, LAUNCH_PARAMS_TARGET_YAW_ANGLE_WITH_ROUNDS_OFFSET_3, param.param_value);
-                        }
-                        else if (param.param_name == "target_fw_velocity_launch_offset0")
-                        {
-                            setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_0, param.param_value);
-                        }
-                        else if (param.param_name == "target_fw_velocity_launch_offset1")
-                        {
-                            setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_1, param.param_value);
-                        }
-                        else if (param.param_name == "target_fw_velocity_launch_offset2")
-                        {
-                            setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_2, param.param_value);
-                        }
-                        else if (param.param_name == "target_fw_velocity_launch_offset3")
-                        {
-                            setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_3, param.param_value);
-                        }
-                    }
-
-                    // 检查是否有参数未设置成功
-                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                    _canSetParameters.clear();
-                    checkParamChanged();
-                }
-                _canSetParameters.clear();
                 _lastReceiveParameterFromRosTime = std::chrono::steady_clock::now();
                 _lastReceiveParameterFromCanTime = _lastReceiveParameterFromRosTime;
             }
+            else if (_lastReceiveParameterFromCanTime < _lastReceiveParameterFromRosTime || _first_boot == true)
+            {
+                RCLCPP_INFO(this->get_logger(), "Setting parameter from ROS");
+
+                for (auto &param : _canSetParameters)
+                {
+                    RCLCPP_DEBUG(this->get_logger(), "Setting parameter %s to %d", param.param_name.c_str(), param.param_value);
+                    // set parameter to can bus
+                    if (param.param_name == "target_yaw_angle")
+                    {
+                        setParameter(0x711, YAW_ANGLE_WITH_ROUNDS, param.param_value);
+                    }
+                    else if (param.param_name == "target_yaw_angle_offset")
+                    {
+                        setParameter(0x711, YAW_ANGLE_WITH_ROUNDS_OFFSET, param.param_value);
+                    }
+                    else if (param.param_name == "target_fw_velocity")
+                    {
+                        setParameter(0x711, VELOCITY_FW, param.param_value);
+                    }
+                    else if (param.param_name == "target_fw_velocity_offset")
+                    {
+                        setParameter(0x711, VELOCITY_FW_OFFSET, param.param_value);
+                    }
+                    else if (param.param_name == "target_fw_velocity_ratio")
+                    {
+                        setParameter(0x711, VELOCITY_RATIO, param.param_value);
+                    }
+                    else if (param.param_name == "target_yaw_launch_angle_offset0")
+                    {
+                        setParameter(0x711, LAUNCH_PARAMS_TARGET_YAW_ANGLE_WITH_ROUNDS_OFFSET_0, param.param_value);
+                    }
+                    else if (param.param_name == "target_yaw_launch_angle_offset1")
+                    {
+                        setParameter(0x711, LAUNCH_PARAMS_TARGET_YAW_ANGLE_WITH_ROUNDS_OFFSET_1, param.param_value);
+                    }
+                    else if (param.param_name == "target_yaw_launch_angle_offset2")
+                    {
+                        setParameter(0x711, LAUNCH_PARAMS_TARGET_YAW_ANGLE_WITH_ROUNDS_OFFSET_2, param.param_value);
+                    }
+                    else if (param.param_name == "target_yaw_launch_angle_offset3")
+                    {
+                        setParameter(0x711, LAUNCH_PARAMS_TARGET_YAW_ANGLE_WITH_ROUNDS_OFFSET_3, param.param_value);
+                    }
+                    else if (param.param_name == "target_fw_velocity_launch_offset0")
+                    {
+                        setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_0, param.param_value);
+                    }
+                    else if (param.param_name == "target_fw_velocity_launch_offset1")
+                    {
+                        setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_1, param.param_value);
+                    }
+                    else if (param.param_name == "target_fw_velocity_launch_offset2")
+                    {
+                        setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_2, param.param_value);
+                    }
+                    else if (param.param_name == "target_fw_velocity_launch_offset3")
+                    {
+                        setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_3, param.param_value);
+                    }
+                }
+                auto timepoint = std::chrono::steady_clock::now();
+                while (rclcpp::ok())
+                {
+                    // 检查是否有参数未设置成功
+                    _canSetParameters.clear();
+                    checkParamChanged();
+                    if (_canSetParameters.size() == 0)
+                    {
+                        if (_first_boot)
+                        {
+                            _first_boot = false;
+                            RCLCPP_INFO(this->get_logger(), "First boot param set successfully");
+                        }
+                        else
+                            RCLCPP_INFO(this->get_logger(), "All parameters set successfully");
+                        _lastReceiveParameterFromRosTime = std::chrono::steady_clock::now();
+                        _lastReceiveParameterFromCanTime = _lastReceiveParameterFromRosTime;
+
+                        break;
+                    }
+                    else
+                    {
+                        for (auto &param : _canSetParameters)
+                        {
+                            RCLCPP_DEBUG(this->get_logger(), "Failed to set parameter %s to %d, retrying", param.param_name.c_str(), param.param_value);
+                        }
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    }
+
+                    // 超时检查
+                    if (std::chrono::steady_clock::now() - timepoint > std::chrono::seconds(5))
+                    {
+                        RCLCPP_ERROR(this->get_logger(), "Failed to set parameters, timeout");
+                        _lastReceiveParameterFromCanTime = std::chrono::steady_clock::now(); // 为了让参数恢复到can给出的值
+                        break;
+                    }
+                }
+                _canSetParameters.clear();
+            }
+            _canSetParameters.clear();
         }
     }
 
@@ -398,7 +467,12 @@ private:
 public:
     NodeCanAgent() : Node("can_agent"), CanDriver()
     {
+        // 设置参数回调函数
+        callback_set_parameter_handle = this->add_post_set_parameters_callback([this](const std::vector<rclcpp::Parameter> &parameters)
+                                                                               { _lastReceiveParameterFromRosTime = std::chrono::steady_clock::now(); });
+
         DartConfig::declareParameters(*this);
+        _lastReceiveParameterFromCanTime = std::chrono::steady_clock::now();
 
         RCLCPP_INFO(this->get_logger(), "NodeCanAgent up");
         _defaultSenderId = 0;
@@ -414,8 +488,8 @@ public:
         RCLCPP_INFO(this->get_logger(), "CAN interface activated");
 
         // 设置参数回调函数
-        this->add_post_set_parameters_callback([this](const std::vector<rclcpp::Parameter> &parameters)
-                                               { _lastReceiveParameterFromRosTime = std::chrono::steady_clock::now(); });
+        callback_set_parameter_handle.reset();
+        callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeCanAgent::callback_set_parameter, this, std::placeholders::_1));
 
         // 初始化节点消息
         _dartLauncherStatusPublisher = this->create_publisher<info::msg::DartLauncherStatus>(
@@ -425,16 +499,14 @@ public:
             "/dart_controller/dart_launcher_present_param",
             rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
-        _lastReceiveParameterFromCanTime = std::chrono::steady_clock::now();
-        _lastReceiveParameterFromRosTime = _lastReceiveParameterFromCanTime;
-
         _dartParamCmdSubscriber = this->create_subscription<info::msg::DartParam>(
             "/dart_controller/dart_launcher_param_cmd",
             rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(),
             [this](const info::msg::DartParam::SharedPtr msg)
             {
                 // 设置参数
-                DartConfig::loadParametersfromMsg(*this, msg);
+                loadParametersfromMsg(msg);
+                RCLCPP_INFO(this->get_logger(), "Received params MSG from ROS");
                 _lastReceiveParameterFromRosTime = std::chrono::steady_clock::now();
             });
 
@@ -486,6 +558,7 @@ public:
         RCLCPP_FATAL(this->get_logger(), "CAN interface disconnected, reactivating...");
         std::this_thread::sleep_for(std::chrono::seconds(1));
         uninitialiseSocketCan();
+        _canWriteDriver.reset();
         while (rclcpp::ok())
         {
             if (active_can_interface())

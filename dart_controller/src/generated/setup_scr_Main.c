@@ -797,7 +797,7 @@ void setup_scr_Main(lv_ui *ui)
 	lv_label_set_text(ui->Main_label_yaw_angle, "0");
 	lv_label_set_long_mode(ui->Main_label_yaw_angle, LV_LABEL_LONG_WRAP);
 	lv_obj_set_pos(ui->Main_label_yaw_angle, 170, 336);
-	lv_obj_set_size(ui->Main_label_yaw_angle, 95, 39);
+	lv_obj_set_size(ui->Main_label_yaw_angle, 135, 39);
 
 	// Write style for Main_label_yaw_angle, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
 	lv_obj_set_style_border_width(ui->Main_label_yaw_angle, 0, LV_PART_MAIN | LV_STATE_DEFAULT);

@@ -26,15 +26,37 @@ NodeDartConfig::NodeDartConfig(const std::string &yaml_file)
     loadParameters();
     syncParameters(false);
     watchFile();
-    sub_dart_param_ = this->create_subscription<info::msg::DartParam>(
+
+    auto sub_dart_param_change_callback = [this](const info::msg::DartParam::SharedPtr msg)
+    {
+        RCLCPP_INFO(this->get_logger(), "Received dart param: %s", msg->header.frame_id.c_str());
+        loadParametersfromMsg(*this, msg);
+        // 保存参数
+        saveParameters();
+    };
+
+    sub_dart_param_[0] = this->create_subscription<info::msg::DartParam>(
         "/dart_controller/dart_launcher_param_cmd",
-        rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(),
-        [this](const info::msg::DartParam::SharedPtr msg)
+        rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), sub_dart_param_change_callback);
+
+    sub_dart_param_[1] = this->create_subscription<info::msg::DartParam>(
+        "/dart_controller/dart_launcher_present_param",
+        rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), sub_dart_param_change_callback);
+
+    // 重设参数服务
+    srv_reset_ = this->create_service<std_srvs::srv::Empty>(
+        "/dart_config/reset_all_param_to_default",
+        [this](const std::shared_ptr<std_srvs::srv::Empty::Request> request,
+               std::shared_ptr<std_srvs::srv::Empty::Response> response)
         {
-            RCLCPP_INFO(this->get_logger(), "Received dart param: %s", msg->header.frame_id.c_str());
-            loadParametersfromMsg(*this, msg);
-            // 保存参数
+            RCLCPP_INFO(this->get_logger(), "Resetting parameters to default...");
+            yaml_file_ += ".default";
+            loadParameters();
+            yaml_file_.erase(yaml_file_.end() - 8, yaml_file_.end()); // remove ".default"
             saveParameters();
+            syncParameters(false);
+            //  response
+            response->structure_needs_at_least_one_member = 0;
         });
 }
 

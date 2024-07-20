@@ -17,7 +17,7 @@ void DartConfig::declareParameters(rclcpp::Node &node)
     node.declare_parameter("auto_fw_calibration", rclcpp::ParameterType::PARAMETER_BOOL);
     node.declare_parameter("dart_selection", rclcpp::ParameterType::PARAMETER_STRING_ARRAY);
     // set default value
-    node.set_parameter(rclcpp::Parameter("target_yaw_angle", 20000));
+    node.set_parameter(rclcpp::Parameter("target_yaw_angle", 10000));
     node.set_parameter(rclcpp::Parameter("target_yaw_angle_offset", 0));
     node.set_parameter(rclcpp::Parameter("target_fw_velocity", 5000));
     node.set_parameter(rclcpp::Parameter("target_fw_velocity_offset", 0));
@@ -32,6 +32,7 @@ void DartConfig::declareParameters(rclcpp::Node &node)
 
 void DartConfig::loadParametersfromMsg(rclcpp::Node &node, const info::msg::DartParam::SharedPtr msg)
 {
+    // 取消回调函数
     node.set_parameter(rclcpp::Parameter("target_yaw_angle", int(msg->target_yaw_angle)));
     node.set_parameter(rclcpp::Parameter("target_yaw_angle_offset", int(msg->target_yaw_angle_offset)));
     node.set_parameter(rclcpp::Parameter("target_fw_velocity", int(msg->target_fw_velocity)));

@@ -16,6 +16,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <mutex>
 
 #include <string>
 
@@ -42,98 +43,11 @@ uint32_t custom_tick_get()
 class NodeLVGLUI : public rclcpp::Node
 {
 public:
-  NodeLVGLUI() : Node("lvgl_ui")
-  {
-    lv_log_register_print_cb(print_cb);
-
-    lv_init();
-
-    /*Linux frame buffer device init*/
-    fbdev_init();
-
-    /*A small buffer for LittlevGL to draw the screen's content*/
-    static lv_color_t buf[2][DISP_BUF_SIZE];
-
-    /*Initialize a descriptor for the buffer*/
-    static lv_disp_draw_buf_t disp_buf;
-    lv_disp_draw_buf_init(&disp_buf, buf[0], buf[1], DISP_BUF_SIZE);
-
-    /*Initialize and register a display driver*/
-    static lv_disp_drv_t disp_drv;
-    lv_disp_drv_init(&disp_drv);
-    disp_drv.draw_buf = &disp_buf;
-    disp_drv.flush_cb = fbdev_flush;
-    disp_drv.hor_res = 1024;
-    disp_drv.ver_res = 600;
-    lv_disp_drv_register(&disp_drv);
-
-    evdev_init();
-
-    static lv_indev_drv_t indev_drv_1;
-    lv_indev_drv_init(&indev_drv_1); /*Basic initialization*/
-    indev_drv_1.type = LV_INDEV_TYPE_POINTER;
-
-    /*This function will be called periodically (by the library) to get the mouse position and state*/
-    indev_drv_1.read_cb = evdev_read;
-    lv_indev_drv_register(&indev_drv_1);
-
-    /*Create a Demo*/
-    setup_ui(&guider_ui);
-    events_init(&guider_ui);
-    custom_init(&guider_ui);
-
-    DartConfig::declareParameters(*this);
-    // Subscribe /dart_controller/dart_launcher_status /dart_controller/dart_launcher_present_param
-    // Publish /dart_controller/dart_launcher_cmd
-    dart_launcher_status_sub_ = this->create_subscription<info::msg::DartLauncherStatus>(
-        "/dart_controller/dart_launcher_status",
-        10, std::bind(&NodeLVGLUI::update_dart_launcher_status_callback, this, std::placeholders::_1));
-
-    dart_launcher_present_param_sub_ = this->create_subscription<info::msg::DartParam>(
-        "/dart_controller/dart_launcher_present_param",
-        rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), std::bind(&NodeLVGLUI::update_dart_launcher_present_param_callback, this, std::placeholders::_1));
-
-    dart_launcher_cmd_pub_ = this->create_publisher<info::msg::DartParam>(
-        "/dart_controller/dart_launcher_param_cmd",
-        rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
-
-    this->add_post_set_parameters_callback(
-        [this](const std::vector<rclcpp::Parameter> parameters)
-        {
-          update_parameters_to_gui();
-        });
-
-    update_ip_address();
-
-    RCLCPP_INFO(this->get_logger(), "UI thread started");
-    /*Handle LVGL tasks*/
-    auto timer_callback_ui =
-        [this]() -> void
-    {
-      while (rclcpp::ok())
-      {
-        lv_timer_handler();
-        std::this_thread::sleep_for(5ms);
-      }
-      lv_obj_clean(lv_scr_act()); // Clean up the active screen
-      lv_timer_handler();         // Call the timer handler
-      lv_deinit();                // Deinitialize LittlevGL
-    };
-
-    auto timer_callback_ip_update =
-        [this]() -> void
-    {
-      update_ip_address();
-    };
-
-    timer_[0] = this->create_wall_timer(1000ms, timer_callback_ip_update);
-    // timer_[1] = this->create_wall_timer(1s, timer_callback_informational_update);
-
-    static std::thread ui_thread(timer_callback_ui);
-    ui_thread.detach();
-  }
+  NodeLVGLUI();
 
   static void print_cb(const char *buf);
+  void loadParametersfromGUI();
+  bool callback_disabled = false;
 
 private:
   rclcpp::TimerBase::SharedPtr timer_[2];
@@ -141,14 +55,155 @@ private:
   rclcpp::Subscription<info::msg::DartLauncherStatus>::SharedPtr dart_launcher_status_sub_;
   rclcpp::Subscription<info::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
 
+  std::mutex mutex_ui_;
+
   void update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg);
   void update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg);
   void update_ip_address();
   void update_parameters_to_gui();
   void set_switch_state(lv_obj_t *sw, bool state);
+  rcl_interfaces::msg::SetParametersResult set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters);
 };
 
 std::shared_ptr<NodeLVGLUI> node;
+
+void spinbox_event_cb(lv_event_t *event)
+{
+  // 调用node->spinbox_event_cb(obj, event);
+  if (node && !(node->callback_disabled))
+    node->loadParametersfromGUI();
+}
+
+NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
+{
+  lv_log_register_print_cb(print_cb);
+
+  lv_init();
+
+  /*Linux frame buffer device init*/
+  fbdev_init();
+
+  /*A small buffer for LittlevGL to draw the screen's content*/
+  static lv_color_t buf[2][DISP_BUF_SIZE];
+
+  /*Initialize a descriptor for the buffer*/
+  static lv_disp_draw_buf_t disp_buf;
+  lv_disp_draw_buf_init(&disp_buf, buf[0], buf[1], DISP_BUF_SIZE);
+
+  /*Initialize and register a display driver*/
+  static lv_disp_drv_t disp_drv;
+  lv_disp_drv_init(&disp_drv);
+  disp_drv.draw_buf = &disp_buf;
+  disp_drv.flush_cb = fbdev_flush;
+  disp_drv.hor_res = 1024;
+  disp_drv.ver_res = 600;
+  lv_disp_drv_register(&disp_drv);
+
+  evdev_init();
+
+  static lv_indev_drv_t indev_drv_1;
+  lv_indev_drv_init(&indev_drv_1); /*Basic initialization*/
+  indev_drv_1.type = LV_INDEV_TYPE_POINTER;
+
+  /*This function will be called periodically (by the library) to get the mouse position and state*/
+  indev_drv_1.read_cb = evdev_read;
+  lv_indev_drv_register(&indev_drv_1);
+
+  /*
+    GUI Guider
+   */
+  setup_ui(&guider_ui);
+  events_init(&guider_ui);
+  custom_init(&guider_ui);
+
+  // Event Init
+  lv_obj_add_event_cb(guider_ui.Main_spinbox_fw_speed, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(guider_ui.Main_spinbox_fw_speed_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(guider_ui.Main_spinbox_fw_speed_ratio, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_angle, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(guider_ui.Main_sw_auto_rpm_calibration, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(guider_ui.Main_sw_auto_yaw_calibration, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+  DartConfig::declareParameters(*this);
+  // Subscribe /dart_controller/dart_launcher_status /dart_controller/dart_launcher_present_param
+  // Publish /dart_controller/dart_launcher_cmd
+  dart_launcher_status_sub_ = this->create_subscription<info::msg::DartLauncherStatus>(
+      "/dart_controller/dart_launcher_status",
+      10, std::bind(&NodeLVGLUI::update_dart_launcher_status_callback, this, std::placeholders::_1));
+
+  dart_launcher_present_param_sub_ = this->create_subscription<info::msg::DartParam>(
+      "/dart_controller/dart_launcher_present_param",
+      rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), std::bind(&NodeLVGLUI::update_dart_launcher_present_param_callback, this, std::placeholders::_1));
+
+  dart_launcher_cmd_pub_ = this->create_publisher<info::msg::DartParam>(
+      "/dart_controller/dart_launcher_param_cmd",
+      rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
+
+  static auto callback_handle_ = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::set_parameters_callback, this, std::placeholders::_1));
+
+  update_ip_address();
+  update_parameters_to_gui();
+
+  RCLCPP_INFO(this->get_logger(), "UI thread started");
+  /*Handle LVGL tasks*/
+  auto timer_callback_ui =
+      [this]() -> void
+  {
+    while (rclcpp::ok())
+    {
+      this->mutex_ui_.lock(); // Lock the mutex to prevent the GUI from being updated while the screen is being cleaned
+      lv_timer_handler();
+      this->mutex_ui_.unlock();
+      std::this_thread::sleep_for(5ms);
+    }
+    this->mutex_ui_.lock();
+    lv_obj_clean(lv_scr_act()); // Clean up the active screen
+    lv_timer_handler();         // Call the timer handler
+    lv_deinit();                // Deinitialize LittlevGL
+    this->mutex_ui_.unlock();
+  };
+
+  auto timer_callback_ip_update =
+      [this]() -> void
+  {
+    update_ip_address();
+  };
+
+  timer_[0] = this->create_wall_timer(1000ms, timer_callback_ip_update);
+  // timer_[1] = this->create_wall_timer(1s, timer_callback_informational_update);
+
+  static std::thread ui_thread(timer_callback_ui);
+  ui_thread.detach();
+}
+
+void NodeLVGLUI::loadParametersfromGUI()
+{
+  // generate a msg from GUI
+  info::msg::DartParam msg;
+  msg.target_yaw_angle = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_angle);
+  msg.target_yaw_angle_offset = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_offset);
+  msg.target_fw_velocity = lv_spinbox_get_value(guider_ui.Main_spinbox_fw_speed);
+  msg.target_fw_velocity_offset = lv_spinbox_get_value(guider_ui.Main_spinbox_fw_speed_offset);
+  msg.target_fw_velocity_ratio = lv_spinbox_get_value(guider_ui.Main_spinbox_fw_speed_ratio) / 1000.0;
+  msg.auto_yaw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_yaw_calibration, LV_STATE_CHECKED);
+  msg.auto_fw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_rpm_calibration, LV_STATE_CHECKED);
+  dart_launcher_cmd_pub_->publish(msg);
+  
+  callback_disabled = true;
+  loadParametersfromMsg(*this, std::make_shared<info::msg::DartParam>(msg));
+  callback_disabled = false;
+}
+
+rcl_interfaces::msg::SetParametersResult NodeLVGLUI::set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+  RCLCPP_INFO(this->get_logger(), "Parameters set request received");
+  if (!callback_disabled)
+    update_parameters_to_gui();
+  return result;
+}
 
 void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg)
 {
@@ -163,6 +218,9 @@ void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherSta
   bool dart_launcher_online 0
   */
   if (msg == nullptr)
+    return;
+
+  if (!mutex_ui_.try_lock())
     return;
 
   std::string msgbox_text = "";
@@ -284,6 +342,7 @@ void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherSta
   // Yaw轴角度
   lv_label_set_text_fmt(guider_ui.Main_label_yaw_angle, "%d", msg->motor_y_angle);
   lv_bar_set_value(guider_ui.Main_bar_yaw_angle, (msg->motor_y_angle / YAW_MAX_ANGLE) * 100, LV_ANIM_OFF);
+  mutex_ui_.unlock();
 }
 
 void NodeLVGLUI::set_switch_state(lv_obj_t *sw, bool state)
@@ -300,18 +359,26 @@ void NodeLVGLUI::set_switch_state(lv_obj_t *sw, bool state)
 
 void NodeLVGLUI::update_parameters_to_gui()
 {
+  mutex_ui_.lock();
+  // 禁用回调
+  callback_disabled = true;
+
   lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_angle, this->get_parameter("target_yaw_angle").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_offset, this->get_parameter("target_yaw_angle_offset").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed, this->get_parameter("target_fw_velocity").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_offset, this->get_parameter("target_fw_velocity_offset").as_int());
-  lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_ratio, this->get_parameter("target_fw_velocity_ratio").as_double());
+  lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_ratio, this->get_parameter("target_fw_velocity_ratio").as_double() * 1000);
   // Switch value
   set_switch_state(guider_ui.Main_sw_auto_rpm_calibration, this->get_parameter("auto_fw_calibration").as_bool());
   set_switch_state(guider_ui.Main_sw_auto_yaw_calibration, this->get_parameter("auto_yaw_calibration").as_bool());
+
+  callback_disabled = false;
+  mutex_ui_.unlock();
 }
 
 void NodeLVGLUI::update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg)
 {
+  RCLCPP_INFO(this->get_logger(), "Received dart_launcher_present_param");
   loadParametersfromMsg(*this, msg);
   update_parameters_to_gui();
 }
@@ -322,8 +389,11 @@ void NodeLVGLUI::update_ip_address()
   std::string interface = "wlan0";
   std::string ip = getIPAddress(interface);
 
+  if (!mutex_ui_.try_lock())
+    return;
   RCLCPP_INFO_ONCE(this->get_logger(), "IP address: %s", ip.c_str());
   lv_label_set_text(guider_ui.Main_label_ip, ip.c_str());
+  mutex_ui_.unlock();
 }
 
 void NodeLVGLUI::print_cb(const char *buf)
