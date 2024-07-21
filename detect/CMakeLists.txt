@@ -34,12 +34,12 @@ ament_target_dependencies(
 
 target_include_directories(
   detect_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/
-                      ${OpenCV_INCLUDE_DIRS})
+  ${OpenCV_INCLUDE_DIRS})
 
 target_link_libraries(detect_node ${OpenCV_LIBRARIES})
 
 # camera node executable
-add_executable(camera_node src/node_camera.cpp)
+add_executable(camera_node src/node_camera.cpp camera_driver/DHVideoCapture.cpp)
 
 # structure judge
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
@@ -47,22 +47,23 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
   target_include_directories(
     camera_node
     PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera_arm64 # here
-      ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/
-      ${OpenCV_INCLUDE_DIRS})
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera_arm64 # here
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/
+    ${OpenCV_INCLUDE_DIRS})
 
   target_link_directories(
     camera_node PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera_arm64
     ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera_arm64/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera_arm64)
-
+  )
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
   message(STATUS "x86_64")
   target_include_directories(
     camera_node
     PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera # here
-      ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/ ${OpenCV_INCLUDE_DIRS})
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera # here
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/
+    ${OpenCV_INCLUDE_DIRS})
 
   target_link_directories(
     camera_node PRIVATE
@@ -73,7 +74,7 @@ endif()
 target_link_libraries(camera_node ${OpenCV_LIBS} MVSDK)
 
 ament_target_dependencies(camera_node rclcpp sensor_msgs image_transport
-                          cv_bridge)
+  cv_bridge)
 
 install(TARGETS detect_node camera_node DESTINATION lib/${PROJECT_NAME})
 

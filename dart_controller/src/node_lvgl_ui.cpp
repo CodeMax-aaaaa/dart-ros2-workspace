@@ -6,11 +6,13 @@
 #include <info/msg/dart_launcher_status.hpp>
 #include <info/msg/dart_param.hpp>
 #include <std_srvs/srv/empty.hpp>
-#include <sensor_msgs/msg/image.hpp>
 #include "gui_guider.h"
 #include "events_init.h"
 #include "custom.h"
 #include "dart_config.h"
+
+#include <cv_bridge/cv_bridge.hpp>
+#include <sensor_msgs/msg/image.hpp>
 
 #include <unistd.h>
 #include <thread>
@@ -67,6 +69,8 @@ private:
   void set_switch_state(lv_obj_t *sw, bool state);
   rcl_interfaces::msg::SetParametersResult set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters);
   void update_cv_image(sensor_msgs::msg::Image::SharedPtr msg);
+
+  lv_color_t *img_buf;
 };
 
 std::shared_ptr<NodeLVGLUI> node;
@@ -164,7 +168,7 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
   cv_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-      "test/image", 10, std::bind(&NodeLVGLUI::update_cv_image, this, std::placeholders::_1));
+      "detect/image", 1, std::bind(&NodeLVGLUI::update_cv_image, this, std::placeholders::_1));
 
   static auto callback_handle_ = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::set_parameters_callback, this, std::placeholders::_1));
 
@@ -385,28 +389,31 @@ void NodeLVGLUI::set_switch_state(lv_obj_t *sw, bool state)
 
 void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
 {
+  static lv_color_t img_buf_[LV_CANVAS_BUF_SIZE_TRUE_COLOR(542, 433)];
+  // img_buf = img_buf_;
   if (msg == nullptr)
     return;
-  if (!mutex_ui_.try_lock())
-    return;
-  // 假设图像是 8 位单通道灰度图
-  if (msg->encoding != "mono8")
-  {
-    RCLCPP_ERROR(this->get_logger(), "Unsupported image encoding: %s", msg->encoding.c_str());
-    return;
-  }
+  // 图像是bgr8
+  // 用cv_bridge压缩到542*433
+  cv::Mat img_resized =
+      cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8)->image;
 
-  for (size_t y = 0; y < msg->height; ++y)
+  // 压缩
+  cv::resize(img_resized, img_resized, cv::Size(542, 433), 0, 0, cv::INTER_LINEAR);
+
+  // 转换为16位加载到lvgl buf
+  for (int row = 0; row < 433; ++row)
   {
-    for (size_t x = 0; x < msg->width; ++x)
+    for (int col = 0; col < 542; ++col)
     {
-      uint8_t pixel = msg->data[y * msg->step + x];
-      lv_color_t color;
-      color.full = (pixel << 8) | pixel; // 将灰度值转换为16位色
-      lv_canvas_set_px_color(guider_ui.Main_canvas_opencv, x, y, color);
+      auto px = img_resized.at<cv::Vec3b>(row, col);
+      img_buf_[row * 542 + col] = LV_COLOR_MAKE(px[2], px[1], px[0]);
     }
   }
-  
+  if (!mutex_ui_.try_lock())
+    return;
+  lv_canvas_copy_buf(guider_ui.Main_canvas_opencv, img_buf_, 0, 0, 542, 433); // 双缓冲绘制
+  lv_obj_invalidate(guider_ui.Main_canvas_opencv);
   mutex_ui_.unlock();
 }
 

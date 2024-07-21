@@ -15,8 +15,11 @@ public:
         : Node("detect_node"), it_(std::make_shared<rclcpp::Node>("detect_publisher"))
     {
         publisher_ = this->create_publisher<info::msg::GreenLight>("detect/locate", 1);
-        image_publisher_ = it_.advertise("detect/img", 1);
-        image_subscriber_ = it_.subscribe("camera/img", 1, &DetectPublisher::image_callback, this);
+        // image_publisher_ = it_.advertise("detect/image", 1);
+        // image_subscriber_ = it_.subscribe("camera/image", 1, &DetectPublisher::image_callback, this);
+        image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("detect/image", 1);
+        image_subscriber_ = this->create_subscription<sensor_msgs::msg::Image>("camera/image", 1, std::bind(&DetectPublisher::image_callback, this, std::placeholders::_1));
+        RCLCPP_INFO(this->get_logger(), "DetectPublisher has been started.");
     }
 
 private:
@@ -36,6 +39,7 @@ private:
     void image_callback(const sensor_msgs::msg::Image::ConstSharedPtr &frame_msg)
     {
         cv::Mat frame = cv_bridge::toCvShare(frame_msg, "bgr8")->image;
+        RCLCPP_INFO(this->get_logger(), "Received image from camera");
         if (!frame.empty())
         {
             bool is_detected = false;
@@ -55,7 +59,7 @@ private:
             std_msgs::msg::Header header;
             header.stamp = this->now();
             auto image_msg = cv_bridge::CvImage(header, "bgr8", resultImg).toImageMsg();
-            image_publisher_.publish(image_msg);
+            image_publisher_->publish(*image_msg);
         }
         else
         {
@@ -66,8 +70,10 @@ private:
     TopArmorDetect detector_;
     rclcpp::Publisher<info::msg::GreenLight>::SharedPtr publisher_;
     image_transport::ImageTransport it_;
-    image_transport::Publisher image_publisher_;
-    image_transport::Subscriber image_subscriber_;
+    // image_transport::Publisher image_publisher_;
+    // image_transport::Subscriber image_subscriber_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_subscriber_;
 };
 
 int main(int argc, char *argv[])

@@ -44,39 +44,22 @@ private:
         int width = 1280;
         int height = 1024;
         cv::Mat image(height, width, CV_8UC3);
+        RCLCPP_INFO(this->get_logger(), "Start capturing...");
         while (rclcpp::ok())
         {
             _videoCapture.read(image);
 
-            for (int y = 0; y < height; ++y)
-            {
-                for (int x = 0; x < width; ++x)
-                {
-                    if ((x / 10 + y / 10) % 2 == 0)
-                    {
-                        image.at<uchar>(y, x) = 255; // 白色
-                    }
-                    else
-                    {
-                        image.at<uchar>(y, x) = 0; // 黑色
-                    }
-                }
-            }
-
-            // 将OpenCV图像转换为ROS图像消息
-            std_msgs::msg::Header header;
-            header.stamp = this->now();
-            header.frame_id = "camera";
-
-            sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(header, "mono8", image).toImageMsg();
+            // 发布图像
+            auto msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image).toImageMsg();
             publisher_test_->publish(*msg);
+            std::this_thread::sleep_for(33ms); // 30fps
         }
     }
 
 public:
     NodeCamera() : Node("camera")
     {
-        publisher_test_ = this->create_publisher<sensor_msgs::msg::Image>("test/image", 10);
+        publisher_test_ = this->create_publisher<sensor_msgs::msg::Image>("camera/image", 1);
         initCamera(0);
         std::thread(std::bind(&NodeCamera::camera_capture_thread, this)).detach();
     }

@@ -221,7 +221,7 @@ private:
         else if ((int)canMessage.getCanId() >= 0x901 && (int)canMessage.getCanId() <= 0x904)
         {
             can_frame frame = canMessage.getRawFrame();
-            _dartLauncherStatusMsg.motor_fw_velocity[(int)canMessage.getCanId() - 0x901] = ((frame.data[0] << 24) | (frame.data[1] << 16) | (frame.data[2] << 8) | frame.data[3]) / 6;
+            _dartLauncherStatusMsg.motor_fw_velocity[(int)canMessage.getCanId() - 0x901] = ((frame.data[0] << 24) | (frame.data[1] << 16) | (frame.data[2] << 8) | frame.data[3]) / 7;
         }
         // 母线电压
         else if ((int)canMessage.getCanId() >= 0x1B01 && (int)canMessage.getCanId() <= 0x1B04)

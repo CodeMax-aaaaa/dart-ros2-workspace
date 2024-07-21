@@ -16,11 +16,13 @@ find_package(std_msgs REQUIRED)
 find_package(info REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
 
 # Add node_lvgl_ui target
 include_directories(include)
 add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.cpp)
-ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs sensor_msgs)
+ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs sensor_msgs cv_bridge)
 
 # Add Lvgl support
 add_subdirectory(lvgl)
@@ -29,12 +31,12 @@ add_subdirectory(lv_drivers)
 target_include_directories(lvgl PUBLIC include/lvgl lv_drivers)
 target_include_directories(lv_drivers PUBLIC lvgl)
 
-target_include_directories(node_lvgl_ui PUBLIC ${PROJECT_SOURCE_DIR} include src/generated src/custom src/generated/guider_customer_fonts src/generated/guider_fonts src/generated/images)
+target_include_directories(node_lvgl_ui PUBLIC ${PROJECT_SOURCE_DIR} include src/generated src/custom src/generated/guider_customer_fonts src/generated/guider_fonts src/generated/images ${OpenCV_INCLUDE_DIRS})
 
 # 递归添加子目录${PROJECT_SOURCE_DIR}/generated/*
 FILE(GLOB_RECURSE SOURCES src/custom/*.c src/generated/*.c /src/dart_config.cpp)
 target_sources(node_lvgl_ui PUBLIC ${SOURCES})
-target_link_libraries(node_lvgl_ui lvgl lv_drivers)
+target_link_libraries(node_lvgl_ui lvgl lv_drivers ${OpenCV_LIBS})
 
 # Add node_can_agent target
 add_executable(node_can_agent src/node_can_agent.cpp src/dart_config.cpp)
