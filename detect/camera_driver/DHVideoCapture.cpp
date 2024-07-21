@@ -179,8 +179,8 @@ bool DHVideoCapture::setVideoFormat(size_t width, size_t height, bool mjpg)
 
 bool DHVideoCapture::setExposureTime(int t)
 {
-    if(t == _exposure_time)
-        return true;
+    // if(t == _exposure_time)
+    //     return true;
     bool bRet;
     IAcquisitionControlPtr sptrAcquisitionControl = CSystem::getInstance().createAcquisitionControl(_cameraSptr);
     if (NULL == sptrAcquisitionControl)

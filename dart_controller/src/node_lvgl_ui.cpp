@@ -168,7 +168,7 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
   cv_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-      "detect/image", 1, std::bind(&NodeLVGLUI::update_cv_image, this, std::placeholders::_1));
+      "camera/image", 1, std::bind(&NodeLVGLUI::update_cv_image, this, std::placeholders::_1));
 
   static auto callback_handle_ = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::set_parameters_callback, this, std::placeholders::_1));
 
@@ -389,7 +389,9 @@ void NodeLVGLUI::set_switch_state(lv_obj_t *sw, bool state)
 
 void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
 {
-  static lv_color_t img_buf_[LV_CANVAS_BUF_SIZE_TRUE_COLOR(542, 433)];
+  static lv_color_t img_buf_[2][LV_CANVAS_BUF_SIZE_TRUE_COLOR(542, 433)];
+  static int buf_index = 0;
+  buf_index %=2;
   // img_buf = img_buf_;
   if (msg == nullptr)
     return;
@@ -407,14 +409,15 @@ void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
     for (int col = 0; col < 542; ++col)
     {
       auto px = img_resized.at<cv::Vec3b>(row, col);
-      img_buf_[row * 542 + col] = LV_COLOR_MAKE(px[2], px[1], px[0]);
+      img_buf_[buf_index][row * 542 + col] = LV_COLOR_MAKE(px[2], px[1], px[0]);
     }
   }
-  if (!mutex_ui_.try_lock())
-    return;
-  lv_canvas_copy_buf(guider_ui.Main_canvas_opencv, img_buf_, 0, 0, 542, 433); // 双缓冲绘制
+  mutex_ui_.lock();
+  // lv_canvas_copy_buf(guider_ui.Main_canvas_opencv, img_buf_, 0, 0, 542, 433); // 双缓冲绘制
+  lv_canvas_set_buffer(guider_ui.Main_canvas_opencv, img_buf_[buf_index], 542, 433, LV_IMG_CF_TRUE_COLOR);
   lv_obj_invalidate(guider_ui.Main_canvas_opencv);
   mutex_ui_.unlock();
+  buf_index++;
 }
 
 void NodeLVGLUI::update_parameters_to_gui()

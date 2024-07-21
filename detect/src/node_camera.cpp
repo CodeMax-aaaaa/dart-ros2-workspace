@@ -52,7 +52,7 @@ private:
             // 发布图像
             auto msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image).toImageMsg();
             publisher_test_->publish(*msg);
-            std::this_thread::sleep_for(33ms); // 30fps
+            std::this_thread::sleep_for(100ms); // 10fps
         }
     }
 
