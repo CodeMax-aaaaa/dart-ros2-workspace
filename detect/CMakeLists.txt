@@ -17,55 +17,78 @@ find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
+set(SOURCES src/main.cpp src/detect.cpp)
 
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and  license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
-
-ament_package()
-
-set(SOURCES
-  src/main.cpp
-  src/detect.cpp
-)
-
+# detect node executable
 add_executable(detect_node ${SOURCES})
 
-ament_target_dependencies(detect_node
+ament_target_dependencies(
+  detect_node
   rclcpp
   std_msgs
   geometry_msgs
   info
   sensor_msgs
   image_transport
-  cv_bridge
-)
+  cv_bridge)
 
-# link_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/cameraDriver/DHCamera_for_nx/lib)
-target_include_directories(detect_node PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/
+target_include_directories(
+  detect_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/
+                      ${OpenCV_INCLUDE_DIRS})
 
-  # ${CMAKE_CURRENT_SOURCE_DIR}/src/camera$Driver/DHCamera_for_nx/
-  ${OpenCV_INCLUDE_DIRS}
-  ${cv_bridge_INCLUDE_DIRS}
-  ${sensor_msgs_INCLUDE_DIRS}
-  /opt/ros/jazzy/include/cv_bridge
-)
+target_link_libraries(detect_node ${OpenCV_LIBRARIES})
 
-target_link_libraries(detect_node
-  ${OpenCV_LIBRARIES}
-)
+# camera node executable
+add_executable(camera_node src/node_camera.cpp)
 
-install(TARGETS
-  detect_node
-  DESTINATION lib/${PROJECT_NAME}
-)
+# structure judge
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  message(STATUS "aarch64")
+  target_include_directories(
+    camera_node
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera_arm64 # here
+      ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/
+      ${OpenCV_INCLUDE_DIRS})
+
+  target_link_directories(
+    camera_node PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera_arm64/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera_arm64)
+
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  message(STATUS "x86_64")
+  target_include_directories(
+    camera_node
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera # here
+      ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/ ${OpenCV_INCLUDE_DIRS})
+
+  target_link_directories(
+    camera_node PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/cameraDriver/DHCamera)
+endif()
+
+target_link_libraries(camera_node ${OpenCV_LIBS} MVSDK)
+
+ament_target_dependencies(camera_node rclcpp sensor_msgs image_transport
+                          cv_bridge)
+
+install(TARGETS detect_node camera_node DESTINATION lib/${PROJECT_NAME})
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+
+  # the following line skips the linter which checks for copyrights comment the
+  # line when a copyright and license is added to all source files
+  set(ament_cmake_copyright_FOUND TRUE)
+
+  # the following line skips cpplint (only works in a git repo) comment the line
+  # when this package is in a git repo and when a copyright and  license is
+  # added to all source files
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()

@@ -396,8 +396,6 @@ void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
     return;
   }
 
-  lv_color_t *buf = (lv_color_t *)malloc(msg->width * msg->height * sizeof(lv_color_t));
-
   for (size_t y = 0; y < msg->height; ++y)
   {
     for (size_t x = 0; x < msg->width; ++x)
@@ -405,13 +403,10 @@ void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
       uint8_t pixel = msg->data[y * msg->step + x];
       lv_color_t color;
       color.full = (pixel << 8) | pixel; // 将灰度值转换为16位色
-      buf[y * msg->width + x] = color;
+      lv_canvas_set_px_color(guider_ui.Main_canvas_opencv, x, y, color);
     }
   }
-
-  lv_canvas_set_buffer(guider_ui.Main_canvas_opencv, buf, msg->width, msg->height, LV_IMG_CF_TRUE_COLOR);
-
-  free(buf);
+  
   mutex_ui_.unlock();
 }
 
