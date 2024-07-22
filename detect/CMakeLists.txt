@@ -76,7 +76,14 @@ target_link_libraries(camera_node ${OpenCV_LIBS} MVSDK)
 ament_target_dependencies(camera_node rclcpp sensor_msgs image_transport
   cv_bridge)
 
-install(TARGETS detect_node camera_node DESTINATION lib/${PROJECT_NAME})
+add_executable(parameter_node src/Parameters.cpp)
+target_include_directories(parameter_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(parameter_node ${OpenCV_LIBRARIES})
+target_sources(parameter_node PRIVATE src/detect.cpp)
+ament_target_dependencies(parameter_node)
+
+install(TARGETS detect_node camera_node parameter_node
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -15,6 +15,7 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
 
     DHVideoCapture _videoCapture;
+    int exposure_time;
 
     void initCamera(int exposure_time) // 1-3ms 0=>auto
     {
@@ -59,9 +60,22 @@ private:
 public:
     NodeCamera() : Node("camera")
     {
+        exposure_time = 3;
         publisher_test_ = this->create_publisher<sensor_msgs::msg::Image>("camera/image", 1);
-        initCamera(0);
+        initCamera(exposure_time);
         std::thread(std::bind(&NodeCamera::camera_capture_thread, this)).detach();
+        // 参数declare
+        this->declare_parameter("exposure_time", 3);
+        // 参数回调
+        timer_ = this->create_wall_timer(1s, [this]() {
+            int exposure_time_present = this->get_parameter("exposure_time").as_int();
+            if(exposure_time_present != exposure_time)
+            {
+                exposure_time = exposure_time_present;
+                _videoCapture.setExposureTime(exposure_time);
+            }
+            RCLCPP_INFO(this->get_logger(), "Exposure time set to: %d", exposure_time);
+        });
     }
 };
 
