@@ -99,6 +99,8 @@ void loadParameters(const std::string& paramFile="./src/detect/config/config.csv
             else if (key == "vmin") vmin = value;
             else if (key == "vmax") vmax = value;
             else if (key == "minDist") minDist = value;
+            else if (key == "rmin") rmin = value;
+            else if (key == "rmax") rmax = value;
             else if (key == "param1") param1 = value;
             else if (key == "param2") param2 = value;
         }
@@ -113,7 +115,7 @@ void callBack(int, void*)
     {
         return;
     }
-    TopArmorDetect detector(hmin, hmax, smin, smax, vmin, vmax, rmin, rmax, minDist, param1, param2);
+    TopArmorDetect detector(hmin, hmax, smin, smax, vmin, vmax, minDist, rmin, rmax, param1, param2);
 
     detector.detect(img);
     Mat dst = detector.drawResult();
