@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include "detect/detect.h"
+#include "../include/detect/detect.h"
 
 using namespace cv;
 using namespace std;
@@ -19,28 +19,33 @@ VideoCapture cap;
 // HSV图像
 Mat hsv;
 // 色相
-int hmin = 0;
+int hmin = 1;
 int hmin_Max = 360;
 int hmax = 180;
 int hmax_Max = 180;
 // 饱和度
-int smin = 0;
+int smin = 1;
 int smin_Max = 255;
 int smax = 255;
 int smax_Max = 255;
 // 亮度
-int vmin = 0;
+int vmin = 1;
 int vmin_Max = 255;
 int vmax = 255;
 int vmax_Max = 255;
 // 最小圆心距离
-int minDist = 0;
+int minDist = 1;
 int minDist_Max = 400;
+// 半径
+int rmin = 1;
+int rmin_Max = 400;
+int rmax = 1;
+int rmax_Max = 400;
 // param1
-int param1 = 0;
+int param1 = 1;
 int param1_Max = 50;
 // param2
-int param2 = 0;
+int param2 = 1;
 int param2_Max = 50;
 
 string dstName = "dst";
@@ -57,6 +62,8 @@ void saveParameters(const string& filename="./src/detect/config/config.csv")
         file << "vmin," << vmin << endl;
         file << "vmax," << vmax << endl;
         file << "minDist," << minDist << endl;
+        file << "rmin," << rmin << endl;
+        file << "rmax," << rmax << endl;
         file << "param1," << param1 << endl;
         file << "param2," << param2 << endl;
         file.close();
@@ -102,10 +109,14 @@ void loadParameters(const std::string& paramFile="./src/detect/config/config.csv
 
 void callBack(int, void*)
 {
-    TopArmorDetect detector(hmin, hmax, smin, smax, vmin, vmax, minDist, param1, param2);
+    if(hmin == 0 || hmax==0 || smin==0 || smax==0 || vmin==0 || vmax==0 || rmin==0 || rmax==0 || minDist==0 || param1==0 || param2==0)
+    {
+        return;
+    }
+    TopArmorDetect detector(hmin, hmax, smin, smax, vmin, vmax, rmin, rmax, minDist, param1, param2);
 
     detector.detect(img);
-    Mat dst = detector.debugDraw();
+    Mat dst = detector.drawResult();
 
     imshow(dstName, dst);
 }
@@ -159,6 +170,8 @@ int main(int argc, char** argv)
     createTrackbar("vmin", dstName, &vmin, vmin_Max, callBack);
     createTrackbar("vmax", dstName, &vmax, vmax_Max, callBack);
     createTrackbar("minDist", dstName, &minDist, minDist_Max, callBack);
+    createTrackbar("rmin", dstName, &rmin, rmin_Max, callBack);
+    createTrackbar("rmax", dstName, &rmax, rmax_Max, callBack);
     createTrackbar("param1", dstName, &param1, param1_Max, callBack);
     createTrackbar("param2", dstName, &param2, param2_Max, callBack);
 

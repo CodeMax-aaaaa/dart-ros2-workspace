@@ -11,7 +11,7 @@ class TopArmorDetect
 {
 public:
     TopArmorDetect(const std::string& paramFile="./src/detect/config/config.csv");
-    TopArmorDetect(int HMIN, int HMAX, int SMIN, int SMAX, int VMIN, int VMAX, double minDIST, double PARAM1, double PARAM2);
+    TopArmorDetect(int HMIN, int HMAX, int SMIN, int SMAX, int VMIN, int VMAX, double minDIST, double rmin, double rmax, double PARAM1, double PARAM2);
     
     void loadParameters(const std::string& paramFile);
     void Hough_Circle(cv::Mat& inputImage);
@@ -22,6 +22,7 @@ public:
     
     cv::Mat drawResult();
     cv::Mat debugDraw();
+    cv::Mat drawRaw();
     void getResult(cv::Point2f& center);
 
 
@@ -34,6 +35,8 @@ private:
         VMAX;  // 色调（亮度）上界
     
     double minDIST,  // 检测到的圆的中心之间的最小距离
+            RMIN,  // 最小半径
+            RMAX,  // 最大半径
          PARAM1, 
          PARAM2;
 /*
@@ -49,6 +52,7 @@ private:
     float _radius;
     std::vector<cv::Vec3f> _circles;
     cv::Mat _preprocessResult;
+    cv::Mat _rawImg;
 };
 
 #endif // DETECT_H

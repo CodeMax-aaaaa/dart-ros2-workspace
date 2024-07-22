@@ -33,7 +33,7 @@ private:
             x = center.x;
             y = center.y;
         }
-        return detector_.debugDraw();
+        return detector_.drawRaw();
     }
 
     void image_callback(const sensor_msgs::msg::Image::ConstSharedPtr &frame_msg)

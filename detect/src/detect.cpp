@@ -1,16 +1,14 @@
 #include "detect/detect.h"
 
-
 /**
  * @brief 构造函数，从paramFile读取参数
  */
-TopArmorDetect::TopArmorDetect(const std::string& paramFile) 
+TopArmorDetect::TopArmorDetect(const std::string &paramFile)
 {
     loadParameters(paramFile);
 }
 
-TopArmorDetect::TopArmorDetect(int HMIN, int HMAX, int SMIN, int SMAX, int VMIN, int VMAX, double minDIST, double PARAM1, double PARAM2):
-HMIN(HMIN), HMAX(HMAX), SMIN(SMIN), SMAX(SMAX), VMIN(VMIN), VMAX(VMAX), minDIST(minDIST), PARAM1(PARAM1), PARAM2(PARAM2)
+TopArmorDetect::TopArmorDetect(int HMIN, int HMAX, int SMIN, int SMAX, int VMIN, int VMAX, double minDIST, double rmin, double rmax, double PARAM1, double PARAM2) : HMIN(HMIN), HMAX(HMAX), SMIN(SMIN), SMAX(SMAX), VMIN(VMIN), VMAX(VMAX), minDIST(minDIST), RMIN(rmin), RMAX(rmax), PARAM1(PARAM1), PARAM2(PARAM2)
 {}
 
 /**
@@ -18,32 +16,45 @@ HMIN(HMIN), HMAX(HMAX), SMIN(SMIN), SMAX(SMAX), VMIN(VMIN), VMAX(VMAX), minDIST(
  *
  * @param paramFile 文件地址
  */
-void TopArmorDetect::loadParameters(const std::string& paramFile) 
+void TopArmorDetect::loadParameters(const std::string &paramFile)
 {
     std::ifstream file(paramFile);
-    if (!file.is_open()) 
+    if (!file.is_open())
     {
         std::cerr << "check config path: " << paramFile << std::endl;
         return;
     }
 
     std::string line;
-    while (std::getline(file, line)) 
+    while (std::getline(file, line))
     {
         std::istringstream iss(line);
         std::string key;
         int value;
-        if (std::getline(iss, key, ',') && iss >> value) 
+        if (std::getline(iss, key, ',') && iss >> value)
         {
-            if (key == "hmin") HMIN = value;
-            else if (key == "hmax") HMAX = value;
-            else if (key == "smin") SMIN = value;
-            else if (key == "smax") SMAX = value;
-            else if (key == "vmin") VMIN = value;
-            else if (key == "vmax") VMAX = value;
-            else if (key == "minDist") minDIST = value;
-            else if (key == "param1") PARAM1 = value;
-            else if (key == "param2") PARAM2 = value;
+            if (key == "hmin")
+                HMIN = value;
+            else if (key == "hmax")
+                HMAX = value;
+            else if (key == "smin")
+                SMIN = value;
+            else if (key == "smax")
+                SMAX = value;
+            else if (key == "vmin")
+                VMIN = value;
+            else if (key == "vmax")
+                VMAX = value;
+            else if (key == "minDist")
+                minDIST = value;
+            else if (key == "rmin")
+                RMIN = value;
+            else if (key == "rmax")
+                RMAX = value;
+            else if (key == "param1")
+                PARAM1 = value;
+            else if (key == "param2")
+                PARAM2 = value;
         }
     }
 
@@ -55,7 +66,7 @@ void TopArmorDetect::loadParameters(const std::string& paramFile)
  *
  * @param inputImage 输入图像
  */
-void TopArmorDetect::Hough_Circle(cv::Mat& inputImage)
+void TopArmorDetect::Hough_Circle(cv::Mat &inputImage)
 {
     cv::Mat gray, dst;
     cv::cvtColor(inputImage, dst, cv::COLOR_BGR2GRAY);
@@ -64,7 +75,6 @@ void TopArmorDetect::Hough_Circle(cv::Mat& inputImage)
     cv::HoughCircles(dst, _circles, cv::HOUGH_GRADIENT, 1, minDIST, PARAM1, PARAM2, 0, 0);
 
     std::cout << "circles_size(): " << _circles.size() << std::endl;
-
 }
 
 /**
@@ -75,16 +85,18 @@ void TopArmorDetect::select()
 {
     _center = cv::Point2f(0.0f, 0.0f);
     _radius = 0.0f;
-    if(_circles.empty()) return;
-    for(auto& circle : _circles)
+    if (_circles.empty())
+        return;
+    for (auto &circle : _circles)
     {
-        _center +=  cv::Point2f(circle[0], circle[1]);
+        if(circle[2] >= RMAX || circle[2] <= RMIN)
+            continue;
+        _center += cv::Point2f(circle[0], circle[1]);
         _radius += circle[2];
     }
     _center.x /= _circles.size();
     _center.y /= _circles.size();
     _radius /= _circles.size();
-
 }
 
 /**
@@ -93,13 +105,13 @@ void TopArmorDetect::select()
  * @param frame 原图
  * @param result 结果
  */
-void TopArmorDetect::preprocess(cv::Mat& frame, cv::Mat& result)
+void TopArmorDetect::preprocess(cv::Mat &frame, cv::Mat &result)
 {
     cv::Mat src;
     cv::cvtColor(frame, src, cv::COLOR_BGR2HSV);
 
-    cv::Scalar lower_green(HMIN, SMIN, VMIN);  // 绿色的下界（H, S, V）
-    cv::Scalar upper_green(HMAX, SMAX, VMAX);  // 绿色的上界（H, S, V）
+    cv::Scalar lower_green(HMIN, SMIN, VMIN); // 绿色的下界（H, S, V）
+    cv::Scalar upper_green(HMAX, SMAX, VMAX); // 绿色的上界（H, S, V）
 
     cv::Mat mask;
     cv::inRange(src, lower_green, upper_green, mask);
@@ -112,13 +124,21 @@ void TopArmorDetect::preprocess(cv::Mat& frame, cv::Mat& result)
  *
  * @param frame 原图
  */
-bool TopArmorDetect::detect(cv::Mat& frame)
+bool TopArmorDetect::detect(cv::Mat &frame)
 {
     _circles.clear();
-
+    _rawImg = frame.clone();
     cv::Mat result;
     preprocess(frame, result);
-    Hough_Circle(result);
+    try
+    {
+        Hough_Circle(result);
+    }
+    catch (cv::Exception &e)
+    {
+        std::cerr << e.what() << std::endl;
+        return false;
+    }
     select();
     return _circles.size() > 0;
 }
@@ -130,10 +150,11 @@ bool TopArmorDetect::detect(cv::Mat& frame)
 cv::Mat TopArmorDetect::drawResult()
 {
     cv::Mat draw = _preprocessResult.clone();
-    if(!_circles.empty())
+    if (!_circles.empty())
     {
         cv::circle(draw, _center, 3, cv::Scalar(0, 0, 255), -1);
         cv::circle(draw, _center, _radius, cv::Scalar(0, 0, 255), 3);
+        cv::putText(draw, std::to_string(_center.x)+", "+ std::to_string(_center.y), _center, cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
     }
     return draw;
 }
@@ -144,7 +165,7 @@ cv::Mat TopArmorDetect::drawResult()
 cv::Mat TopArmorDetect::debugDraw()
 {
     cv::Mat draw = _preprocessResult.clone();
-    for(auto circle : _circles)
+    for (auto circle : _circles)
     {
         cv::circle(draw, cv::Point2f(circle[0], circle[1]), 3, cv::Scalar(0, 0, 255), -1);
         cv::circle(draw, cv::Point2f(circle[0], circle[1]), circle[2], cv::Scalar(0, 0, 255), 3);
@@ -152,9 +173,19 @@ cv::Mat TopArmorDetect::debugDraw()
     return draw;
 }
 
+cv::Mat TopArmorDetect::drawRaw()
+{
+    cv::Mat draw = _rawImg.clone();
+    for (auto circle : _circles)
+    {
+        cv::circle(draw, cv::Point2f(circle[0], circle[1]), 3, cv::Scalar(0, 0, 255), -1);
+        cv::circle(draw, cv::Point2f(circle[0], circle[1]), circle[2], cv::Scalar(0, 0, 255), 3);
+        cv::putText(draw, std::to_string(_center.x)+", "+ std::to_string(_center.y), _center, cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
+
+    }
+    return draw;
+}
 void TopArmorDetect::getResult(cv::Point2f &center)
 {
     center = _center;
 }
-
-

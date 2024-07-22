@@ -5,5 +5,7 @@ smax,255
 vmin,100
 vmax,255
 minDist,38
+rmin,1
+rmax,400
 param1,16
 param2,42
