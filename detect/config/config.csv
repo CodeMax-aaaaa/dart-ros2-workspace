@@ -4,8 +4,8 @@ smin,61
 smax,255
 vmin,57
 vmax,255
-minDist,288
-rmin,1
-rmax,400
-param1,11
-param2,28
+minDist,148
+rmin,5
+rmax,89
+param1,24
+param2,24

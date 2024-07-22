@@ -9,7 +9,8 @@ TopArmorDetect::TopArmorDetect(const std::string &paramFile)
 }
 
 TopArmorDetect::TopArmorDetect(int HMIN, int HMAX, int SMIN, int SMAX, int VMIN, int VMAX, double minDIST, double rmin, double rmax, double PARAM1, double PARAM2) : HMIN(HMIN), HMAX(HMAX), SMIN(SMIN), SMAX(SMAX), VMIN(VMIN), VMAX(VMAX), minDIST(minDIST), RMIN(rmin), RMAX(rmax), PARAM1(PARAM1), PARAM2(PARAM2)
-{}
+{
+}
 
 /**
  * @brief 读取参数文件
@@ -89,7 +90,7 @@ void TopArmorDetect::select()
         return;
     for (auto &circle : _circles)
     {
-        if(circle[2] >= RMAX || circle[2] <= RMIN)
+        if (circle[2] >= RMAX || circle[2] <= RMIN)
             continue;
         _center += cv::Point2f(circle[0], circle[1]);
         _radius += circle[2];
@@ -150,12 +151,14 @@ bool TopArmorDetect::detect(cv::Mat &frame)
 cv::Mat TopArmorDetect::drawResult()
 {
     cv::Mat draw = _preprocessResult.clone();
-    if (!_circles.empty())
-    {
-        cv::circle(draw, _center, 3, cv::Scalar(0, 0, 255), -1);
-        cv::circle(draw, _center, _radius, cv::Scalar(0, 0, 255), 3);
-        cv::putText(draw, std::to_string(_center.x)+", "+ std::to_string(_center.y), _center, cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
-    }
+
+    cv::circle(draw, _center, 3, cv::Scalar(0, 0, 255), -1);
+    cv::circle(draw, _center, _radius, cv::Scalar(0, 0, 255), 3);
+    // text .1f
+    static char buf[50];
+    sprintf(buf, "(%.1f, %.1f)", _center.x, _center.y);
+    cv::putText(draw, std::string(buf), cv::Point(_center.x, _center.y + 2 * _radius), cv::FONT_HERSHEY_SIMPLEX, 5, cv::Scalar(0, 0, 255), 2);
+
     return draw;
 }
 
@@ -176,13 +179,13 @@ cv::Mat TopArmorDetect::debugDraw()
 cv::Mat TopArmorDetect::drawRaw()
 {
     cv::Mat draw = _rawImg.clone();
-    for (auto circle : _circles)
-    {
-        cv::circle(draw, cv::Point2f(circle[0], circle[1]), 3, cv::Scalar(0, 0, 255), -1);
-        cv::circle(draw, cv::Point2f(circle[0], circle[1]), circle[2], cv::Scalar(0, 0, 255), 3);
-        cv::putText(draw, std::to_string(_center.x)+", "+ std::to_string(_center.y), _center, cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
 
-    }
+    cv::circle(draw, _center, 3, cv::Scalar(0, 0, 255), -1);
+    cv::circle(draw, _center, _radius, cv::Scalar(0, 0, 255), 3);
+    static char buf[50];
+    sprintf(buf, "(%.1f, %.1f)", _center.x, _center.y);
+    cv::putText(draw, std::string(buf), cv::Point(_center.x, _center.y + 2 * _radius), cv::FONT_HERSHEY_SIMPLEX, 5, cv::Scalar(0, 0, 255), 2);
+
     return draw;
 }
 void TopArmorDetect::getResult(cv::Point2f &center)
