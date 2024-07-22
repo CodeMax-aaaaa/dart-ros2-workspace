@@ -319,7 +319,7 @@ private:
                 }
                 continue;
             }
-            else if (_lastReceiveParameterFromCanTime == _lastReceiveParameterFromRosTime) // CAN数据率先更新
+            else if (_lastReceiveParameterFromCanTime == _lastReceiveParameterFromRosTime && first_boot == false) // CAN数据率先更新
                 _lastReceiveParameterFromCanTime = std::chrono::steady_clock::now();
 
             for (auto &param : _canSetParameters)
