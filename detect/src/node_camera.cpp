@@ -3,6 +3,12 @@
 #include <cv_bridge/cv_bridge.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
+#include <chrono>
+#include <string>
+#include <cstdio>
+#include <ctime>
+#include <sstream>
+#include <unistd.h>
 
 #include "DHVideoCapture.h"
 
@@ -46,15 +52,31 @@ private:
         int height = 1024;
         cv::Mat image(height, width, CV_8UC3);
         RCLCPP_INFO(this->get_logger(), "Start capturing...");
+        std::stringstream ss;
+        auto now = std::time(nullptr);
+        ss << "camera." << std::put_time(std::localtime(&now), "%y%m%d%H%M%S") << ".avi";
+        char cwd[256];
+        getcwd(cwd, sizeof(cwd));
+        RCLCPP_INFO_STREAM(this->get_logger(), "Recording to " << cwd << "/" << ss.str());
+        // 录像到当前工作目录，文件名为camera.xxxxxxxxxx(yymmddhhmmss)，格式为avi，30fps
+        cv::VideoWriter video(ss.str(), cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 30, cv::Size(width, height));
+
         while (rclcpp::ok())
         {
             _videoCapture.read(image);
+            video.write(image);
 
-            // 发布图像
-            auto msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image).toImageMsg();
-            publisher_test_->publish(*msg);
-            std::this_thread::sleep_for(100ms); // 10fps
+            // 每3次发布图像 帧率10fps
+            static int count = 0;
+            if (count++ % 3 == 0)
+            {
+                auto msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image).toImageMsg();
+                publisher_test_->publish(*msg);
+            }
+            std::this_thread::sleep_for(33ms); // 30fps
         }
+        video.release();
+        RCLCPP_INFO(this->get_logger(), "Capture thread stopped.");
     }
 
 public:
@@ -67,15 +89,15 @@ public:
         // 参数declare
         this->declare_parameter("exposure_time", 3);
         // 参数回调
-        timer_ = this->create_wall_timer(1s, [this]() {
+        timer_ = this->create_wall_timer(1s, [this]()
+                                         {
             int exposure_time_present = this->get_parameter("exposure_time").as_int();
             if(exposure_time_present != exposure_time)
             {
                 exposure_time = exposure_time_present;
                 _videoCapture.setExposureTime(exposure_time);
-            }
-            RCLCPP_INFO(this->get_logger(), "Exposure time set to: %d", exposure_time);
-        });
+                RCLCPP_INFO(this->get_logger(), "Exposure time set to: %d", exposure_time);
+            } });
     }
 };
 
