@@ -17,5 +17,6 @@ uint8 dart_launch_process 0
 
 int32 motor_y_angle 0
 int32[4] motor_fw_velocity [0,0,0,0]
+int16[4] motor_fw_current [0,0,0,0]
 
 float64[4] bus_voltage [0,0,0,0]

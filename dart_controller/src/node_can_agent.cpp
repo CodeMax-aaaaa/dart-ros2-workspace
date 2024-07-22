@@ -3,6 +3,7 @@
 #include <info/msg/dart_launcher_status.hpp>
 #include <info/msg/dart_param.hpp>
 #include <info/msg/judge.hpp>
+#include <std_msgs/msg/int32_multi_array.hpp>
 
 #include "dart_config.h"
 #include <iostream>
@@ -222,6 +223,7 @@ private:
         {
             can_frame frame = canMessage.getRawFrame();
             _dartLauncherStatusMsg.motor_fw_velocity[(int)canMessage.getCanId() - 0x901] = ((frame.data[0] << 24) | (frame.data[1] << 16) | (frame.data[2] << 8) | frame.data[3]) / 7;
+            _dartLauncherStatusMsg.motor_fw_current[(int)canMessage.getCanId() - 0x901] = int16_t(int16_t(frame.data[4] << 8) | int16_t(frame.data[5])) / 10.0;
         }
         // 母线电压
         else if ((int)canMessage.getCanId() >= 0x1B01 && (int)canMessage.getCanId() <= 0x1B04)
@@ -310,7 +312,7 @@ private:
             else if (_dartLauncherStatusMsg.dart_state == 100) // boot
             {
                 _first_boot = true;
-                while(_dartLauncherStatusMsg.dart_state == 100)
+                while (_dartLauncherStatusMsg.dart_state == 100)
                 {
                     RCLCPP_INFO(this->get_logger(), "Waiting for launcher to boot");
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));

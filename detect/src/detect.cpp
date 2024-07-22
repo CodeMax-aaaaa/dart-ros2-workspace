@@ -157,7 +157,7 @@ cv::Mat TopArmorDetect::drawResult()
     // text .1f
     static char buf[50];
     sprintf(buf, "(%.1f, %.1f)", _center.x, _center.y);
-    cv::putText(draw, std::string(buf), cv::Point(_center.x, _center.y + 2 * _radius), cv::FONT_HERSHEY_SIMPLEX, 5, cv::Scalar(0, 0, 255), 2);
+    cv::putText(draw, std::string(buf), cv::Point(_center.x, _center.y + 2 * _radius), cv::FONT_HERSHEY_SIMPLEX, 2, cv::Scalar(0, 0, 255), 2);
 
     return draw;
 }
@@ -184,7 +184,7 @@ cv::Mat TopArmorDetect::drawRaw()
     cv::circle(draw, _center, _radius, cv::Scalar(0, 0, 255), 3);
     static char buf[50];
     sprintf(buf, "(%.1f, %.1f)", _center.x, _center.y);
-    cv::putText(draw, std::string(buf), cv::Point(_center.x, _center.y + 2 * _radius), cv::FONT_HERSHEY_SIMPLEX, 5, cv::Scalar(0, 0, 255), 2);
+    cv::putText(draw, std::string(buf), cv::Point(_center.x, _center.y + 2 * _radius), cv::FONT_HERSHEY_SIMPLEX, 2, cv::Scalar(0, 0, 255), 2);
 
     return draw;
 }

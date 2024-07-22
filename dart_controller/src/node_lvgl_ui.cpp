@@ -168,7 +168,7 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
   cv_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-      "camera/image", 1, std::bind(&NodeLVGLUI::update_cv_image, this, std::placeholders::_1));
+      "detect/image", 1, std::bind(&NodeLVGLUI::update_cv_image, this, std::placeholders::_1));
 
   static auto callback_handle_ = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::set_parameters_callback, this, std::placeholders::_1));
 
