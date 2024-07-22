@@ -1,9 +1,9 @@
 hmin,30
-hmax,85
+hmax,90
 smin,61
 smax,255
 vmin,100
 vmax,255
 minDist,38
-param1,13
+param1,14
 param2,42
