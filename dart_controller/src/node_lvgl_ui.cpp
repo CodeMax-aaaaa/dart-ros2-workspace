@@ -1,38 +1,13 @@
-#include <rclcpp/rclcpp.hpp>
-
-#include "lvgl/lvgl.h"
-#include "lv_drivers/display/fbdev.h"
-#include "lv_drivers/indev/evdev.h"
-#include <info/msg/dart_launcher_status.hpp>
-#include <info/msg/dart_param.hpp>
-#include <std_srvs/srv/empty.hpp>
-#include "gui_guider.h"
-#include "events_init.h"
-#include "custom.h"
-#include "dart_config.h"
-
-#include <cv_bridge/cv_bridge.hpp>
-#include <sensor_msgs/msg/image.hpp>
-
-#include <unistd.h>
-#include <thread>
-#include <time.h>
-#include <sys/time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <mutex>
-
-#include <string>
-
-#include "get_ip.hpp"
+#include <node_lvgl_ui.hpp>
 
 #define DISP_BUF_SIZE (600 * 1024)
-#define YAW_MAX_ANGLE 350000.0
 
 #include <chrono>
 using namespace std::chrono_literals;
 using namespace DartConfig;
+
 lv_ui guider_ui;
+std::shared_ptr<NodeLVGLUI> node;
 
 /*Set in lv_conf.h as `LV_TICK_CUSTOM_SYS_TIME_EXPR`*/
 // custom_tick_get 使用chrono实现，精度到ms
@@ -43,43 +18,18 @@ uint32_t custom_tick_get()
   return std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
 }
 
-// ROS 2 Interface
-class NodeLVGLUI : public rclcpp::Node
-{
-public:
-  NodeLVGLUI();
-
-  static void print_cb(const char *buf);
-  void loadParametersfromGUI();
-  bool callback_disabled = false;
-
-private:
-  rclcpp::TimerBase::SharedPtr timer_[2];
-  rclcpp::Publisher<info::msg::DartParam>::SharedPtr dart_launcher_cmd_pub_;
-  rclcpp::Subscription<info::msg::DartLauncherStatus>::SharedPtr dart_launcher_status_sub_;
-  rclcpp::Subscription<info::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
-  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr cv_image_sub_;
-
-  std::mutex mutex_ui_;
-
-  void update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg);
-  void update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg);
-  void update_ip_address();
-  void update_parameters_to_gui();
-  void set_switch_state(lv_obj_t *sw, bool state);
-  rcl_interfaces::msg::SetParametersResult set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters);
-  void update_cv_image(sensor_msgs::msg::Image::SharedPtr msg);
-
-  lv_color_t *img_buf;
-};
-
-std::shared_ptr<NodeLVGLUI> node;
-
 void spinbox_event_cb(lv_event_t *event)
 {
   // 调用node->spinbox_event_cb(obj, event);
   if (node && !(node->callback_disabled))
     node->loadParametersfromGUI();
+}
+
+template <typename Func>
+void with_ui_lock(std::shared_ptr<NodeLVGLUI> node, Func func)
+{
+  std::lock_guard<std::mutex> lock(node->mutex_ui_);
+  func(); // 调用传递的lambda表达式
 }
 
 void btn_reload_params_cb(lv_event_t *event)
@@ -88,14 +38,21 @@ void btn_reload_params_cb(lv_event_t *event)
   if (node && !(operating))
   {
     operating = true;
-    auto client = node->create_client<std_srvs::srv::Empty>("/dart_config/reset_all_param_to_default");
-    auto request = std::make_shared<std_srvs::srv::Empty::Request>();
-    auto result = client->async_send_request(request);
-    lv_label_set_text(guider_ui.Main_btn_reload_params_label, "恢复...");
-    // 在future中等待结果
-    result.wait_until(std::chrono::steady_clock::now() + std::chrono::seconds(2));
-    lv_label_set_text(guider_ui.Main_btn_reload_params_label, "恢复默认");
-    operating = false;
+    std::thread([&]()
+                {
+      auto client = node->create_client<std_srvs::srv::Empty>("/dart_config/reset_all_param_to_default");
+      auto request = std::make_shared<std_srvs::srv::Empty::Request>();
+      auto result = client->async_send_request(request);
+      with_ui_lock(node, [&]() {
+        lv_label_set_text(guider_ui.Main_btn_reload_params_label, "恢复...");
+      });
+      // 在future中等待结果
+      result.wait_until(std::chrono::steady_clock::now() + std::chrono::seconds(2));
+      with_ui_lock(node, [&]() {
+        lv_label_set_text(guider_ui.Main_btn_reload_params_label, "恢复默认");
+       });
+      operating = false; })
+        .detach();
   }
 }
 
@@ -167,6 +124,11 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
       "/dart_controller/dart_launcher_param_cmd",
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
+  green_light_sub_ = this->create_subscription<info::msg::GreenLight>(
+      "/detect/locate",
+      rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(),
+      std::bind(&NodeLVGLUI::update_green_light_callback, this, std::placeholders::_1));
+
   cv_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
       "detect/image", 1, std::bind(&NodeLVGLUI::update_cv_image, this, std::placeholders::_1));
 
@@ -225,6 +187,10 @@ void NodeLVGLUI::loadParametersfromGUI()
   callback_disabled = false;
 }
 
+void NodeLVGLUI::calibration_yaw()
+{
+}
+
 rcl_interfaces::msg::SetParametersResult NodeLVGLUI::set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters)
 {
   rcl_interfaces::msg::SetParametersResult result;
@@ -233,6 +199,25 @@ rcl_interfaces::msg::SetParametersResult NodeLVGLUI::set_parameters_callback(con
   if (!callback_disabled)
     update_parameters_to_gui();
   return result;
+}
+
+void NodeLVGLUI::update_green_light_callback(info::msg::GreenLight::SharedPtr msg)
+{
+  if (msg == nullptr)
+    return;
+  with_ui_lock(node, [&]()
+               {
+    if (msg->is_detected)
+    {
+      static char buf[30];
+      sprintf(buf, "%.1f, %.1f", msg->location.x, msg->location.y);
+      RCLCPP_INFO(this->get_logger(), "Green light detected at %.1f, %.1f", msg->location.x, msg->location.y);
+      lv_label_set_text(guider_ui.Main_label_yaw_location, buf);
+    }
+    else
+    {
+      lv_label_set_text(guider_ui.Main_label_yaw_location, "N/A");
+    } });
 }
 
 void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg)
@@ -391,7 +376,7 @@ void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
 {
   static lv_color_t img_buf_[2][LV_CANVAS_BUF_SIZE_TRUE_COLOR(542, 433)];
   static int buf_index = 0;
-  buf_index %=2;
+  buf_index %= 2;
   // img_buf = img_buf_;
   if (msg == nullptr)
     return;
@@ -467,7 +452,7 @@ void NodeLVGLUI::print_cb(const char *buf)
   else if (buf[0] == '[' && buf[1] == 'U' && buf[2] == 's' && buf[3] == 'e' && buf[4] == 'r')
     RCLCPP_INFO(rclcpp::get_logger("lvgl_ui"), buf);
   else if (buf[0] == '[' && buf[1] == 'E' && buf[2] == 'r' && buf[3] == 'r' && buf[4] == 'o' && buf[5] == 'r')
-    RCLCPP_ERROR_THROTTLE(rclcpp::get_logger("lvgl_ui"), *node->get_clock(), 1000, buf);
+    RCLCPP_ERROR(rclcpp::get_logger("lvgl_ui"), buf);
   else if (buf[0] == '[' && buf[1] == 'W' && buf[2] == 'a' && buf[3] == 'r' && buf[4] == 'n')
     RCLCPP_WARN(rclcpp::get_logger("lvgl_ui"), buf);
 }

@@ -6,6 +6,8 @@
 #define DART_CONFIG_H
 
 #define DART_CAN_INTERFACE "can0"
+#define YAW_MAX_ANGLE 350000.0
+
 #include "rclcpp/rclcpp.hpp"
 #include <info/msg/dart_param.hpp>
 
