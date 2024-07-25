@@ -6,7 +6,7 @@
 #include <info/msg/dart_param.hpp>
 #include <node_dart_config.hpp>
 #include <info/msg/dart_param.hpp>
-#include <dart_config.h>
+#include <dart_config.hpp>
 
 #include <thread>
 #include <fstream>

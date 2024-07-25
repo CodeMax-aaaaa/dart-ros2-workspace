@@ -4,7 +4,7 @@ option(LV_LVGL_H_INCLUDE_SIMPLE
 
 # Option to define LV_CONF_INCLUDE_SIMPLE, default: ON
 option(LV_CONF_INCLUDE_SIMPLE
-       "Simple include of \"lv_conf.h\" and \"lv_drv_conf.h\"" ON)
+       "Simple include of \"lv_conf.h\" and \"lv_drv_conf.h\"" OFF)
 
 # Option to set LV_CONF_PATH, if set parent path LV_CONF_DIR is added to
 # includes
@@ -12,9 +12,9 @@ option(LV_CONF_PATH "Path defined for lv_conf.h")
 get_filename_component(LV_CONF_DIR ${LV_CONF_PATH} DIRECTORY)
 
 # Option to build shared libraries (as opposed to static), default: OFF
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-file(GLOB_RECURSE SOURCES ${LVGL_ROOT_DIR}/src/*.c)
+file(GLOB_RECURSE SOURCES ${LVGL_ROOT_DIR}/src/*.c ${LVGL_ROOT_DIR}/src/*.cpp)
 file(GLOB_RECURSE EXAMPLE_SOURCES ${LVGL_ROOT_DIR}/examples/*.c)
 file(GLOB_RECURSE DEMO_SOURCES ${LVGL_ROOT_DIR}/demos/*.c)
 
@@ -58,7 +58,7 @@ if("${INC_INSTALL_DIR}" STREQUAL "")
 endif()
 
 install(
-  DIRECTORY "${CMAKE_SOURCE_DIR}/src"
+  DIRECTORY "${LVGL_ROOT_DIR}/src"
   DESTINATION "${CMAKE_INSTALL_PREFIX}/${INC_INSTALL_DIR}/"
   FILES_MATCHING
   PATTERN "*.h")

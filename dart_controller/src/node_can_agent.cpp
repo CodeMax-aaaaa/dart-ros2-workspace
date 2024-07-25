@@ -5,7 +5,7 @@
 #include <info/msg/judge.hpp>
 #include <std_msgs/msg/int32_multi_array.hpp>
 
-#include "dart_config.h"
+#include "dart_config.hpp"
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -401,6 +401,10 @@ private:
                     {
                         setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_3, param.param_value);
                     }
+
+                    _dartParamMsg.auto_fw_calibration = this->get_parameter("auto_fw_calibration").as_bool();
+                    _dartParamMsg.auto_yaw_calibration = this->get_parameter("auto_yaw_calibration").as_bool();
+                    _dartParamMsg.target_yaw_x_axis = this->get_parameter("target_yaw_x_axis").as_double();
                 }
                 auto timepoint = std::chrono::steady_clock::now();
                 while (rclcpp::ok())

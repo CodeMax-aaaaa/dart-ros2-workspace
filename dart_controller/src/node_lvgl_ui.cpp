@@ -1,63 +1,23 @@
 #include <node_lvgl_ui.hpp>
 
-#define DISP_BUF_SIZE (600 * 1024)
+#include <custom.h>
 
 #include <chrono>
+
 using namespace std::chrono_literals;
 using namespace DartConfig;
 
 lv_ui guider_ui;
 std::shared_ptr<NodeLVGLUI> node;
 
-/*Set in lv_conf.h as `LV_TICK_CUSTOM_SYS_TIME_EXPR`*/
-// custom_tick_get 使用chrono实现，精度到ms
-uint32_t custom_tick_get()
-{
-  static auto start = std::chrono::high_resolution_clock::now();
-  auto now = std::chrono::high_resolution_clock::now();
-  return std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-}
-
-void spinbox_event_cb(lv_event_t *event)
-{
-  // 调用node->spinbox_event_cb(obj, event);
-  if (node && !(node->callback_disabled))
-    node->loadParametersfromGUI();
-}
-
-template <typename Func>
-void with_ui_lock(std::shared_ptr<NodeLVGLUI> node, Func func)
-{
-  std::lock_guard<std::mutex> lock(node->mutex_ui_);
-  func(); // 调用传递的lambda表达式
-}
-
-void btn_reload_params_cb(lv_event_t *event)
-{
-  static bool operating = false;
-  if (node && !(operating))
-  {
-    operating = true;
-    std::thread([&]()
-                {
-      auto client = node->create_client<std_srvs::srv::Empty>("/dart_config/reset_all_param_to_default");
-      auto request = std::make_shared<std_srvs::srv::Empty::Request>();
-      auto result = client->async_send_request(request);
-      with_ui_lock(node, [&]() {
-        lv_label_set_text(guider_ui.Main_btn_reload_params_label, "恢复...");
-      });
-      // 在future中等待结果
-      result.wait_until(std::chrono::steady_clock::now() + std::chrono::seconds(2));
-      with_ui_lock(node, [&]() {
-        lv_label_set_text(guider_ui.Main_btn_reload_params_label, "恢复默认");
-       });
-      operating = false; })
-        .detach();
-  }
-}
-
 NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
 {
+  // 参数
+  this->declare_parameter("yaw_angle_calibration_factor", rclcpp::ParameterType::PARAMETER_DOUBLE);
+  this->set_parameter(rclcpp::Parameter("yaw_angle_calibration_factor", 400.0));
+  this->declare_parameter("yaw_angle_calibration_filter_factor", rclcpp::ParameterType::PARAMETER_DOUBLE);
+  this->set_parameter(rclcpp::Parameter("yaw_angle_calibration_filter_factor", 0.8));
+
   lv_log_register_print_cb(print_cb);
 
   lv_init();
@@ -97,17 +57,6 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
   setup_ui(&guider_ui);
   events_init(&guider_ui);
   custom_init(&guider_ui);
-
-  // Event Init
-  lv_obj_add_event_cb(guider_ui.Main_spinbox_fw_speed, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(guider_ui.Main_spinbox_fw_speed_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(guider_ui.Main_spinbox_fw_speed_ratio, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_angle, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(guider_ui.Main_sw_auto_rpm_calibration, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_add_event_cb(guider_ui.Main_sw_auto_yaw_calibration, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-
-  lv_obj_add_event_cb(guider_ui.Main_btn_reload_params, btn_reload_params_cb, LV_EVENT_CLICKED, NULL);
 
   DartConfig::declareParameters(*this);
   // Subscribe /dart_controller/dart_launcher_status /dart_controller/dart_launcher_present_param
@@ -162,8 +111,15 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
     update_ip_address();
   };
 
+  auto timer_callback_lv_tick_inc =
+      [this]() -> void
+  {
+    lv_tick_inc(1);
+  };
+
   timer_[0] = this->create_wall_timer(1000ms, timer_callback_ip_update);
   // timer_[1] = this->create_wall_timer(1s, timer_callback_informational_update);
+  timer_[1] = this->create_wall_timer(1ms, timer_callback_lv_tick_inc);
 
   static std::thread ui_thread(timer_callback_ui);
   ui_thread.detach();
@@ -181,6 +137,7 @@ void NodeLVGLUI::loadParametersfromGUI()
   msg.auto_yaw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_yaw_calibration, LV_STATE_CHECKED);
   msg.auto_fw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_rpm_calibration, LV_STATE_CHECKED);
   dart_launcher_cmd_pub_->publish(msg);
+  msg.target_yaw_x_axis = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_calibration_x) / 1000.0;
 
   callback_disabled = true;
   loadParametersfromMsg(*this, std::make_shared<info::msg::DartParam>(msg));
@@ -189,6 +146,39 @@ void NodeLVGLUI::loadParametersfromGUI()
 
 void NodeLVGLUI::calibration_yaw()
 {
+  // 检测参数内的Yaw轴x方向目标角度，如果有效检测到绿灯，则计算绿灯坐标与目标角度的差值，作为偏移量，进行折算后加到目标角度上
+  // 如果未检测到绿灯，则不动
+  if (dart_launcher_status_->dart_launcher_online && dart_launcher_status_->dart_state != 100 && dart_launcher_status_->dart_state != 101) // 未处于boot/保护状态
+  {
+    int32_t target_yaw_angle = this->get_parameter("target_yaw_angle").as_int();
+    double target_yaw_x_axis = this->get_parameter("target_yaw_x_axis").as_double();
+    if (green_light_->is_detected == true)
+    {
+      static double yaw_angle_calibration_factor = this->get_parameter("yaw_angle_calibration_factor").as_double();
+      // 计算偏移量
+      double delta_x = green_light_->location.x - target_yaw_x_axis;
+      // 区间判断，若偏移量为正说明绿灯在右侧，应该向左转，调小target_yaw_angle
+      if (delta_x > 5)
+      {
+        target_yaw_angle -= delta_x * yaw_angle_calibration_factor;
+      }
+      else if (delta_x < -5)
+      {
+        target_yaw_angle -= delta_x * yaw_angle_calibration_factor;
+      }
+      if (target_yaw_angle > YAW_MAX_ANGLE)
+        target_yaw_angle = YAW_MAX_ANGLE;
+      else if (target_yaw_angle < 5000)
+        target_yaw_angle = 5000;
+
+      RCLCPP_INFO(this->get_logger(), "Calibrating yaw angle to %d", target_yaw_angle);
+      lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_angle, target_yaw_angle); // 会自动调用回调函数进行更新
+    }
+  }
+  else
+  {
+    RCLCPP_INFO(this->get_logger(), "Dart launcher is offline or in boot/protect state, skip calibration");
+  }
 }
 
 rcl_interfaces::msg::SetParametersResult NodeLVGLUI::set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters)
@@ -205,6 +195,18 @@ void NodeLVGLUI::update_green_light_callback(info::msg::GreenLight::SharedPtr ms
 {
   if (msg == nullptr)
     return;
+
+  double last_location_x;
+  if (green_light_)
+    last_location_x = green_light_->location.x;
+  else
+    last_location_x = msg->location.x;
+  // 低通滤波
+  msg->location.x = msg->location.x * this->get_parameter("yaw_angle_calibration_filter_factor").as_double() + last_location_x * (1 - this->get_parameter("yaw_angle_calibration_filter_factor").as_double());
+  if (!msg->is_detected)
+    msg->location.x = last_location_x;
+  green_light_ = msg;
+
   with_ui_lock(node, [&]()
                {
     if (msg->is_detected)
@@ -213,11 +215,16 @@ void NodeLVGLUI::update_green_light_callback(info::msg::GreenLight::SharedPtr ms
       sprintf(buf, "%.1f, %.1f", msg->location.x, msg->location.y);
       RCLCPP_INFO(this->get_logger(), "Green light detected at %.1f, %.1f", msg->location.x, msg->location.y);
       lv_label_set_text(guider_ui.Main_label_yaw_location, buf);
+      lv_label_set_text(guider_ui.Main_label_yaw_location_cv, buf);
     }
     else
     {
       lv_label_set_text(guider_ui.Main_label_yaw_location, "N/A");
+      lv_label_set_text(guider_ui.Main_label_yaw_location_cv, "N/A");
     } });
+
+  if (this->get_parameter("auto_yaw_calibration").as_bool())
+    calibration_yaw(); // 10Hz
 }
 
 void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg)
@@ -234,6 +241,8 @@ void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherSta
   */
   if (msg == nullptr)
     return;
+
+  dart_launcher_status_ = msg;
 
   if (!mutex_ui_.try_lock())
     return;
@@ -360,46 +369,34 @@ void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherSta
   mutex_ui_.unlock();
 }
 
-void NodeLVGLUI::set_switch_state(lv_obj_t *sw, bool state)
-{
-  if (state)
-  {
-    lv_obj_add_state(sw, LV_STATE_CHECKED);
-  }
-  else
-  {
-    lv_obj_clear_state(sw, LV_STATE_CHECKED);
-  }
-}
-
 void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
 {
-  static lv_color_t img_buf_[2][LV_CANVAS_BUF_SIZE_TRUE_COLOR(542, 433)];
+  static lv_color_t img_buf_[2][LV_CANVAS_BUF_SIZE_TRUE_COLOR(606, 485)];
   static int buf_index = 0;
   buf_index %= 2;
   // img_buf = img_buf_;
   if (msg == nullptr)
     return;
   // 图像是bgr8
-  // 用cv_bridge压缩到542*433
+  // 用cv_bridge压缩到606*485
   cv::Mat img_resized =
       cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8)->image;
 
   // 压缩
-  cv::resize(img_resized, img_resized, cv::Size(542, 433), 0, 0, cv::INTER_LINEAR);
+  cv::resize(img_resized, img_resized, cv::Size(606, 485), 0, 0, cv::INTER_LINEAR);
 
   // 转换为16位加载到lvgl buf
-  for (int row = 0; row < 433; ++row)
+  for (int row = 0; row < 485; ++row)
   {
-    for (int col = 0; col < 542; ++col)
+    for (int col = 0; col < 606; ++col)
     {
       auto px = img_resized.at<cv::Vec3b>(row, col);
-      img_buf_[buf_index][row * 542 + col] = LV_COLOR_MAKE(px[2], px[1], px[0]);
+      img_buf_[buf_index][row * 606 + col] = LV_COLOR_MAKE(px[2], px[1], px[0]);
     }
   }
   mutex_ui_.lock();
-  // lv_canvas_copy_buf(guider_ui.Main_canvas_opencv, img_buf_, 0, 0, 542, 433); // 双缓冲绘制
-  lv_canvas_set_buffer(guider_ui.Main_canvas_opencv, img_buf_[buf_index], 542, 433, LV_IMG_CF_TRUE_COLOR);
+  // lv_canvas_copy_buf(guider_ui.Main_canvas_opencv, img_buf_, 0, 0, 606, 485); // 双缓冲绘制
+  lv_canvas_set_buffer(guider_ui.Main_canvas_opencv, img_buf_[buf_index], 606, 485, LV_IMG_CF_TRUE_COLOR);
   lv_obj_invalidate(guider_ui.Main_canvas_opencv);
   mutex_ui_.unlock();
   buf_index++;
@@ -413,12 +410,16 @@ void NodeLVGLUI::update_parameters_to_gui()
 
   lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_angle, this->get_parameter("target_yaw_angle").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_offset, this->get_parameter("target_yaw_angle_offset").as_int());
+  lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_angle_cv, this->get_parameter("target_yaw_angle").as_int());
+  lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_angle_offset_cv, this->get_parameter("target_yaw_angle_offset").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed, this->get_parameter("target_fw_velocity").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_offset, this->get_parameter("target_fw_velocity_offset").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_ratio, this->get_parameter("target_fw_velocity_ratio").as_double() * 1000);
+  lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_calibration_x, this->get_parameter("target_yaw_x_axis").as_double() * 1000);
   // Switch value
   set_switch_state(guider_ui.Main_sw_auto_rpm_calibration, this->get_parameter("auto_fw_calibration").as_bool());
   set_switch_state(guider_ui.Main_sw_auto_yaw_calibration, this->get_parameter("auto_yaw_calibration").as_bool());
+  set_switch_state(guider_ui.Main_sw_auto_yaw_calibration_cv, this->get_parameter("auto_yaw_calibration").as_bool());
 
   callback_disabled = false;
   mutex_ui_.unlock();
@@ -442,19 +443,6 @@ void NodeLVGLUI::update_ip_address()
   RCLCPP_INFO_ONCE(this->get_logger(), "IP address: %s", ip.c_str());
   lv_label_set_text(guider_ui.Main_label_ip, ip.c_str());
   mutex_ui_.unlock();
-}
-
-void NodeLVGLUI::print_cb(const char *buf)
-{
-  // {"Info", "Warn", "Error", "User"}
-  if (buf[0] == '[' && buf[1] == 'I' && buf[2] == 'n' && buf[3] == 'f' && buf[4] == 'o')
-    RCLCPP_INFO(rclcpp::get_logger("lvgl_ui"), buf);
-  else if (buf[0] == '[' && buf[1] == 'U' && buf[2] == 's' && buf[3] == 'e' && buf[4] == 'r')
-    RCLCPP_INFO(rclcpp::get_logger("lvgl_ui"), buf);
-  else if (buf[0] == '[' && buf[1] == 'E' && buf[2] == 'r' && buf[3] == 'r' && buf[4] == 'o' && buf[5] == 'r')
-    RCLCPP_ERROR(rclcpp::get_logger("lvgl_ui"), buf);
-  else if (buf[0] == '[' && buf[1] == 'W' && buf[2] == 'a' && buf[3] == 'r' && buf[4] == 'n')
-    RCLCPP_WARN(rclcpp::get_logger("lvgl_ui"), buf);
 }
 
 int main(void)

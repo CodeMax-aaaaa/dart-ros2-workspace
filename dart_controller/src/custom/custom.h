@@ -11,29 +11,34 @@
 #ifndef __CUSTOM_H_
 #define __CUSTOM_H_
 #ifdef __cplusplus
-extern "C" {
+
+extern "C"
+{
 #endif
 
 #include "gui_guider.h"
 
-void custom_init(lv_ui *ui);
+    void custom_init(lv_ui *ui);
 
-// void textarea_event_cb(lv_event_t * e);
+    void print_cb(const char *buf);
 
-// void color_changer_event_cb(lv_event_t * e);
+    // void textarea_event_cb(lv_event_t * e);
 
-// void color_event_cb(lv_event_t * e);
+    // void color_changer_event_cb(lv_event_t * e);
 
-// void shop_chart_event_cb(lv_event_t * e);
+    // void color_event_cb(lv_event_t * e);
 
-// void arc_MT_anim_cb(void * var, int32_t v);
+    // void shop_chart_event_cb(lv_event_t * e);
 
-// void chart_event_cb(lv_event_t * e);
+    // void arc_MT_anim_cb(void * var, int32_t v);
 
-// void meter_sessions_timer_cb(lv_timer_t * timer);
+    // void chart_event_cb(lv_event_t * e);
 
-// void meterNS_anim_cb(void * var, int32_t v);
+    // void meter_sessions_timer_cb(lv_timer_t * timer);
 
+    // void meterNS_anim_cb(void * var, int32_t v);
+
+    void set_switch_state(lv_obj_t *sw, bool state);
 
 #ifdef __cplusplus
 }

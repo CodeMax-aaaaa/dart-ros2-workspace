@@ -8,3 +8,4 @@ int32[4] target_yaw_launch_angle_offset [0, 0, 0, 0]
 int32[4] target_fw_velocity_launch_offset [0, 0, 0, 0]
 bool auto_yaw_calibration 0
 bool auto_fw_calibration 0
+float64 target_yaw_x_axis 640.0

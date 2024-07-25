@@ -591,11 +591,11 @@ void setup_scr_Main(lv_ui *ui)
 	lv_meter_scale_t *Main_meter_fw_speed_1_scale_0 = lv_meter_add_scale(ui->Main_meter_fw_speed_1);
 	lv_meter_set_scale_ticks(ui->Main_meter_fw_speed_1, Main_meter_fw_speed_1_scale_0, 51, 1, 6, lv_color_hex(0xffffff));
 	lv_meter_set_scale_major_ticks(ui->Main_meter_fw_speed_1, Main_meter_fw_speed_1_scale_0, 10, 2, 12, lv_color_hex(0xffffff), 20);
-	lv_meter_set_scale_range(ui->Main_meter_fw_speed_1, Main_meter_fw_speed_1_scale_0, 5000, 10000, 300, 120);
+	lv_meter_set_scale_range(ui->Main_meter_fw_speed_1, Main_meter_fw_speed_1_scale_0, 4500, 5500, 300, 120);
 
 	// add needle line for Main_meter_fw_speed_1_scale_0.
 	ui->Main_meter_fw_speed_1_scale_0_ndline_0 = lv_meter_add_needle_line(ui->Main_meter_fw_speed_1, Main_meter_fw_speed_1_scale_0, 3, lv_color_hex(0x00a1b5), 0);
-	lv_meter_set_indicator_value(ui->Main_meter_fw_speed_1, ui->Main_meter_fw_speed_1_scale_0_ndline_0, 0);
+	lv_meter_set_indicator_value(ui->Main_meter_fw_speed_1, ui->Main_meter_fw_speed_1_scale_0_ndline_0, 5000);
 	lv_obj_set_pos(ui->Main_meter_fw_speed_1, 18, -4);
 	lv_obj_set_size(ui->Main_meter_fw_speed_1, 250, 250);
 
@@ -626,7 +626,7 @@ void setup_scr_Main(lv_ui *ui)
 	lv_meter_scale_t *Main_meter_fw_speed_2_scale_0 = lv_meter_add_scale(ui->Main_meter_fw_speed_2);
 	lv_meter_set_scale_ticks(ui->Main_meter_fw_speed_2, Main_meter_fw_speed_2_scale_0, 51, 1, 6, lv_color_hex(0xffffff));
 	lv_meter_set_scale_major_ticks(ui->Main_meter_fw_speed_2, Main_meter_fw_speed_2_scale_0, 10, 2, 12, lv_color_hex(0xffffff), 20);
-	lv_meter_set_scale_range(ui->Main_meter_fw_speed_2, Main_meter_fw_speed_2_scale_0, 5000, 10000, 300, 120);
+	lv_meter_set_scale_range(ui->Main_meter_fw_speed_2, Main_meter_fw_speed_2_scale_0, 6000, 8000, 300, 120);
 
 	// add needle line for Main_meter_fw_speed_2_scale_0.
 	ui->Main_meter_fw_speed_2_scale_0_ndline_0 = lv_meter_add_needle_line(ui->Main_meter_fw_speed_2, Main_meter_fw_speed_2_scale_0, 3, lv_color_hex(0x00a1b5), 0);
@@ -752,7 +752,7 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_set_style_anim_time(ui->Main_bar_yaw_angle, 1000, 0);
 	lv_bar_set_mode(ui->Main_bar_yaw_angle, LV_BAR_MODE_NORMAL);
 	lv_bar_set_range(ui->Main_bar_yaw_angle, 0, 100);
-	lv_bar_set_value(ui->Main_bar_yaw_angle, 0, LV_ANIM_OFF);
+	lv_bar_set_value(ui->Main_bar_yaw_angle, 50, LV_ANIM_OFF);
 	lv_obj_set_pos(ui->Main_bar_yaw_angle, 57, 384);
 	lv_obj_set_size(ui->Main_bar_yaw_angle, 200, 10);
 
@@ -885,9 +885,9 @@ void setup_scr_Main(lv_ui *ui)
 
 	// Write codes Main_label_25
 	ui->Main_label_25 = lv_label_create(ui->Main_MainView_tab_1);
-	lv_label_set_text(ui->Main_label_25, "目标位置");
+	lv_label_set_text(ui->Main_label_25, "识别位置");
 	lv_label_set_long_mode(ui->Main_label_25, LV_LABEL_LONG_WRAP);
-	lv_obj_set_pos(ui->Main_label_25, 316, 351);
+	lv_obj_set_pos(ui->Main_label_25, 306, 351);
 	lv_obj_set_size(ui->Main_label_25, 182, 34);
 
 	// Write style for Main_label_25, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
@@ -910,13 +910,13 @@ void setup_scr_Main(lv_ui *ui)
 	ui->Main_label_yaw_location = lv_label_create(ui->Main_MainView_tab_1);
 	lv_label_set_text(ui->Main_label_yaw_location, "N/A");
 	lv_label_set_long_mode(ui->Main_label_yaw_location, LV_LABEL_LONG_WRAP);
-	lv_obj_set_pos(ui->Main_label_yaw_location, 418, 349);
-	lv_obj_set_size(ui->Main_label_yaw_location, 105, 39);
+	lv_obj_set_pos(ui->Main_label_yaw_location, 402, 349);
+	lv_obj_set_size(ui->Main_label_yaw_location, 191, 39);
 
 	// Write style for Main_label_yaw_location, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
 	lv_obj_set_style_border_width(ui->Main_label_yaw_location, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 	lv_obj_set_style_radius(ui->Main_label_yaw_location, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_color(ui->Main_label_yaw_location, lv_color_hex(0x00a1b5), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_yaw_location, lv_color_hex(0xb5e3e9), LV_PART_MAIN | LV_STATE_DEFAULT);
 	lv_obj_set_style_text_font(ui->Main_label_yaw_location, &lv_font_misans_24, LV_PART_MAIN | LV_STATE_DEFAULT);
 	lv_obj_set_style_text_opa(ui->Main_label_yaw_location, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 	lv_obj_set_style_text_letter_space(ui->Main_label_yaw_location, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -2392,7 +2392,6 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_set_size(lv_msgbox_get_btns(ui->Main_msgbox_delete_confirm), 200, 52);
 	lv_obj_set_pos(ui->Main_msgbox_delete_confirm, 435, 1);
 	lv_obj_set_size(ui->Main_msgbox_delete_confirm, 376, 141);
-	lv_obj_add_flag(ui->Main_msgbox_delete_confirm, LV_OBJ_FLAG_HIDDEN);
 
 	// Write style for Main_msgbox_delete_confirm, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
 	lv_obj_set_style_bg_opa(ui->Main_msgbox_delete_confirm, 250, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -2448,37 +2447,387 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_t *Main_MainView_tab_3_label = lv_label_create(ui->Main_MainView_tab_3);
 	lv_label_set_text(Main_MainView_tab_3_label, "");
 
-	// Write codes Main_label_10
-	ui->Main_label_10 = lv_label_create(ui->Main_MainView_tab_3);
-	lv_label_set_text(ui->Main_label_10, "实时视频流");
-	lv_label_set_long_mode(ui->Main_label_10, LV_LABEL_LONG_WRAP);
-	lv_obj_set_pos(ui->Main_label_10, 39, 1);
-	lv_obj_set_size(ui->Main_label_10, 164, 39);
-
-	// Write style for Main_label_10, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
-	lv_obj_set_style_border_width(ui->Main_label_10, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_radius(ui->Main_label_10, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_color(ui->Main_label_10, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_font(ui->Main_label_10, &lv_font_misans_24, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_opa(ui->Main_label_10, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_letter_space(ui->Main_label_10, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_line_space(ui->Main_label_10, 6, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_align(ui->Main_label_10, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_bg_opa(ui->Main_label_10, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_top(ui->Main_label_10, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_right(ui->Main_label_10, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_bottom(ui->Main_label_10, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_left(ui->Main_label_10, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_shadow_width(ui->Main_label_10, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-
 	// Write codes Main_canvas_opencv
 	ui->Main_canvas_opencv = lv_canvas_create(ui->Main_MainView_tab_3);
-	static lv_color_t buf_Main_canvas_opencv[542 * 433 * 2];
-	lv_canvas_set_buffer(ui->Main_canvas_opencv, buf_Main_canvas_opencv, 542, 433, LV_IMG_CF_TRUE_COLOR);
+	static lv_color_t buf_Main_canvas_opencv[606 * 485 * 2];
+	lv_canvas_set_buffer(ui->Main_canvas_opencv, buf_Main_canvas_opencv, 606, 485, LV_IMG_CF_TRUE_COLOR);
 	lv_canvas_fill_bg(ui->Main_canvas_opencv, lv_color_hex(0xffffff), 255);
-	lv_obj_set_pos(ui->Main_canvas_opencv, 37, 38);
-	lv_obj_set_size(ui->Main_canvas_opencv, 542, 433);
+	lv_obj_set_pos(ui->Main_canvas_opencv, 10, 6);
+	lv_obj_set_size(ui->Main_canvas_opencv, 606, 485);
 	lv_obj_set_scrollbar_mode(ui->Main_canvas_opencv, LV_SCROLLBAR_MODE_OFF);
+
+	// Write codes Main_label_43
+	ui->Main_label_43 = lv_label_create(ui->Main_MainView_tab_3);
+	lv_label_set_text(ui->Main_label_43, "Yaw轴主角度");
+	lv_label_set_long_mode(ui->Main_label_43, LV_LABEL_LONG_WRAP);
+	lv_obj_set_pos(ui->Main_label_43, 646, -7);
+	lv_obj_set_size(ui->Main_label_43, 182, 37);
+
+	// Write style for Main_label_43, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_border_width(ui->Main_label_43, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_label_43, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_43, lv_color_hex(0xdcdcdc), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_label_43, &lv_font_misans_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_label_43, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_label_43, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_line_space(ui->Main_label_43, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_label_43, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_label_43, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_label_43, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_label_43, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_label_43, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_label_43, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_label_43, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_label_42
+	ui->Main_label_42 = lv_label_create(ui->Main_MainView_tab_3);
+	lv_label_set_text(ui->Main_label_42, "Yaw轴偏移角度");
+	lv_label_set_long_mode(ui->Main_label_42, LV_LABEL_LONG_WRAP);
+	lv_obj_set_pos(ui->Main_label_42, 645, 106);
+	lv_obj_set_size(ui->Main_label_42, 182, 37);
+
+	// Write style for Main_label_42, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_border_width(ui->Main_label_42, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_label_42, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_42, lv_color_hex(0xdcdcdc), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_label_42, &lv_font_misans_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_label_42, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_label_42, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_line_space(ui->Main_label_42, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_label_42, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_label_42, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_label_42, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_label_42, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_label_42, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_label_42, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_label_42, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_spinbox_yaw_angle_offset_cv
+	ui->Main_spinbox_yaw_angle_offset_cv = lv_spinbox_create(ui->Main_MainView_tab_3);
+	lv_obj_set_pos(ui->Main_spinbox_yaw_angle_offset_cv, 704, 147);
+	lv_obj_set_width(ui->Main_spinbox_yaw_angle_offset_cv, 180);
+	lv_obj_set_height(ui->Main_spinbox_yaw_angle_offset_cv, 55);
+	lv_spinbox_set_digit_format(ui->Main_spinbox_yaw_angle_offset_cv, 6, 4);
+	lv_spinbox_set_range(ui->Main_spinbox_yaw_angle_offset_cv, -999999, 999999);
+	lv_coord_t Main_spinbox_yaw_angle_offset_cv_h = lv_obj_get_height(ui->Main_spinbox_yaw_angle_offset_cv);
+	ui->Main_spinbox_yaw_angle_offset_cv_btn = lv_btn_create(ui->Main_MainView_tab_3);
+	lv_obj_set_size(ui->Main_spinbox_yaw_angle_offset_cv_btn, Main_spinbox_yaw_angle_offset_cv_h, Main_spinbox_yaw_angle_offset_cv_h);
+	lv_obj_align_to(ui->Main_spinbox_yaw_angle_offset_cv_btn, ui->Main_spinbox_yaw_angle_offset_cv, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+	lv_obj_set_style_bg_img_src(ui->Main_spinbox_yaw_angle_offset_cv_btn, LV_SYMBOL_PLUS, 0);
+	lv_obj_add_event_cb(ui->Main_spinbox_yaw_angle_offset_cv_btn, lv_Main_spinbox_yaw_angle_offset_cv_increment_event_cb, LV_EVENT_ALL, NULL);
+	ui->Main_spinbox_yaw_angle_offset_cv_btn_minus = lv_btn_create(ui->Main_MainView_tab_3);
+	lv_obj_set_size(ui->Main_spinbox_yaw_angle_offset_cv_btn_minus, Main_spinbox_yaw_angle_offset_cv_h, Main_spinbox_yaw_angle_offset_cv_h);
+	lv_obj_align_to(ui->Main_spinbox_yaw_angle_offset_cv_btn_minus, ui->Main_spinbox_yaw_angle_offset_cv, LV_ALIGN_OUT_LEFT_MID, -5, 0);
+	lv_obj_set_style_bg_img_src(ui->Main_spinbox_yaw_angle_offset_cv_btn_minus, LV_SYMBOL_MINUS, 0);
+	lv_obj_add_event_cb(ui->Main_spinbox_yaw_angle_offset_cv_btn_minus, lv_Main_spinbox_yaw_angle_offset_cv_decrement_event_cb, LV_EVENT_ALL, NULL);
+	lv_obj_set_pos(ui->Main_spinbox_yaw_angle_offset_cv, 704, 147);
+
+	// Write style for Main_spinbox_yaw_angle_offset_cv, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_bg_opa(ui->Main_spinbox_yaw_angle_offset_cv, 238, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_spinbox_yaw_angle_offset_cv, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_spinbox_yaw_angle_offset_cv, LV_GRAD_DIR_NONE, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(ui->Main_spinbox_yaw_angle_offset_cv, 1, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_opa(ui->Main_spinbox_yaw_angle_offset_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_color(ui->Main_spinbox_yaw_angle_offset_cv, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_side(ui->Main_spinbox_yaw_angle_offset_cv, LV_BORDER_SIDE_FULL, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_spinbox_yaw_angle_offset_cv, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_spinbox_yaw_angle_offset_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_spinbox_yaw_angle_offset_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_spinbox_yaw_angle_offset_cv, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_spinbox_yaw_angle_offset_cv, lv_color_hex(0x2c2c2c), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_spinbox_yaw_angle_offset_cv, &lv_font_misans_35, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_spinbox_yaw_angle_offset_cv, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_spinbox_yaw_angle_offset_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_spinbox_yaw_angle_offset_cv, 7, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_spinbox_yaw_angle_offset_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write style for Main_spinbox_yaw_angle_offset_cv, Part: LV_PART_CURSOR, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_text_color(ui->Main_spinbox_yaw_angle_offset_cv, lv_color_hex(0xcbeaed), LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_spinbox_yaw_angle_offset_cv, &lv_font_misans_35, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_spinbox_yaw_angle_offset_cv, 255, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_spinbox_yaw_angle_offset_cv, 255, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_spinbox_yaw_angle_offset_cv, lv_color_hex(0x098D6B), LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_spinbox_yaw_angle_offset_cv, LV_GRAD_DIR_NONE, LV_PART_CURSOR | LV_STATE_DEFAULT);
+
+	// Write style state: LV_STATE_DEFAULT for &style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default
+	static lv_style_t style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default;
+	ui_init_style(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default);
+
+	lv_style_set_text_color(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, lv_color_hex(0xffffff));
+	lv_style_set_text_font(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, &lv_font_misans_12);
+	lv_style_set_text_opa(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, 255);
+	lv_style_set_bg_opa(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, 183);
+	lv_style_set_bg_color(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, lv_color_hex(0x00a1b5));
+	lv_style_set_bg_grad_dir(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, LV_GRAD_DIR_NONE);
+	lv_style_set_border_width(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, 0);
+	lv_style_set_radius(&style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, 10);
+	lv_obj_add_style(ui->Main_spinbox_yaw_angle_offset_cv_btn, &style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_add_style(ui->Main_spinbox_yaw_angle_offset_cv_btn_minus, &style_Main_spinbox_yaw_angle_offset_cv_extra_btns_main_default, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_spinbox_yaw_angle_cv
+	ui->Main_spinbox_yaw_angle_cv = lv_spinbox_create(ui->Main_MainView_tab_3);
+	lv_obj_set_pos(ui->Main_spinbox_yaw_angle_cv, 704, 35);
+	lv_obj_set_width(ui->Main_spinbox_yaw_angle_cv, 180);
+	lv_obj_set_height(ui->Main_spinbox_yaw_angle_cv, 55);
+	lv_spinbox_set_digit_format(ui->Main_spinbox_yaw_angle_cv, 6, 4);
+	lv_spinbox_set_range(ui->Main_spinbox_yaw_angle_cv, -999999, 999999);
+	lv_coord_t Main_spinbox_yaw_angle_cv_h = lv_obj_get_height(ui->Main_spinbox_yaw_angle_cv);
+	ui->Main_spinbox_yaw_angle_cv_btn = lv_btn_create(ui->Main_MainView_tab_3);
+	lv_obj_set_size(ui->Main_spinbox_yaw_angle_cv_btn, Main_spinbox_yaw_angle_cv_h, Main_spinbox_yaw_angle_cv_h);
+	lv_obj_align_to(ui->Main_spinbox_yaw_angle_cv_btn, ui->Main_spinbox_yaw_angle_cv, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+	lv_obj_set_style_bg_img_src(ui->Main_spinbox_yaw_angle_cv_btn, LV_SYMBOL_PLUS, 0);
+	lv_obj_add_event_cb(ui->Main_spinbox_yaw_angle_cv_btn, lv_Main_spinbox_yaw_angle_cv_increment_event_cb, LV_EVENT_ALL, NULL);
+	ui->Main_spinbox_yaw_angle_cv_btn_minus = lv_btn_create(ui->Main_MainView_tab_3);
+	lv_obj_set_size(ui->Main_spinbox_yaw_angle_cv_btn_minus, Main_spinbox_yaw_angle_cv_h, Main_spinbox_yaw_angle_cv_h);
+	lv_obj_align_to(ui->Main_spinbox_yaw_angle_cv_btn_minus, ui->Main_spinbox_yaw_angle_cv, LV_ALIGN_OUT_LEFT_MID, -5, 0);
+	lv_obj_set_style_bg_img_src(ui->Main_spinbox_yaw_angle_cv_btn_minus, LV_SYMBOL_MINUS, 0);
+	lv_obj_add_event_cb(ui->Main_spinbox_yaw_angle_cv_btn_minus, lv_Main_spinbox_yaw_angle_cv_decrement_event_cb, LV_EVENT_ALL, NULL);
+	lv_obj_set_pos(ui->Main_spinbox_yaw_angle_cv, 704, 35);
+
+	// Write style for Main_spinbox_yaw_angle_cv, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_bg_opa(ui->Main_spinbox_yaw_angle_cv, 238, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_spinbox_yaw_angle_cv, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_spinbox_yaw_angle_cv, LV_GRAD_DIR_NONE, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(ui->Main_spinbox_yaw_angle_cv, 1, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_opa(ui->Main_spinbox_yaw_angle_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_color(ui->Main_spinbox_yaw_angle_cv, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_side(ui->Main_spinbox_yaw_angle_cv, LV_BORDER_SIDE_FULL, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_spinbox_yaw_angle_cv, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_spinbox_yaw_angle_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_spinbox_yaw_angle_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_spinbox_yaw_angle_cv, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_spinbox_yaw_angle_cv, lv_color_hex(0x2c2c2c), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_spinbox_yaw_angle_cv, &lv_font_misans_35, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_spinbox_yaw_angle_cv, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_spinbox_yaw_angle_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_spinbox_yaw_angle_cv, 7, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_spinbox_yaw_angle_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write style for Main_spinbox_yaw_angle_cv, Part: LV_PART_CURSOR, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_text_color(ui->Main_spinbox_yaw_angle_cv, lv_color_hex(0xcbeaed), LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_spinbox_yaw_angle_cv, &lv_font_misans_35, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_spinbox_yaw_angle_cv, 255, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_spinbox_yaw_angle_cv, 255, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_spinbox_yaw_angle_cv, lv_color_hex(0x098D6B), LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_spinbox_yaw_angle_cv, LV_GRAD_DIR_NONE, LV_PART_CURSOR | LV_STATE_DEFAULT);
+
+	// Write style state: LV_STATE_DEFAULT for &style_Main_spinbox_yaw_angle_cv_extra_btns_main_default
+	static lv_style_t style_Main_spinbox_yaw_angle_cv_extra_btns_main_default;
+	ui_init_style(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default);
+
+	lv_style_set_text_color(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, lv_color_hex(0xffffff));
+	lv_style_set_text_font(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, &lv_font_misans_12);
+	lv_style_set_text_opa(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, 255);
+	lv_style_set_bg_opa(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, 183);
+	lv_style_set_bg_color(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, lv_color_hex(0x00a1b5));
+	lv_style_set_bg_grad_dir(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, LV_GRAD_DIR_NONE);
+	lv_style_set_border_width(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, 0);
+	lv_style_set_radius(&style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, 10);
+	lv_obj_add_style(ui->Main_spinbox_yaw_angle_cv_btn, &style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_add_style(ui->Main_spinbox_yaw_angle_cv_btn_minus, &style_Main_spinbox_yaw_angle_cv_extra_btns_main_default, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_label_44
+	ui->Main_label_44 = lv_label_create(ui->Main_MainView_tab_3);
+	lv_label_set_text(ui->Main_label_44, "识别位置");
+	lv_label_set_long_mode(ui->Main_label_44, LV_LABEL_LONG_WRAP);
+	lv_obj_set_pos(ui->Main_label_44, 648, 446);
+	lv_obj_set_size(ui->Main_label_44, 157, 32);
+
+	// Write style for Main_label_44, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_border_width(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_44, lv_color_hex(0xf2f2f2), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_label_44, &lv_font_misans_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_label_44, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_label_44, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_line_space(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_label_44, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_label_44, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_label_yaw_location_cv
+	ui->Main_label_yaw_location_cv = lv_label_create(ui->Main_MainView_tab_3);
+	lv_label_set_text(ui->Main_label_yaw_location_cv, "N/A");
+	lv_label_set_long_mode(ui->Main_label_yaw_location_cv, LV_LABEL_LONG_WRAP);
+	lv_obj_set_pos(ui->Main_label_yaw_location_cv, 744, 444);
+	lv_obj_set_size(ui->Main_label_yaw_location_cv, 251, 45);
+
+	// Write style for Main_label_yaw_location_cv, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_border_width(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_yaw_location_cv, lv_color_hex(0xa2ceee), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_label_yaw_location_cv, &lv_font_misans_24, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_label_yaw_location_cv, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_label_yaw_location_cv, 1, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_line_space(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_label_yaw_location_cv, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_label_yaw_location_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_spinbox_yaw_calibration_x
+	ui->Main_spinbox_yaw_calibration_x = lv_spinbox_create(ui->Main_MainView_tab_3);
+	lv_obj_set_pos(ui->Main_spinbox_yaw_calibration_x, 705, 259);
+	lv_obj_set_width(ui->Main_spinbox_yaw_calibration_x, 180);
+	lv_obj_set_height(ui->Main_spinbox_yaw_calibration_x, 55);
+	lv_spinbox_set_digit_format(ui->Main_spinbox_yaw_calibration_x, 6, 4);
+	lv_spinbox_set_range(ui->Main_spinbox_yaw_calibration_x, -999999, 999999);
+	lv_coord_t Main_spinbox_yaw_calibration_x_h = lv_obj_get_height(ui->Main_spinbox_yaw_calibration_x);
+	ui->Main_spinbox_yaw_calibration_x_btn = lv_btn_create(ui->Main_MainView_tab_3);
+	lv_obj_set_size(ui->Main_spinbox_yaw_calibration_x_btn, Main_spinbox_yaw_calibration_x_h, Main_spinbox_yaw_calibration_x_h);
+	lv_obj_align_to(ui->Main_spinbox_yaw_calibration_x_btn, ui->Main_spinbox_yaw_calibration_x, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+	lv_obj_set_style_bg_img_src(ui->Main_spinbox_yaw_calibration_x_btn, LV_SYMBOL_PLUS, 0);
+	lv_obj_add_event_cb(ui->Main_spinbox_yaw_calibration_x_btn, lv_Main_spinbox_yaw_calibration_x_increment_event_cb, LV_EVENT_ALL, NULL);
+	ui->Main_spinbox_yaw_calibration_x_btn_minus = lv_btn_create(ui->Main_MainView_tab_3);
+	lv_obj_set_size(ui->Main_spinbox_yaw_calibration_x_btn_minus, Main_spinbox_yaw_calibration_x_h, Main_spinbox_yaw_calibration_x_h);
+	lv_obj_align_to(ui->Main_spinbox_yaw_calibration_x_btn_minus, ui->Main_spinbox_yaw_calibration_x, LV_ALIGN_OUT_LEFT_MID, -5, 0);
+	lv_obj_set_style_bg_img_src(ui->Main_spinbox_yaw_calibration_x_btn_minus, LV_SYMBOL_MINUS, 0);
+	lv_obj_add_event_cb(ui->Main_spinbox_yaw_calibration_x_btn_minus, lv_Main_spinbox_yaw_calibration_x_decrement_event_cb, LV_EVENT_ALL, NULL);
+	lv_obj_set_pos(ui->Main_spinbox_yaw_calibration_x, 705, 259);
+
+	// Write style for Main_spinbox_yaw_calibration_x, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_bg_opa(ui->Main_spinbox_yaw_calibration_x, 238, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_spinbox_yaw_calibration_x, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_spinbox_yaw_calibration_x, LV_GRAD_DIR_NONE, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(ui->Main_spinbox_yaw_calibration_x, 1, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_opa(ui->Main_spinbox_yaw_calibration_x, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_color(ui->Main_spinbox_yaw_calibration_x, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_side(ui->Main_spinbox_yaw_calibration_x, LV_BORDER_SIDE_FULL, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_spinbox_yaw_calibration_x, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_spinbox_yaw_calibration_x, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_spinbox_yaw_calibration_x, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_spinbox_yaw_calibration_x, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_spinbox_yaw_calibration_x, lv_color_hex(0x2c2c2c), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_spinbox_yaw_calibration_x, &lv_font_misans_35, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_spinbox_yaw_calibration_x, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_spinbox_yaw_calibration_x, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_spinbox_yaw_calibration_x, 7, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_spinbox_yaw_calibration_x, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write style for Main_spinbox_yaw_calibration_x, Part: LV_PART_CURSOR, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_text_color(ui->Main_spinbox_yaw_calibration_x, lv_color_hex(0xcbeaed), LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_spinbox_yaw_calibration_x, &lv_font_misans_35, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_spinbox_yaw_calibration_x, 255, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_spinbox_yaw_calibration_x, 255, LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_spinbox_yaw_calibration_x, lv_color_hex(0x098D6B), LV_PART_CURSOR | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_spinbox_yaw_calibration_x, LV_GRAD_DIR_NONE, LV_PART_CURSOR | LV_STATE_DEFAULT);
+
+	// Write style state: LV_STATE_DEFAULT for &style_Main_spinbox_yaw_calibration_x_extra_btns_main_default
+	static lv_style_t style_Main_spinbox_yaw_calibration_x_extra_btns_main_default;
+	ui_init_style(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default);
+
+	lv_style_set_text_color(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, lv_color_hex(0xffffff));
+	lv_style_set_text_font(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, &lv_font_misans_12);
+	lv_style_set_text_opa(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, 255);
+	lv_style_set_bg_opa(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, 183);
+	lv_style_set_bg_color(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, lv_color_hex(0x00a1b5));
+	lv_style_set_bg_grad_dir(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, LV_GRAD_DIR_NONE);
+	lv_style_set_border_width(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, 0);
+	lv_style_set_radius(&style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, 10);
+	lv_obj_add_style(ui->Main_spinbox_yaw_calibration_x_btn, &style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_add_style(ui->Main_spinbox_yaw_calibration_x_btn_minus, &style_Main_spinbox_yaw_calibration_x_extra_btns_main_default, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_label_46
+	ui->Main_label_46 = lv_label_create(ui->Main_MainView_tab_3);
+	lv_label_set_text(ui->Main_label_46, "目标像素点X轴");
+	lv_label_set_long_mode(ui->Main_label_46, LV_LABEL_LONG_WRAP);
+	lv_obj_set_pos(ui->Main_label_46, 642, 219);
+	lv_obj_set_size(ui->Main_label_46, 182, 37);
+
+	// Write style for Main_label_46, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_border_width(ui->Main_label_46, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_label_46, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_46, lv_color_hex(0xdcdcdc), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_label_46, &lv_font_misans_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_label_46, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_label_46, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_line_space(ui->Main_label_46, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_label_46, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_label_46, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_label_46, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_label_46, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_label_46, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_label_46, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_label_46, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_label_47
+	ui->Main_label_47 = lv_label_create(ui->Main_MainView_tab_3);
+	lv_label_set_text(ui->Main_label_47, "Auto");
+	lv_label_set_long_mode(ui->Main_label_47, LV_LABEL_LONG_WRAP);
+	lv_obj_set_pos(ui->Main_label_47, 652, 330);
+	lv_obj_set_size(ui->Main_label_47, 62, 29);
+
+	// Write style for Main_label_47, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_border_width(ui->Main_label_47, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_label_47, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_47, lv_color_hex(0xdcdcdc), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_label_47, &lv_font_misans_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_label_47, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_label_47, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_line_space(ui->Main_label_47, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_label_47, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_label_47, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_label_47, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_label_47, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_label_47, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_label_47, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_label_47, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_sw_auto_yaw_calibration_cv
+	ui->Main_sw_auto_yaw_calibration_cv = lv_switch_create(ui->Main_MainView_tab_3);
+	lv_obj_set_pos(ui->Main_sw_auto_yaw_calibration_cv, 718, 334);
+	lv_obj_set_size(ui->Main_sw_auto_yaw_calibration_cv, 64, 30);
+
+	// Write style for Main_sw_auto_yaw_calibration_cv, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_bg_opa(ui->Main_sw_auto_yaw_calibration_cv, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_sw_auto_yaw_calibration_cv, lv_color_hex(0x41485a), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_sw_auto_yaw_calibration_cv, LV_GRAD_DIR_NONE, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(ui->Main_sw_auto_yaw_calibration_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_sw_auto_yaw_calibration_cv, 30, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_sw_auto_yaw_calibration_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write style for Main_sw_auto_yaw_calibration_cv, Part: LV_PART_INDICATOR, State: LV_STATE_CHECKED.
+	lv_obj_set_style_bg_opa(ui->Main_sw_auto_yaw_calibration_cv, 68, LV_PART_INDICATOR | LV_STATE_CHECKED);
+	lv_obj_set_style_bg_color(ui->Main_sw_auto_yaw_calibration_cv, lv_color_hex(0x00a1b5), LV_PART_INDICATOR | LV_STATE_CHECKED);
+	lv_obj_set_style_bg_grad_dir(ui->Main_sw_auto_yaw_calibration_cv, LV_GRAD_DIR_NONE, LV_PART_INDICATOR | LV_STATE_CHECKED);
+	lv_obj_set_style_border_width(ui->Main_sw_auto_yaw_calibration_cv, 0, LV_PART_INDICATOR | LV_STATE_CHECKED);
+
+	// Write style for Main_sw_auto_yaw_calibration_cv, Part: LV_PART_KNOB, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_bg_opa(ui->Main_sw_auto_yaw_calibration_cv, 255, LV_PART_KNOB | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_sw_auto_yaw_calibration_cv, lv_color_hex(0x00a1b5), LV_PART_KNOB | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_sw_auto_yaw_calibration_cv, LV_GRAD_DIR_NONE, LV_PART_KNOB | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(ui->Main_sw_auto_yaw_calibration_cv, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_sw_auto_yaw_calibration_cv, 10, LV_PART_KNOB | LV_STATE_DEFAULT);
+
+	// Write codes Main_btn_yaw_calibration_cv
+	ui->Main_btn_yaw_calibration_cv = lv_btn_create(ui->Main_MainView_tab_3);
+	ui->Main_btn_yaw_calibration_cv_label = lv_label_create(ui->Main_btn_yaw_calibration_cv);
+	lv_label_set_text(ui->Main_btn_yaw_calibration_cv_label, "标定Yaw");
+	lv_label_set_long_mode(ui->Main_btn_yaw_calibration_cv_label, LV_LABEL_LONG_WRAP);
+	lv_obj_align(ui->Main_btn_yaw_calibration_cv_label, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_set_style_pad_all(ui->Main_btn_yaw_calibration_cv, 0, LV_STATE_DEFAULT);
+	lv_obj_set_width(ui->Main_btn_yaw_calibration_cv_label, LV_PCT(100));
+	lv_obj_set_pos(ui->Main_btn_yaw_calibration_cv, 646, 374);
+	lv_obj_set_size(ui->Main_btn_yaw_calibration_cv, 152, 60);
+
+	// Write style for Main_btn_yaw_calibration_cv, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_bg_opa(ui->Main_btn_yaw_calibration_cv, 183, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(ui->Main_btn_yaw_calibration_cv, lv_color_hex(0x00a1b5), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_grad_dir(ui->Main_btn_yaw_calibration_cv, LV_GRAD_DIR_NONE, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(ui->Main_btn_yaw_calibration_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_btn_yaw_calibration_cv, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_btn_yaw_calibration_cv, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_btn_yaw_calibration_cv, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_btn_yaw_calibration_cv, &lv_font_misans_24, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_btn_yaw_calibration_cv, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_btn_yaw_calibration_cv, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
 
 	// Write codes Main_label_3
 	ui->Main_label_3 = lv_label_create(ui->Main);
@@ -2572,6 +2921,53 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_set_style_pad_left(ui->Main_label_state, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 	lv_obj_set_style_shadow_width(ui->Main_label_state, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+	// Write codes Main_label_voltage
+	ui->Main_label_voltage = lv_label_create(ui->Main);
+	lv_label_set_text(ui->Main_label_voltage, "22.4V");
+	lv_label_set_long_mode(ui->Main_label_voltage, LV_LABEL_LONG_WRAP);
+	lv_obj_set_pos(ui->Main_label_voltage, 550, 15);
+	lv_obj_set_size(ui->Main_label_voltage, 96, 43);
+
+	// Write style for Main_label_voltage, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_border_width(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_voltage, lv_color_hex(0x00a1b5), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_label_voltage, &lv_font_misans_28, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_label_voltage, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_label_voltage, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_line_space(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_label_voltage, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_label_voltage, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+	// Write codes Main_label_37
+	ui->Main_label_37 = lv_label_create(ui->Main);
+	lv_label_set_text(ui->Main_label_37, "请输入编号");
+	lv_label_set_long_mode(ui->Main_label_37, LV_LABEL_LONG_WRAP);
+	lv_obj_set_pos(ui->Main_label_37, 1134, 366);
+	lv_obj_set_size(ui->Main_label_37, 100, 32);
+	lv_obj_add_flag(ui->Main_label_37, LV_OBJ_FLAG_HIDDEN);
+
+	// Write style for Main_label_37, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+	lv_obj_set_style_border_width(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_radius(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_color(ui->Main_label_37, lv_color_hex(0x0d0d0d), LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_font(ui->Main_label_37, &lv_font_misans_26, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_opa(ui->Main_label_37, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_letter_space(ui->Main_label_37, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_line_space(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_text_align(ui->Main_label_37, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_opa(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+	lv_obj_set_style_shadow_width(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
 	// Write codes Main_msgbox
 	static const char *Main_msgbox_btns[] = {""};
 	ui->Main_msgbox = lv_msgbox_create(ui->Main, "提示警告", "Yaw弹鼓摩擦轮C板电机裁判遥控器掉线", Main_msgbox_btns, false);
@@ -2649,29 +3045,6 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_set_style_pad_bottom(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_left(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 	lv_obj_set_style_shadow_width(ui->Main_label_37, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-	// Write codes Main_label_voltage
-	ui->Main_label_voltage = lv_label_create(ui->Main);
-	lv_label_set_text(ui->Main_label_voltage, "");
-	lv_label_set_long_mode(ui->Main_label_voltage, LV_LABEL_LONG_WRAP);
-	lv_obj_set_pos(ui->Main_label_voltage, 550, 15);
-	lv_obj_set_size(ui->Main_label_voltage, 96, 43);
-
-	// Write style for Main_label_voltage, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
-	lv_obj_set_style_border_width(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_radius(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_color(ui->Main_label_voltage, lv_color_hex(0x00a1b5), LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_font(ui->Main_label_voltage, &lv_font_misans_28, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_opa(ui->Main_label_voltage, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_letter_space(ui->Main_label_voltage, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_line_space(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_text_align(ui->Main_label_voltage, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_bg_opa(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_top(ui->Main_label_voltage, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_right(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_bottom(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_left(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-	lv_obj_set_style_shadow_width(ui->Main_label_voltage, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 
 	// The custom code of Main.
 

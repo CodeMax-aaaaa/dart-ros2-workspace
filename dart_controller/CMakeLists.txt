@@ -9,6 +9,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+
 # dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -25,36 +27,48 @@ add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.
 ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs sensor_msgs cv_bridge)
 
 # Add Lvgl support
-add_subdirectory(lvgl)
-add_subdirectory(lv_drivers)
-
-target_include_directories(lvgl PUBLIC include/lvgl lv_drivers)
-target_include_directories(lv_drivers PUBLIC lvgl)
-
-target_include_directories(node_lvgl_ui PUBLIC ${PROJECT_SOURCE_DIR} include src/generated src/custom src/generated/guider_customer_fonts src/generated/guider_fonts src/generated/images ${OpenCV_INCLUDE_DIRS})
+target_include_directories(node_lvgl_ui PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    include
+    src/generated src/custom src/generated/guider_customer_fonts src/generated/guider_fonts src/generated/images
+    ${OpenCV_INCLUDE_DIRS}
+    lvgl/include/lvgl
+)
 
 # 递归添加子目录${PROJECT_SOURCE_DIR}/generated/*
-FILE(GLOB_RECURSE SOURCES src/custom/*.c src/generated/*.c /src/dart_config.cpp)
-target_sources(node_lvgl_ui PUBLIC ${SOURCES})
-target_link_libraries(node_lvgl_ui lvgl lv_drivers ${OpenCV_LIBS})
+FILE(GLOB_RECURSE SOURCES src/custom/*.c src/custom/*.cpp src/generated/*.c /src/dart_config.cpp)
+target_sources(node_lvgl_ui PRIVATE ${SOURCES})
+target_link_directories(node_lvgl_ui PRIVATE lvgl/lib)
+
+if(BUILD_SHARED_LIBS)
+    target_link_libraries(node_lvgl_ui lvgl lv_drivers ${OpenCV_LIBS})
+else()
+    target_link_libraries(node_lvgl_ui liblvgl.a liblv_drivers.a ${OpenCV_LIBS})
+endif()
 
 # Add node_can_agent target
 add_executable(node_can_agent src/node_can_agent.cpp src/dart_config.cpp)
 ament_target_dependencies(node_can_agent rclcpp std_msgs info)
 
 # Add libsockcancpp support
-add_subdirectory(libsockcancpp)
-target_include_directories(node_can_agent PUBLIC libsockcancpp/include libsockcancpp/include/exceptions include)
-target_link_libraries(node_can_agent libsocketcancpp)
+target_include_directories(node_can_agent PRIVATE libsockcancpp/include libsockcancpp/include/exceptions include)
+
+# libsocketcancpp/lib/libsocketcancpp.so
+target_link_directories(node_can_agent PRIVATE libsockcancpp/lib)
+
+if(BUILD_SHARED_LIBS)
+    target_link_libraries(node_can_agent socketcancpp)
+else()
+    target_link_libraries(node_can_agent libsocketcancpp.a)
+endif()
 
 # Add node_dart_config target
 add_executable(node_dart_config src/node_dart_config.cpp src/dart_config.cpp)
-target_include_directories(node_dart_config PUBLIC include)
+target_include_directories(node_dart_config PRIVATE include)
 
 # yaml lib
 find_package(yaml-cpp REQUIRED)
 target_link_libraries(node_dart_config yaml-cpp)
-target_link_libraries(node_can_agent yaml-cpp)
 
 # target_link_libraries(node_can_agent yaml-cpp)
 ament_target_dependencies(node_dart_config rclcpp std_msgs info std_srvs)
@@ -80,6 +94,21 @@ install(DIRECTORY
     config
     DESTINATION share/${PROJECT_NAME}/
 )
+
+if(BUILD_SHARED_LIBS)
+    # 提取所有的.so，不要保留/lib路径
+    install(DIRECTORY
+        lvgl/lib/
+        DESTINATION lib
+        FILES_MATCHING PATTERN "*.so"
+    )
+
+    install(DIRECTORY
+        libsockcancpp/lib/
+        DESTINATION lib
+        FILES_MATCHING PATTERN "*.so"
+    )
+endif()
 
 ament_package()
 
