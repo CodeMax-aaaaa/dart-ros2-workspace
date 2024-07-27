@@ -3,6 +3,7 @@
 #include <info/msg/dart_launcher_status.hpp>
 #include <info/msg/dart_param.hpp>
 #include <info/msg/judge.hpp>
+#include <std_srvs/srv/empty.hpp>
 #include <std_msgs/msg/int32_multi_array.hpp>
 
 #include "dart_config.hpp"
@@ -301,6 +302,32 @@ private:
     void canSetThread()
     {
         static bool _first_boot = true;
+        // 请求重新同步参数
+        auto client = this->create_client<std_srvs::srv::Empty>("/dart_config/resync_all_param");
+        auto request = std::make_shared<std_srvs::srv::Empty::Request>();
+        while (!client->wait_for_service(std::chrono::seconds(1)))
+        {
+            if (!rclcpp::ok())
+            {
+                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
+                return;
+            }
+            RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+        }
+        auto result = client->async_send_request(request);
+        RCLCPP_INFO(this->get_logger(), "Requesting resync all parameters");
+        result.wait();
+        if (result.valid())
+        {
+            RCLCPP_INFO(this->get_logger(), "Resync all parameters successfully");
+        }
+        else
+        {
+            RCLCPP_ERROR(this->get_logger(), "Failed to resync all parameters");
+        }
+        // 等1s同步
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
         while (rclcpp::ok())
         {
             checkParamChanged();

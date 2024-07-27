@@ -41,7 +41,7 @@ private:
     void image_callback(const sensor_msgs::msg::Image::ConstSharedPtr &frame_msg)
     {
         cv::Mat frame = cv_bridge::toCvShare(frame_msg, "bgr8")->image;
-        RCLCPP_INFO(this->get_logger(), "Received image from camera");
+        RCLCPP_DEBUG(this->get_logger(), "Received image from camera");
         if (!frame.empty())
         {
             bool is_detected = false;
@@ -55,7 +55,7 @@ private:
             message.location.y = y;
             message.location.z = 0.0;
 
-            RCLCPP_INFO(this->get_logger(), "Publishing: is_detected='%s', x='%f', y='%f'", is_detected ? "true" : "false", x, y);
+            RCLCPP_DEBUG(this->get_logger(), "Publishing: is_detected='%s', x='%f', y='%f'", is_detected ? "true" : "false", x, y);
             publisher_->publish(message);
 
             std_msgs::msg::Header header;

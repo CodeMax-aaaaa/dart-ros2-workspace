@@ -33,6 +33,7 @@ namespace DartConfig
 
         // server for reset to default parameter yaml
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr srv_reset_;
+        rclcpp::Service<std_srvs::srv::Empty>::SharedPtr srv_resync_;
     };
 };
 

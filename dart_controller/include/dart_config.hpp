@@ -7,10 +7,12 @@
 
 #define DART_CAN_INTERFACE "can0"
 #define YAW_MAX_ANGLE 350000.0
+#define MAX_YAW_CALIBRATION_DELTA_X 5000.0
 
 #include "rclcpp/rclcpp.hpp"
 #include <info/msg/dart_param.hpp>
 #include <string>
+#include <yaml-cpp/yaml.h>
 
 // 数据定义
 // C板上传状态数据
@@ -33,25 +35,6 @@ namespace DartConfig
 {
     void declareParameters(rclcpp::Node &node);
     void loadParametersfromMsg(rclcpp::Node &node, const info::msg::DartParam::SharedPtr msg);
-
-    typedef struct DartData
-    {
-        std::string name = "";
-        int32_t target_yaw_angle_offset = 0;
-        int32_t target_fw_velocity_offset = 0;
-    } DartData;
-
-    class DartDataBase
-    {
-    private:
-        std::vector<DartData> dart_data_;
-
-    public:
-        DartDataBase(rclcpp::Node &node)
-        {
-            // 从参数服务器中读取参数
-        }
-    };
 };
 
 #endif // DART_CONFIG_H

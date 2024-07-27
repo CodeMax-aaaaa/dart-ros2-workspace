@@ -21,6 +21,11 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 
+# 查找 GSL 库
+find_package(GSL REQUIRED)
+
+find_package(yaml-cpp REQUIRED)
+
 # Add node_lvgl_ui target
 include_directories(include)
 add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.cpp)
@@ -36,19 +41,21 @@ target_include_directories(node_lvgl_ui PRIVATE
 )
 
 # 递归添加子目录${PROJECT_SOURCE_DIR}/generated/*
-FILE(GLOB_RECURSE SOURCES src/custom/*.c src/custom/*.cpp src/generated/*.c /src/dart_config.cpp)
+FILE(GLOB_RECURSE SOURCES src/custom/*.c src/custom/*.cpp /src/dart_config.cpp)
 target_sources(node_lvgl_ui PRIVATE ${SOURCES})
-target_link_directories(node_lvgl_ui PRIVATE lvgl/lib)
+target_link_directories(node_lvgl_ui PRIVATE lvgl/lib src/generated/lib)
 
 if(BUILD_SHARED_LIBS)
-    target_link_libraries(node_lvgl_ui lvgl lv_drivers ${OpenCV_LIBS})
+    target_link_libraries(node_lvgl_ui lvgl lv_drivers guider_generated ${OpenCV_LIBS})
 else()
-    target_link_libraries(node_lvgl_ui liblvgl.a liblv_drivers.a ${OpenCV_LIBS})
+    target_link_libraries(node_lvgl_ui liblvgl.a liblv_drivers.a libguider_generated.a ${OpenCV_LIBS})
 endif()
+
+target_link_libraries(node_lvgl_ui)
 
 # Add node_can_agent target
 add_executable(node_can_agent src/node_can_agent.cpp src/dart_config.cpp)
-ament_target_dependencies(node_can_agent rclcpp std_msgs info)
+ament_target_dependencies(node_can_agent rclcpp std_msgs info std_srvs)
 
 # Add libsockcancpp support
 target_include_directories(node_can_agent PRIVATE libsockcancpp/include libsockcancpp/include/exceptions include)
@@ -62,27 +69,34 @@ else()
     target_link_libraries(node_can_agent libsocketcancpp.a)
 endif()
 
+target_link_libraries(node_can_agent)
+
 # Add node_dart_config target
 add_executable(node_dart_config src/node_dart_config.cpp src/dart_config.cpp)
 target_include_directories(node_dart_config PRIVATE include)
 
 # yaml lib
-find_package(yaml-cpp REQUIRED)
-target_link_libraries(node_dart_config yaml-cpp)
+target_link_libraries(node_dart_config yaml-cpp ${GSL_LIBRARIES})
 
 # target_link_libraries(node_can_agent yaml-cpp)
 ament_target_dependencies(node_dart_config rclcpp std_msgs info std_srvs)
 
 # Set the path to the YAML file relative to the ROS 2 install directory
-set(YAML_PATH "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config/dart_config.yaml")
+# set(YAML_PATH "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config/")
+set(YAML_PATH "${CMAKE_CURRENT_LIST_DIR}/config/")
 
 # Pass the YAML path as a definition with double quotes
 add_definitions(-DYAML_PATH=\"${YAML_PATH}\")
+
+# Dart Calibration Config
+add_executable(dart_calibration src/dart_calibration.cpp src/dart_algorithm.cpp)
+target_link_libraries(dart_calibration yaml-cpp ${GSL_LIBRARIES} ${GSL_CBLAS_LIBRARIES})
 
 install(TARGETS
     node_lvgl_ui
     node_can_agent
     node_dart_config
+    dart_calibration
     DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
@@ -105,6 +119,12 @@ if(BUILD_SHARED_LIBS)
 
     install(DIRECTORY
         libsockcancpp/lib/
+        DESTINATION lib
+        FILES_MATCHING PATTERN "*.so"
+    )
+
+    install(DIRECTORY
+        src/generated/lib/
         DESTINATION lib
         FILES_MATCHING PATTERN "*.so"
     )

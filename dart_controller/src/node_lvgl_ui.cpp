@@ -14,9 +14,9 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
 {
   // 参数
   this->declare_parameter("yaw_angle_calibration_factor", rclcpp::ParameterType::PARAMETER_DOUBLE);
-  this->set_parameter(rclcpp::Parameter("yaw_angle_calibration_factor", 400.0));
+  this->set_parameter(rclcpp::Parameter("yaw_angle_calibration_factor", 20.0));
   this->declare_parameter("yaw_angle_calibration_filter_factor", rclcpp::ParameterType::PARAMETER_DOUBLE);
-  this->set_parameter(rclcpp::Parameter("yaw_angle_calibration_filter_factor", 0.8));
+  this->set_parameter(rclcpp::Parameter("yaw_angle_calibration_filter_factor", 0.95));
 
   lv_log_register_print_cb(print_cb);
 
@@ -136,8 +136,8 @@ void NodeLVGLUI::loadParametersfromGUI()
   msg.target_fw_velocity_ratio = lv_spinbox_get_value(guider_ui.Main_spinbox_fw_speed_ratio) / 1000.0;
   msg.auto_yaw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_yaw_calibration, LV_STATE_CHECKED);
   msg.auto_fw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_rpm_calibration, LV_STATE_CHECKED);
+  msg.target_yaw_x_axis = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_calibration_x) / 100.0;
   dart_launcher_cmd_pub_->publish(msg);
-  msg.target_yaw_x_axis = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_calibration_x) / 1000.0;
 
   callback_disabled = true;
   loadParametersfromMsg(*this, std::make_shared<info::msg::DartParam>(msg));
@@ -154,9 +154,14 @@ void NodeLVGLUI::calibration_yaw()
     double target_yaw_x_axis = this->get_parameter("target_yaw_x_axis").as_double();
     if (green_light_->is_detected == true)
     {
-      static double yaw_angle_calibration_factor = this->get_parameter("yaw_angle_calibration_factor").as_double();
+      double yaw_angle_calibration_factor = this->get_parameter("yaw_angle_calibration_factor").as_double();
       // 计算偏移量
       double delta_x = green_light_->location.x - target_yaw_x_axis;
+      // 限制delta_x在+-5000内
+      if (delta_x > MAX_YAW_CALIBRATION_DELTA_X)
+        delta_x = 5000;
+      else if (delta_x < -MAX_YAW_CALIBRATION_DELTA_X)
+        delta_x = -5000;
       // 区间判断，若偏移量为正说明绿灯在右侧，应该向左转，调小target_yaw_angle
       if (delta_x > 5)
       {
@@ -166,6 +171,7 @@ void NodeLVGLUI::calibration_yaw()
       {
         target_yaw_angle -= delta_x * yaw_angle_calibration_factor;
       }
+
       if (target_yaw_angle > YAW_MAX_ANGLE)
         target_yaw_angle = YAW_MAX_ANGLE;
       else if (target_yaw_angle < 5000)
@@ -415,7 +421,7 @@ void NodeLVGLUI::update_parameters_to_gui()
   lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed, this->get_parameter("target_fw_velocity").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_offset, this->get_parameter("target_fw_velocity_offset").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed_ratio, this->get_parameter("target_fw_velocity_ratio").as_double() * 1000);
-  lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_calibration_x, this->get_parameter("target_yaw_x_axis").as_double() * 1000);
+  lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_calibration_x, this->get_parameter("target_yaw_x_axis").as_double() * 100);
   // Switch value
   set_switch_state(guider_ui.Main_sw_auto_rpm_calibration, this->get_parameter("auto_fw_calibration").as_bool());
   set_switch_state(guider_ui.Main_sw_auto_yaw_calibration, this->get_parameter("auto_yaw_calibration").as_bool());

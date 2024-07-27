@@ -13,7 +13,7 @@
 #include <iostream>
 
 #ifndef YAML_PATH
-#define YAML_PATH "/home/chenyu/dart24_ws/install/dart_controller/share/dart_controller/config/dart_config.yaml"
+#define YAML_PATH "/home/chenyu/dart24_ws/install/dart_controller/share/dart_controller/config" + "dart_config.yaml"
 #endif
 
 namespace fs = std::filesystem;
@@ -24,7 +24,7 @@ NodeDartConfig::NodeDartConfig(const std::string &yaml_file)
 {
     declareParameters(*this);
     loadParameters();
-    syncParameters(false);
+    // syncParameters(false);
     watchFile();
 
     auto sub_dart_param_change_callback = [this](const info::msg::DartParam::SharedPtr msg)
@@ -56,6 +56,21 @@ NodeDartConfig::NodeDartConfig(const std::string &yaml_file)
             saveParameters();
             // 让watchFile工作一次
             last_write_time = fs::file_time_type::min();
+            //  response
+            response->structure_needs_at_least_one_member = 0;
+        });
+
+    // 重新同步参数服务
+    srv_resync_ = this->create_service<std_srvs::srv::Empty>(
+        "/dart_config/resync_all_param",
+        [this](const std::shared_ptr<std_srvs::srv::Empty::Request> request,
+               std::shared_ptr<std_srvs::srv::Empty::Response> response)
+        {
+            RCLCPP_INFO(this->get_logger(), "Resynchronizing parameters...");
+            // 异步执行器，同步参数
+            std::thread([this]()
+                        { syncParameters(true); })
+                .detach();
             //  response
             response->structure_needs_at_least_one_member = 0;
         });
@@ -273,7 +288,7 @@ int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
 
-    auto node = std::make_shared<NodeDartConfig>(YAML_PATH);
+    auto node = std::make_shared<NodeDartConfig>(std::string(YAML_PATH) + std::string("dart_config.yaml"));
 
     rclcpp::spin(node);
 

@@ -75,7 +75,7 @@ void TopArmorDetect::Hough_Circle(cv::Mat &inputImage)
 
     cv::HoughCircles(dst, _circles, cv::HOUGH_GRADIENT, 1, minDIST, PARAM1, PARAM2, 0, 0);
 
-    std::cout << "circles_size(): " << _circles.size() << std::endl;
+    // std::cout << "circles_size(): " << _circles.size() << std::endl;
 }
 
 /**
