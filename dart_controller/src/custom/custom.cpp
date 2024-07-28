@@ -192,6 +192,12 @@ void btn_gnome_cb(lv_event_t *event)
     }
 }
 
+void btn_calibration_rpm_cb(lv_event_t *event)
+{
+    if (node)
+        node->calibration_fw();
+}
+
 void custom_init(lv_ui *ui)
 {
     /* Add your codes here */
@@ -212,10 +218,16 @@ void custom_init(lv_ui *ui)
     lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_angle_cv, spinbox_event_cb_cv, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_angle_offset_cv, spinbox_event_cb_cv, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_calibration_x, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(guider_ui.Main_spinbox_slot1_fw_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(guider_ui.Main_spinbox_slot2_fw_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(guider_ui.Main_spinbox_slot3_fw_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(guider_ui.Main_spinbox_slot4_fw_offset, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
     lv_obj_add_event_cb(guider_ui.Main_sw_auto_rpm_calibration, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_sw_auto_yaw_calibration, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_sw_auto_yaw_calibration_cv, spinbox_event_cb_cv, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_add_event_cb(guider_ui.Main_spinbox_yaw_calibration_x, spinbox_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
     lv_obj_add_event_cb(guider_ui.Main_btn_reload_params, btn_reload_params_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_btn_yaw_calibration, btn_yaw_calibration_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_btn_yaw_calibration_cv, btn_yaw_calibration_cb, LV_EVENT_CLICKED, NULL);
@@ -223,4 +235,5 @@ void custom_init(lv_ui *ui)
     lv_obj_add_event_cb(guider_ui.Main_btn_shutdown, btn_shutdown_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_btn_hotspot, btn_hotspot_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_btn_gnome, btn_gnome_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(guider_ui.Main_btn_rpm_calibration, btn_calibration_rpm_cb, LV_EVENT_CLICKED, NULL);
 }

@@ -63,9 +63,9 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
             if (current_write_time != last_write_time)
             {
                 last_write_time = current_write_time;
-                RCLCPP_INFO(this->get_logger(), "Dart db file changed, reloading");
                 dart_db_->loadFromFile(string(YAML_PATH) + string("dart_db.yaml"));
                 this->update_dart_database();
+                RCLCPP_INFO(this->get_logger(), "Dart db file changed and reloaded");
             }
                 std::this_thread::sleep_for(1s);} });
   lv_log_register_print_cb(print_cb);
@@ -168,13 +168,12 @@ void NodeLVGLUI::calibration_fw()
       guider_ui.Main_spinbox_slot3_fw_offset,
       guider_ui.Main_spinbox_slot4_fw_offset};
 
-  this->mutex_ui_.lock();
   // 读取各个ddlist的选择值，解算飞镖击打目标距离/目标速度使用的摩擦轮速度值
   double dis_X = lv_spinbox_get_value(guider_ui.Main_spinbox_distance_X) / 100.0;
   double initial_velocity = lv_spinbox_get_value(guider_ui.Main_spinbox_initial_velocity) / 100.0;
   if (dis_X >= 0.5) // 有距离输入优先采用距离
   {
-    initial_velocity = DartAlgorithm::calculateDis(dis_X, this->get_parameter("target_delta_height").as_double());
+    initial_velocity = DartAlgorithm::calculateDis(sqrt(pow(dis_X, 2) - pow(this->get_parameter("target_delta_height").as_double(), 2)), this->get_parameter("target_delta_height").as_double());
     lv_spinbox_set_value(guider_ui.Main_spinbox_initial_velocity, initial_velocity * 100.0);
   }
   // 计算摩擦轮速度
@@ -194,13 +193,14 @@ void NodeLVGLUI::calibration_fw()
       fw_velocity[i] = dart_db_->calculateFWVelocity(string(buf), initial_velocity);
       target_yaw_launch_angle_offset[i] = dart_db_->getYawOffset(string(buf));
     }
+    if (i == 0)
+      lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed, fw_velocity[i]); // 会自动调用回调函数进行更新
     if (i > 0)
     {
-      fw_velocity_offset[i] = fw_velocity[i] - fw_velocity[i - 1];
-      lv_spinbox_set_value(spinboxs_fw_velocity_offset[i], fw_velocity[i] * 100.0); // 会自动调用回调函数进行更新
+      fw_velocity_offset[i] = fw_velocity[i] - fw_velocity[0];
+      lv_spinbox_set_value(spinboxs_fw_velocity_offset[i], fw_velocity_offset[i]); // 会自动调用回调函数进行更新
     }
   }
-  this->mutex_ui_.unlock();
 }
 
 void NodeLVGLUI::update_dart_database()
@@ -352,10 +352,10 @@ void NodeLVGLUI::loadParametersfromGUI()
   msg.auto_yaw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_yaw_calibration, LV_STATE_CHECKED);
   msg.auto_fw_calibration = lv_obj_has_state(guider_ui.Main_sw_auto_rpm_calibration, LV_STATE_CHECKED);
   msg.target_yaw_x_axis = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_calibration_x) / 100.0;
-  msg.target_fw_velocity_launch_offset = {lv_spinbox_get_value(spinboxs_fw_velocity_offset[0]) / 100,
-                                          lv_spinbox_get_value(spinboxs_fw_velocity_offset[1]) / 100,
-                                          lv_spinbox_get_value(spinboxs_fw_velocity_offset[2]) / 100,
-                                          lv_spinbox_get_value(spinboxs_fw_velocity_offset[3]) / 100};
+  msg.target_fw_velocity_launch_offset = {lv_spinbox_get_value(spinboxs_fw_velocity_offset[0]),
+                                          lv_spinbox_get_value(spinboxs_fw_velocity_offset[1]),
+                                          lv_spinbox_get_value(spinboxs_fw_velocity_offset[2]),
+                                          lv_spinbox_get_value(spinboxs_fw_velocity_offset[3])};
 
   msg.target_yaw_launch_angle_offset[0] = this->target_yaw_launch_angle_offset[0];
   msg.target_yaw_launch_angle_offset[1] = this->target_yaw_launch_angle_offset[1];

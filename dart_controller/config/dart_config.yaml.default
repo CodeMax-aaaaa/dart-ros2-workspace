@@ -15,7 +15,7 @@
       - 0
     target_fw_velocity_offset: 0
     target_fw_velocity_ratio: 1.414000
-    target_yaw_angle: 250000
+    target_yaw_angle: 132000
     target_yaw_angle_offset: 0
     target_yaw_launch_angle_offset:
       - 0

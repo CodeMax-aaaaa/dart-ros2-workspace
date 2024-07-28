@@ -1776,8 +1776,8 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_set_pos(ui->Main_spinbox_slot4_fw_offset, 1571, 395);
 	lv_obj_set_width(ui->Main_spinbox_slot4_fw_offset, 180);
 	lv_obj_set_height(ui->Main_spinbox_slot4_fw_offset, 55);
-	lv_spinbox_set_digit_format(ui->Main_spinbox_slot4_fw_offset, 6, 4);
-	lv_spinbox_set_range(ui->Main_spinbox_slot4_fw_offset, -999999, 999999);
+	lv_spinbox_set_digit_format(ui->Main_spinbox_slot4_fw_offset, 4, 4);
+	lv_spinbox_set_range(ui->Main_spinbox_slot4_fw_offset, -9999, 9999);
 	lv_coord_t Main_spinbox_slot4_fw_offset_h = lv_obj_get_height(ui->Main_spinbox_slot4_fw_offset);
 	ui->Main_spinbox_slot4_fw_offset_btn = lv_btn_create(ui->Main_MainView_tab_1);
 	lv_obj_set_size(ui->Main_spinbox_slot4_fw_offset_btn, Main_spinbox_slot4_fw_offset_h, Main_spinbox_slot4_fw_offset_h);
@@ -1861,8 +1861,8 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_set_pos(ui->Main_spinbox_slot3_fw_offset, 1571, 290);
 	lv_obj_set_width(ui->Main_spinbox_slot3_fw_offset, 180);
 	lv_obj_set_height(ui->Main_spinbox_slot3_fw_offset, 55);
-	lv_spinbox_set_digit_format(ui->Main_spinbox_slot3_fw_offset, 6, 4);
-	lv_spinbox_set_range(ui->Main_spinbox_slot3_fw_offset, -999999, 999999);
+	lv_spinbox_set_digit_format(ui->Main_spinbox_slot3_fw_offset, 4, 4);
+	lv_spinbox_set_range(ui->Main_spinbox_slot3_fw_offset, -9999, 9999);
 	lv_coord_t Main_spinbox_slot3_fw_offset_h = lv_obj_get_height(ui->Main_spinbox_slot3_fw_offset);
 	ui->Main_spinbox_slot3_fw_offset_btn = lv_btn_create(ui->Main_MainView_tab_1);
 	lv_obj_set_size(ui->Main_spinbox_slot3_fw_offset_btn, Main_spinbox_slot3_fw_offset_h, Main_spinbox_slot3_fw_offset_h);
@@ -1946,8 +1946,8 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_set_pos(ui->Main_spinbox_slot2_fw_offset, 1571, 185);
 	lv_obj_set_width(ui->Main_spinbox_slot2_fw_offset, 180);
 	lv_obj_set_height(ui->Main_spinbox_slot2_fw_offset, 55);
-	lv_spinbox_set_digit_format(ui->Main_spinbox_slot2_fw_offset, 6, 4);
-	lv_spinbox_set_range(ui->Main_spinbox_slot2_fw_offset, -999999, 999999);
+	lv_spinbox_set_digit_format(ui->Main_spinbox_slot2_fw_offset, 4, 4);
+	lv_spinbox_set_range(ui->Main_spinbox_slot2_fw_offset, -9999, 9999);
 	lv_coord_t Main_spinbox_slot2_fw_offset_h = lv_obj_get_height(ui->Main_spinbox_slot2_fw_offset);
 	ui->Main_spinbox_slot2_fw_offset_btn = lv_btn_create(ui->Main_MainView_tab_1);
 	lv_obj_set_size(ui->Main_spinbox_slot2_fw_offset_btn, Main_spinbox_slot2_fw_offset_h, Main_spinbox_slot2_fw_offset_h);
@@ -2031,8 +2031,8 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_set_pos(ui->Main_spinbox_slot1_fw_offset, 1571, 80);
 	lv_obj_set_width(ui->Main_spinbox_slot1_fw_offset, 180);
 	lv_obj_set_height(ui->Main_spinbox_slot1_fw_offset, 55);
-	lv_spinbox_set_digit_format(ui->Main_spinbox_slot1_fw_offset, 6, 4);
-	lv_spinbox_set_range(ui->Main_spinbox_slot1_fw_offset, -999999, 999999);
+	lv_spinbox_set_digit_format(ui->Main_spinbox_slot1_fw_offset, 4, 4);
+	lv_spinbox_set_range(ui->Main_spinbox_slot1_fw_offset, -9999, 9999);
 	lv_coord_t Main_spinbox_slot1_fw_offset_h = lv_obj_get_height(ui->Main_spinbox_slot1_fw_offset);
 	ui->Main_spinbox_slot1_fw_offset_btn = lv_btn_create(ui->Main_MainView_tab_1);
 	lv_obj_set_size(ui->Main_spinbox_slot1_fw_offset_btn, Main_spinbox_slot1_fw_offset_h, Main_spinbox_slot1_fw_offset_h);
@@ -2044,7 +2044,7 @@ void setup_scr_Main(lv_ui *ui)
 	lv_obj_align_to(ui->Main_spinbox_slot1_fw_offset_btn_minus, ui->Main_spinbox_slot1_fw_offset, LV_ALIGN_OUT_LEFT_MID, -5, 0);
 	lv_obj_set_style_bg_img_src(ui->Main_spinbox_slot1_fw_offset_btn_minus, LV_SYMBOL_MINUS, 0);
 	lv_obj_add_event_cb(ui->Main_spinbox_slot1_fw_offset_btn_minus, lv_Main_spinbox_slot1_fw_offset_decrement_event_cb, LV_EVENT_ALL, NULL);
-	lv_obj_set_pos(ui->Main_spinbox_slot1_fw_offset, 1571, 80);
+	lv_obj_set_pos(ui->Main_spinbox_slot1_fw_offset, 1571, 79);
 
 	// Write style for Main_spinbox_slot1_fw_offset, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
 	lv_obj_set_style_bg_opa(ui->Main_spinbox_slot1_fw_offset, 238, LV_PART_MAIN | LV_STATE_DEFAULT);

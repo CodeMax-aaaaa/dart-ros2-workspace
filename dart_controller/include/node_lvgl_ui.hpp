@@ -49,7 +49,7 @@ public:
     std::filesystem::file_time_type last_write_time;
 
 private:
-    std::vector<int> target_yaw_launch_angle_offset;
+    std::vector<int> target_yaw_launch_angle_offset = {0, 0, 0, 0};
 
     std::mutex mutex_ui_;
     rclcpp::TimerBase::SharedPtr timer_[3];
