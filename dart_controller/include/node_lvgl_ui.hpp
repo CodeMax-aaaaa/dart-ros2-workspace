@@ -12,6 +12,7 @@
 #include <std_srvs/srv/empty.hpp>
 #include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <dart_algorithm.hpp>
 
 #include "gui_guider.h"
 #include "events_init.h"
@@ -26,6 +27,13 @@
 #include <mutex>
 #include <string>
 #include "get_ip.hpp"
+#include <filesystem>
+
+#ifndef YAML_PATH
+#define YAML_PATH "/home/chenyu/dart24_ws/install/dart_controller/share/dart_controller/config" + "dart_config.yaml"
+#endif
+
+namespace fs = std::filesystem;
 
 #define DISP_BUF_SIZE (600 * 1024)
 
@@ -37,10 +45,14 @@ public:
     NodeLVGLUI();
     void loadParametersfromGUI();
     void calibration_yaw();
+    void calibration_fw();
+    std::filesystem::file_time_type last_write_time;
 
 private:
+    std::vector<int> target_yaw_launch_angle_offset;
+
     std::mutex mutex_ui_;
-    rclcpp::TimerBase::SharedPtr timer_[2];
+    rclcpp::TimerBase::SharedPtr timer_[3];
     rclcpp::Publisher<info::msg::DartParam>::SharedPtr dart_launcher_cmd_pub_;
     rclcpp::Subscription<info::msg::DartLauncherStatus>::SharedPtr dart_launcher_status_sub_;
     rclcpp::Subscription<info::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
@@ -49,15 +61,20 @@ private:
 
     std::shared_ptr<info::msg::DartLauncherStatus> dart_launcher_status_;
     std::shared_ptr<info::msg::GreenLight> green_light_;
+    std::shared_ptr<DartAlgorithm::DartDataBase> dart_db_;
+
+    std::vector<lv_obj_t *> Main_list_darts_items_;
 
     void update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg);
     void update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg);
     void update_green_light_callback(info::msg::GreenLight::SharedPtr msg);
+    void update_dart_database();
     void update_ip_address();
     void update_parameters_to_gui();
     rcl_interfaces::msg::SetParametersResult set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters);
     void update_cv_image(sensor_msgs::msg::Image::SharedPtr msg);
     lv_color_t *img_buf;
+    void timer_callback_ui();
     template <typename Func>
     friend void with_ui_lock(std::shared_ptr<NodeLVGLUI> node, Func func);
 };

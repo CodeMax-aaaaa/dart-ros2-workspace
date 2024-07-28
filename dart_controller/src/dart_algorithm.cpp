@@ -827,6 +827,7 @@ double calculateV(double dis, double y)
 double DartAlgorithm::calculateDis(double dis, double y)
 {
     double v = calculateV(dis, y);
+    std::cout << "v = " << v << std::endl;
     double vy = v * sin(theta);
     double t = (vy + sqrt(vy * vy + 2 * h * g)) / g;
 

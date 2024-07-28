@@ -28,7 +28,7 @@ find_package(yaml-cpp REQUIRED)
 
 # Add node_lvgl_ui target
 include_directories(include)
-add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.cpp)
+add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.cpp src/dart_algorithm.cpp)
 ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs sensor_msgs cv_bridge)
 
 # Add Lvgl support
@@ -46,9 +46,9 @@ target_sources(node_lvgl_ui PRIVATE ${SOURCES})
 target_link_directories(node_lvgl_ui PRIVATE lvgl/lib src/generated/lib)
 
 if(BUILD_SHARED_LIBS)
-    target_link_libraries(node_lvgl_ui lvgl lv_drivers guider_generated ${OpenCV_LIBS})
+    target_link_libraries(node_lvgl_ui lvgl lv_drivers guider_generated ${OpenCV_LIBS} yaml-cpp ${GSL_LIBRARIES})
 else()
-    target_link_libraries(node_lvgl_ui liblvgl.a liblv_drivers.a libguider_generated.a ${OpenCV_LIBS})
+    target_link_libraries(node_lvgl_ui liblvgl.a liblv_drivers.a libguider_generated.a ${OpenCV_LIBS} yaml-cpp ${GSL_LIBRARIES})
 endif()
 
 target_link_libraries(node_lvgl_ui)

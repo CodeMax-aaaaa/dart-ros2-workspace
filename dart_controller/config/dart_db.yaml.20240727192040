@@ -55,40 +55,5 @@
       velocity: 17.199999999999999
     - distance: 26.449999999999999
       velocity: 17.300000000000001
-    - distance: 26.699999999999999
+    - distance: 26.7
       velocity: 17.399999999999999
-    - distance: 26.899999999999999
-      velocity: 17.5
-    - distance: 27.149999999999999
-      velocity: 17.600000000000001
-    - distance: 27.449999999999999
-      velocity: 17.699999999999999
-    - distance: 27.800000000000001
-      velocity: 17.800000000000001
-    - distance: 28.300000000000001
-      velocity: 18
-  fw_velocity_points:
-    - fw_velocity: 5000
-      velocity: 16.800000000000001
-    - fw_velocity: 5050
-      velocity: 17.100000000000001
-    - fw_velocity: 5051
-      velocity: 17.199999999999999
-    - fw_velocity: 5050
-      velocity: 17.300000000000001
-    - fw_velocity: 5050
-      velocity: 17.399999999999999
-    - fw_velocity: 5100
-      velocity: 17.5
-    - fw_velocity: 5100
-      velocity: 17.600000000000001
-    - fw_velocity: 5150
-      velocity: 17.699999999999999
-    - fw_velocity: 5150
-      velocity: 17.800000000000001
-    - fw_velocity: 5170
-      velocity: 17.899999999999999
-    - fw_velocity: 5200
-      velocity: 18
-    - fw_velocity: 5200
-      velocity: 18.100000000000001
