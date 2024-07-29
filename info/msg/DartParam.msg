@@ -9,3 +9,6 @@ int32[4] target_fw_velocity_launch_offset [0, 0, 0, 0]
 bool auto_yaw_calibration 0
 bool auto_fw_calibration 0
 float64 target_yaw_x_axis 640.0
+float64 target_distance 0.0
+float64 target_delta_height 0.42
+string[4] dart_selection ['Default', 'Default', 'Default', 'Default']

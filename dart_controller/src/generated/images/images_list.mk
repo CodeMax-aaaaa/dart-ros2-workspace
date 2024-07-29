@@ -1,1 +1,1 @@
-GEN_CSRCS += _logo_3SE_1024x600.c _logo_3SE_alpha_1024x600.c
+GEN_CSRCS += _logo_3SE_1024x600.c
