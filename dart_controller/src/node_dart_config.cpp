@@ -241,8 +241,8 @@ void NodeDartConfig::syncParameters(rclcpp::Parameter &param, bool spinning)
 void NodeDartConfig::syncParameters(bool spinning)
 {
     auto param_list = this->list_parameters({}, rcl_interfaces::srv::ListParameters::Request::DEPTH_RECURSIVE);
-    std::vector<std::string> nodes = {"/can_agent/set_parameters", "/lvgl_ui/set_parameters"};
-    for (size_t i = 0; i < 2; i++)
+    std::vector<std::string> nodes = {"/can_agent/set_parameters", "/lvgl_ui/set_parameters", "/dart_logger_dog/set_parameters"};
+    for (size_t i = 0; i < 3; i++)
     {
 
         RCLCPP_INFO(this->get_logger(), "Synchronizing parameters to %s ...", nodes[i].c_str());

@@ -557,7 +557,7 @@ public:
             });
 
         _judgePublisher = this->create_publisher<info::msg::Judge>(
-            "/dart_controller/judge", 10);
+            "/dart_controller/judge", rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
         _judgeMsg = info::msg::Judge();
 

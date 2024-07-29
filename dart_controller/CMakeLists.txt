@@ -26,8 +26,12 @@ find_package(GSL REQUIRED)
 
 find_package(yaml-cpp REQUIRED)
 
-# Add node_lvgl_ui target
+
 include_directories(include)
+# 看门狗
+add_executable(node_dart_logger_dog src/node_dart_logger_dog.cpp src/dart_config.cpp)
+ament_target_dependencies(node_dart_logger_dog rclcpp std_msgs info std_srvs)
+# Add node_lvgl_ui target
 add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.cpp src/dart_algorithm.cpp)
 ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs sensor_msgs cv_bridge)
 
@@ -96,6 +100,7 @@ install(TARGETS
     node_lvgl_ui
     node_can_agent
     node_dart_config
+    node_dart_logger_dog
     dart_calibration
     DESTINATION lib/${PROJECT_NAME})
 

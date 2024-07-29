@@ -81,6 +81,11 @@ void spinbox_event_cb(lv_event_t *event)
         {
         } // 等待参数设置完成
         node->loadParametersfromGUI();
+        if (node->get_parameter("auto_fw_calibration").as_bool())
+        {
+            node->calibration_fw();
+            node->loadParametersfromGUI();
+        }
     }
 
     callback_spinbox_disabled = false;
@@ -436,6 +441,8 @@ void custom_init(lv_ui *ui)
 
     lv_obj_clear_flag(guider_ui.Main, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(guider_ui.Main_msgbox, LV_OBJ_FLAG_SCROLLABLE);
+    // MSG Box label 可滚动
+    lv_label_set_long_mode(lv_msgbox_get_text(guider_ui.Main_msgbox), LV_LABEL_LONG_SCROLL);
 
     lv_label_set_text(guider_ui.Main_label_23, "不适用");
     lv_meter_set_indicator_value(guider_ui.Main_meter_fw_speed_2, guider_ui.Main_meter_fw_speed_2_scale_0_ndline_0, 0);

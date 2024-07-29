@@ -262,25 +262,6 @@
 7.35:
   target_yaw_angle_offset: 0
   target_fw_velocity_offset: 0
-  distance_velocity_points:
-    - distance: 24.949999999999999
-      velocity: 17.100000000000001
-    - distance: 25.25
-      velocity: 17.199999999999999
-    - distance: 25.649999999999999
-      velocity: 17.300000000000001
-    - distance: 25.850000000000001
-      velocity: 17.399999999999999
-    - distance: 26.149999999999999
-      velocity: 17.5
-    - distance: 26.449999999999999
-      velocity: 17.600000000000001
-    - distance: 27.050000000000001
-      velocity: 17.699999999999999
-    - distance: 27.350000000000001
-      velocity: 17.800000000000001
-    - distance: 27.649999999999999
-      velocity: 17.899999999999999
   fw_velocity_points:
     - fw_velocity: 4930
       velocity: 16.899999999999999
@@ -301,8 +282,8 @@
     - fw_velocity: 5160
       velocity: 17.699999999999999
     - fw_velocity: 5160
-      velocity: 17.800000000000001
+      velocity: 17.799999999999999
     - fw_velocity: 5200
-      velocity: 17.899999999999999
+      velocity: 17.9
     - fw_velocity: 5200
       velocity: 18

@@ -397,7 +397,7 @@ void NodeLVGLUI::calibration_yaw()
 {
   // 检测参数内的Yaw轴x方向目标角度，如果有效检测到绿灯，则计算绿灯坐标与目标角度的差值，作为偏移量，进行折算后加到目标角度上
   // 如果未检测到绿灯，则不动
-  if (green_light_ && dart_launcher_status_->dart_launcher_online && dart_launcher_status_->dart_state != 100 && dart_launcher_status_->dart_state != 101) // 未处于boot/保护状态
+  if (green_light_ && dart_launcher_status_->dart_launcher_online && dart_launcher_status_->dart_state != 100 && dart_launcher_status_->dart_state != 101 && dart_launcher_status_->dart_state != 105) // 未处于boot/保护/比赛发射状态
   {
     int32_t target_yaw_angle = this->get_parameter("target_yaw_angle").as_int();
     double target_yaw_x_axis = this->get_parameter("target_yaw_x_axis").as_double();
