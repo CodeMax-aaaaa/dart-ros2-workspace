@@ -92,25 +92,3 @@
       velocity: 18
     - fw_velocity: 5200
       velocity: 18.100000000000001
-7.32:
-  target_yaw_angle_offset: 0
-  target_fw_velocity_offset: 0
-  distance_velocity_points:
-    - distance: 27.649999999999999
-      velocity: 17.699999999999999
-    - distance: 25.949999999999999
-      velocity: 17.199999999999999
-    - distance: 26.25
-      velocity: 17.300000000000001
-    - distance: 26.649999999999999
-      velocity: 17.399999999999999
-    - distance: 26.800000000000001
-      velocity: 17.5
-    - distance: 27.149999999999999
-      velocity: 17.600000000000001
-    - distance: 28.0
-      velocity: 17.800000000000001
-    - distance: 28.25
-      velocity: 17.899999999999999
-    - distance: 28.850000000000001
-      velocity: 18
