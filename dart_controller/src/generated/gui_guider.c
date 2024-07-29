@@ -149,6 +149,7 @@ void init_scr_del_flag(lv_ui *ui)
 void setup_ui(lv_ui *ui)
 {
 	init_scr_del_flag(ui);
+	setup_scr_Init(ui);
 	setup_scr_Main(ui);
-	lv_scr_load(ui->Main);
+	lv_scr_load(ui->Init);
 }

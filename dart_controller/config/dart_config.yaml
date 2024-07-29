@@ -3,11 +3,13 @@
     auto_fw_calibration: false
     auto_yaw_calibration: false
     dart_selection:
-      - "NULL"
-      - "NULL"
-      - "NULL"
-      - "NULL"
-    target_fw_velocity: 5050
+      - Default
+      - Default
+      - Default
+      - Default
+    target_delta_height: 0.420000
+    target_distance: 27.000000
+    target_fw_velocity: 5000
     target_fw_velocity_launch_offset:
       - 0
       - 0
@@ -15,7 +17,7 @@
       - 0
     target_fw_velocity_offset: 0
     target_fw_velocity_ratio: 1.414000
-    target_yaw_angle: 142000
+    target_yaw_angle: 10000
     target_yaw_angle_offset: 0
     target_yaw_launch_angle_offset:
       - 0

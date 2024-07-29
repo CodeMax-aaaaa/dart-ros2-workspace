@@ -81,10 +81,6 @@ typedef struct
 	lv_obj_t *Main_spinbox_distance_X;
 	lv_obj_t *Main_spinbox_distance_X_btn;
 	lv_obj_t *Main_spinbox_distance_X_btn_minus;
-	lv_obj_t *Main_spinbox_initial_velocity;
-	lv_obj_t *Main_spinbox_initial_velocity_btn;
-	lv_obj_t *Main_spinbox_initial_velocity_btn_minus;
-	lv_obj_t *Main_label_41;
 	lv_obj_t *Main_sw_auto_yaw_calibration;
 	lv_obj_t *Main_btn_reload_params;
 	lv_obj_t *Main_btn_reload_params_label;
@@ -113,6 +109,10 @@ typedef struct
 	lv_obj_t *Main_btn_hotspot_label;
 	lv_obj_t *Main_btn_gnome;
 	lv_obj_t *Main_btn_gnome_label;
+	lv_obj_t *Main_spinbox_target_delta_height;
+	lv_obj_t *Main_spinbox_target_delta_height_btn;
+	lv_obj_t *Main_spinbox_target_delta_height_btn_minus;
+	lv_obj_t *Main_label_57;
 	lv_obj_t *Main_list_darts;
 	lv_obj_t *Main_label_35;
 	lv_obj_t *Main_cont_dart_param;
@@ -126,14 +126,10 @@ typedef struct
 	lv_obj_t *Main_btn_dart_param_save_label;
 	lv_obj_t *Main_btn_dart_param_reload;
 	lv_obj_t *Main_btn_dart_param_reload_label;
-	lv_obj_t *Main_chart_velocity_distance_curve;
 	lv_obj_t *Main_label_50;
-	lv_obj_t *Main_chart_vel_fw_vel_curve;
 	lv_obj_t *Main_ta_target_initial_speed_debug;
-	lv_obj_t *Main_label_49;
 	lv_obj_t *Main_label_51;
 	lv_obj_t *Main_label_target_fw_velocity_result;
-	lv_obj_t *Main_label_48;
 	lv_obj_t *Main_label_40;
 	lv_obj_t *Main_canvas_opencv;
 	lv_obj_t *Main_label_43;
@@ -164,11 +160,8 @@ typedef struct
 	lv_obj_t *Init;
 	bool Init_del;
 	lv_obj_t *g_kb_Init;
-	lv_obj_t *Init_img_1;
-	lv_obj_t *Init_label_2;
-	lv_obj_t *Init_bar_1;
-	lv_obj_t *Init_labelInitLog;
 	lv_obj_t *Init_label_3;
+	lv_obj_t *Init_label_2;
 }lv_ui;
 
 typedef void (*ui_setup_scr_t)(lv_ui * ui);
@@ -206,7 +199,8 @@ void setup_scr_Main(lv_ui *ui);
 void setup_scr_Init(lv_ui *ui);
 
 LV_IMG_DECLARE(_logo_3SE_1024x600);
-LV_IMG_DECLARE(_logo_3SE_alpha_1024x600);
+
+LV_IMG_DECLARE(_logo_3SE_1024x600);
 
 LV_FONT_DECLARE(lv_font_misans_12)
 LV_FONT_DECLARE(lv_font_misans_20)
@@ -219,6 +213,7 @@ LV_FONT_DECLARE(lv_font_misans_32)
 LV_FONT_DECLARE(lv_font_misans_26)
 LV_FONT_DECLARE(lv_font_misans_28)
 LV_FONT_DECLARE(lv_font_misans_18)
+LV_FONT_DECLARE(lv_font_FZShaoLGFTJW_128)
 
 
 #ifdef __cplusplus

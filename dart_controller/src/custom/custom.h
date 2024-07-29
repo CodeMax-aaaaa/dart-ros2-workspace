@@ -11,7 +11,8 @@
 #ifndef __CUSTOM_H_
 #define __CUSTOM_H_
 #ifdef __cplusplus
-
+#include <string>
+void loadDartInfo(std::string dart_name);
 extern "C"
 {
 #endif
@@ -39,6 +40,12 @@ extern "C"
     // void meterNS_anim_cb(void * var, int32_t v);
 
     void set_switch_state(lv_obj_t *sw, bool state);
+
+    void dart_list_event_cb(lv_event_t *e);
+
+    extern bool callback_spinbox_disabled;
+    extern lv_obj_t *obj_dart_list_seleted;
+    void ta_debug_velocity_cb(lv_event_t *e);
 
 #ifdef __cplusplus
 }

@@ -159,20 +159,6 @@ void lv_Main_spinbox_distance_X_decrement_event_cb(lv_event_t * event)
 	  lv_spinbox_decrement(guider_ui.Main_spinbox_distance_X);
 	}
 }
-void lv_Main_spinbox_initial_velocity_increment_event_cb(lv_event_t * event)
-{
-	lv_event_code_t code = lv_event_get_code(event);
-	if(code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT){
-	  lv_spinbox_increment(guider_ui.Main_spinbox_initial_velocity);
-	}
-}
-void lv_Main_spinbox_initial_velocity_decrement_event_cb(lv_event_t * event)
-{
-	lv_event_code_t code = lv_event_get_code(event);
-	if(code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT){
-	  lv_spinbox_decrement(guider_ui.Main_spinbox_initial_velocity);
-	}
-}
 void lv_Main_spinbox_slot4_fw_offset_increment_event_cb(lv_event_t * event)
 {
 	lv_event_code_t code = lv_event_get_code(event);
@@ -227,6 +213,20 @@ void lv_Main_spinbox_slot1_fw_offset_decrement_event_cb(lv_event_t * event)
 	lv_event_code_t code = lv_event_get_code(event);
 	if(code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT){
 	  lv_spinbox_decrement(guider_ui.Main_spinbox_slot1_fw_offset);
+	}
+}
+void lv_Main_spinbox_target_delta_height_increment_event_cb(lv_event_t * event)
+{
+	lv_event_code_t code = lv_event_get_code(event);
+	if(code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT){
+	  lv_spinbox_increment(guider_ui.Main_spinbox_target_delta_height);
+	}
+}
+void lv_Main_spinbox_target_delta_height_decrement_event_cb(lv_event_t * event)
+{
+	lv_event_code_t code = lv_event_get_code(event);
+	if(code == LV_EVENT_SHORT_CLICKED || code == LV_EVENT_LONG_PRESSED_REPEAT){
+	  lv_spinbox_decrement(guider_ui.Main_spinbox_target_delta_height);
 	}
 }
 void lv_Main_spinbox_dart_param_yaw_offset_increment_event_cb(lv_event_t * event)

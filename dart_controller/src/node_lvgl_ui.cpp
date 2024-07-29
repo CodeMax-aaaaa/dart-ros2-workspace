@@ -47,8 +47,6 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
   this->declare_parameter("yaw_angle_calibration_factor", rclcpp::ParameterType::PARAMETER_DOUBLE);
   this->set_parameter(rclcpp::Parameter("yaw_angle_calibration_factor", 20.0));
   this->declare_parameter("yaw_angle_calibration_filter_factor", rclcpp::ParameterType::PARAMETER_DOUBLE);
-  this->declare_parameter("target_delta_height", rclcpp::ParameterType::PARAMETER_DOUBLE);
-  this->set_parameter(rclcpp::Parameter("target_delta_height", 0.42));
   this->set_parameter(rclcpp::Parameter("yaw_angle_calibration_filter_factor", 0.95));
 
   // 加载飞镖
@@ -64,7 +62,11 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
             {
                 last_write_time = current_write_time;
                 dart_db_->loadFromFile(string(YAML_PATH) + string("dart_db.yaml"));
+                this->mutex_ui_.lock();
                 this->update_dart_database();
+                this->mutex_ui_.unlock();
+                this->update_parameters_to_gui();
+                this->loadParametersfromGUI(false);
                 RCLCPP_INFO(this->get_logger(), "Dart db file changed and reloaded");
             }
                 std::this_thread::sleep_for(1s);} });
@@ -131,10 +133,11 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
   cv_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
       "detect/image", 1, bind(&NodeLVGLUI::update_cv_image, this, placeholders::_1));
 
-  static auto callback_handle_ = this->add_post_set_parameters_callback(bind(&NodeLVGLUI::set_parameters_callback, this, placeholders::_1));
+  callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::callback_set_parameter, this, std::placeholders::_1));
 
   update_ip_address();
   update_parameters_to_gui();
+  update_dart_database();
 
   auto timer_callback_ip_update =
       [this]() -> void
@@ -148,18 +151,24 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
     lv_tick_inc(1);
   };
 
+  auto timer_init_screen_switch =
+      [this]() -> void
+  {
+    lv_scr_load(guider_ui.Main);
+    timer_[2]->cancel();
+  };
+
   timer_[0] = this->create_wall_timer(1000ms, timer_callback_ip_update);
   // timer_[1] = this->create_wall_timer(1s, timer_callback_informational_update);
   timer_[1] = this->create_wall_timer(1ms, timer_callback_lv_tick_inc);
-
-  update_dart_database();
+  timer_[2] = this->create_wall_timer(2s, timer_init_screen_switch);
 
   static thread timer_thread(bind(&NodeLVGLUI::timer_callback_ui, this));
 
   RCLCPP_INFO(this->get_logger(), "UI thread started");
 }
 
-void NodeLVGLUI::calibration_fw()
+void NodeLVGLUI::calibration_fw(bool set_parameter)
 {
   static lv_obj_t *ddlist_darts[4] = {guider_ui.Main_ddlist_launch_dart_1, guider_ui.Main_ddlist_launch_dart_2, guider_ui.Main_ddlist_launch_dart_3, guider_ui.Main_ddlist_launch_dart_4};
   static lv_obj_t *spinboxs_fw_velocity_offset[4] = {
@@ -170,15 +179,15 @@ void NodeLVGLUI::calibration_fw()
 
   // 读取各个ddlist的选择值，解算飞镖击打目标距离/目标速度使用的摩擦轮速度值
   double dis_X = lv_spinbox_get_value(guider_ui.Main_spinbox_distance_X) / 100.0;
-  double initial_velocity = lv_spinbox_get_value(guider_ui.Main_spinbox_initial_velocity) / 100.0;
-  if (dis_X >= 0.5) // 有距离输入优先采用距离
-  {
-    initial_velocity = DartAlgorithm::calculateDis(sqrt(pow(dis_X, 2) - pow(this->get_parameter("target_delta_height").as_double(), 2)), this->get_parameter("target_delta_height").as_double());
-    lv_spinbox_set_value(guider_ui.Main_spinbox_initial_velocity, initial_velocity * 100.0);
-  }
+  double distance;
+
+  distance = DartAlgorithm::calculateDis(sqrt(pow(dis_X, 2) - pow(this->get_parameter("target_delta_height").as_double(), 2)), this->get_parameter("target_delta_height").as_double());
+  RCLCPP_INFO(this->get_logger(), "Calculated Distance: %f, with height: %f", sqrt(pow(dis_X, 2) - pow(this->get_parameter("target_delta_height").as_double(), 2)), this->get_parameter("target_delta_height").as_double());
+
   // 计算摩擦轮速度
-  double fw_velocity[4];
-  vector<int> fw_velocity_offset = {0, 0, 0, 0};
+  double fw_velocity[4], initial_velocity[4];
+
+  std::vector<int> fw_velocity_offset = {0, 0, 0, 0};
   for (size_t i = 0; i < 4; i++)
   {
     char buf[20];
@@ -190,8 +199,13 @@ void NodeLVGLUI::calibration_fw()
     }
     else
     {
-      fw_velocity[i] = dart_db_->calculateFWVelocity(string(buf), initial_velocity);
+      initial_velocity[i] = dart_db_->calculateVelocity(string(buf), distance);
+      // lv_spinbox_set_value(guider_ui.Main_spinbox_initial_velocity, initial_velocity * 100.0);
+      RCLCPP_INFO(this->get_logger(), "Dart %s Calculated initial velocity: %f", buf, initial_velocity[i]);
+      fw_velocity[i] = dart_db_->calculateFWVelocity(string(buf), initial_velocity[i]);
+      RCLCPP_INFO(this->get_logger(), "Dart %s Calculated FW velocity: %f", buf, fw_velocity[i]);
       target_yaw_launch_angle_offset[i] = dart_db_->getYawOffset(string(buf));
+      RCLCPP_INFO(this->get_logger(), "Dart %s Yaw offset: %d", buf, target_yaw_launch_angle_offset[i]);
     }
     if (i == 0)
       lv_spinbox_set_value(guider_ui.Main_spinbox_fw_speed, fw_velocity[i]); // 会自动调用回调函数进行更新
@@ -201,6 +215,14 @@ void NodeLVGLUI::calibration_fw()
       lv_spinbox_set_value(spinboxs_fw_velocity_offset[i], fw_velocity_offset[i]); // 会自动调用回调函数进行更新
     }
   }
+  if (set_parameter)
+  {
+    // 取消
+    callback_set_parameter_handle.reset();
+    this->set_parameter(rclcpp::Parameter("target_yaw_launch_angle_offset", target_yaw_launch_angle_offset));
+    // 重新注册
+    callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::callback_set_parameter, this, std::placeholders::_1));
+  }
 }
 
 void NodeLVGLUI::update_dart_database()
@@ -208,7 +230,7 @@ void NodeLVGLUI::update_dart_database()
   static bool first_update = true;
   static lv_obj_t *ddlist_darts[4] = {guider_ui.Main_ddlist_launch_dart_1, guider_ui.Main_ddlist_launch_dart_2, guider_ui.Main_ddlist_launch_dart_3, guider_ui.Main_ddlist_launch_dart_4};
 
-  this->mutex_ui_.lock();
+  // this->mutex_ui_.lock();
   // 清空list_darts
   if (Main_list_darts_items_.size() > 0)
   {
@@ -276,6 +298,7 @@ void NodeLVGLUI::update_dart_database()
 
     style_Main_list_darts_extra_btns_main_default_init = true;
   }
+
   // names 之间加入\n
   string names_str = "Default\n";
   size_t i = 0;
@@ -284,40 +307,29 @@ void NodeLVGLUI::update_dart_database()
     names_str += name + "\n";
     Main_list_darts_items_.push_back(
         lv_list_add_btn(guider_ui.Main_list_darts, LV_SYMBOL_GPS, name.c_str()));
+    if (strcmp(name.c_str(), lv_textarea_get_text(guider_ui.Main_ta_dart_param_number)) == 0)
+    {
+      obj_dart_list_seleted = Main_list_darts_items_[i];
+      loadDartInfo(name);
+    }
+    lv_obj_add_event_cb(Main_list_darts_items_[i], dart_list_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_style(Main_list_darts_items_[i], &style_Main_list_darts_extra_btns_main_default, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_add_style(Main_list_darts_items_[i], &style_Main_list_darts_extra_btns_main_pressed, LV_PART_MAIN | LV_STATE_PRESSED);
     lv_obj_add_style(Main_list_darts_items_[i++], &style_Main_list_darts_extra_btns_main_focused, LV_PART_MAIN | LV_STATE_FOCUSED);
   }
+
   // 去掉最后一个多余的\n
   names_str.pop_back();
-  int selected_darts_index[4] = {0, 0, 0, 0};
-  if (!first_update)
-  {
-    // 存储ddlist已经选择的对象，并判断是否在飞镖列表中，如果没有则重置为default
-    char buf[20];
-    for (size_t i = 0; i < 4; i++)
-    {
-      lv_dropdown_get_selected_str(ddlist_darts[i], buf, sizeof(buf));
-      if (!dart_db_->contains(string(buf)))
-        selected_darts_index[i] = 0;
-      else
-      {
-        selected_darts_index[i] = find(names.begin(), names.end(), string(buf)) - names.begin() + 1; // 1 for default
-      }
-    }
-  }
   static char buf_dropdown_options[1000];
 
   strcpy(buf_dropdown_options, names_str.c_str());
 
   uint16_t index = 0;
+  // 存储ddlist已经选择的对象，并判断是否在飞镖列表中，如果没有则重置为default
+  // vector<string> dart_selected = this->get_parameter("dart_selection").as_string_array();
   for (auto &i : ddlist_darts)
   {
     lv_dropdown_set_options(i, buf_dropdown_options);
-    if (!first_update)
-      lv_dropdown_set_selected(i, 0);
-    else
-      lv_dropdown_set_selected(i, selected_darts_index[index]);
     index++;
   }
 
@@ -326,22 +338,19 @@ void NodeLVGLUI::update_dart_database()
   // Update current screen layout.
   lv_obj_update_layout(guider_ui.Main);
 
-  // If auto calibration is enabled, calibrate rpm
-  if (this->get_parameter("auto_fw_calibration").as_bool())
-  {
-    calibration_fw();
-  }
-
-  this->mutex_ui_.unlock();
+  // this->mutex_ui_.unlock();
 }
 
-void NodeLVGLUI::loadParametersfromGUI()
+void NodeLVGLUI::loadParametersfromGUI(bool update_to_ros_param)
 {
   static lv_obj_t *spinboxs_fw_velocity_offset[4] = {
       guider_ui.Main_spinbox_slot1_fw_offset,
       guider_ui.Main_spinbox_slot2_fw_offset,
       guider_ui.Main_spinbox_slot3_fw_offset,
       guider_ui.Main_spinbox_slot4_fw_offset};
+
+  // 取消回调函数
+  callback_set_parameter_handle.reset();
   // generate a msg from GUI
   info::msg::DartParam msg;
   msg.target_yaw_angle = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_angle);
@@ -356,24 +365,39 @@ void NodeLVGLUI::loadParametersfromGUI()
                                           lv_spinbox_get_value(spinboxs_fw_velocity_offset[1]),
                                           lv_spinbox_get_value(spinboxs_fw_velocity_offset[2]),
                                           lv_spinbox_get_value(spinboxs_fw_velocity_offset[3])};
+  msg.target_delta_height = lv_spinbox_get_value(guider_ui.Main_spinbox_target_delta_height) / 100.0;
 
   msg.target_yaw_launch_angle_offset[0] = this->target_yaw_launch_angle_offset[0];
   msg.target_yaw_launch_angle_offset[1] = this->target_yaw_launch_angle_offset[1];
   msg.target_yaw_launch_angle_offset[2] = this->target_yaw_launch_angle_offset[2];
   msg.target_yaw_launch_angle_offset[3] = this->target_yaw_launch_angle_offset[3];
 
+  // 已选择飞镖加载到参数内
+  array<string, 4> selected_darts;
+  lv_obj_t *ddlist_darts[4] = {guider_ui.Main_ddlist_launch_dart_1, guider_ui.Main_ddlist_launch_dart_2, guider_ui.Main_ddlist_launch_dart_3, guider_ui.Main_ddlist_launch_dart_4};
+  for (size_t i = 0; i < 4; i++)
+  {
+    char buf[20];
+    lv_dropdown_get_selected_str(ddlist_darts[i], buf, sizeof(buf));
+    selected_darts[i] = string(buf);
+  }
+  // 距离和目标速度加载到参数内
+  msg.target_distance = lv_spinbox_get_value(guider_ui.Main_spinbox_distance_X) / 100.0;
+  msg.dart_selection = selected_darts;
+
   dart_launcher_cmd_pub_->publish(msg);
 
-  callback_disabled = true;
-  loadParametersfromMsg(*this, std::make_shared<info::msg::DartParam>(msg));
-  callback_disabled = false;
+  if (update_to_ros_param)
+    loadParametersfromMsg(*this, std::make_shared<info::msg::DartParam>(msg));
+  // 重新注册回调函数
+  callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::callback_set_parameter, this, std::placeholders::_1));
 }
 
 void NodeLVGLUI::calibration_yaw()
 {
   // 检测参数内的Yaw轴x方向目标角度，如果有效检测到绿灯，则计算绿灯坐标与目标角度的差值，作为偏移量，进行折算后加到目标角度上
   // 如果未检测到绿灯，则不动
-  if (dart_launcher_status_->dart_launcher_online && dart_launcher_status_->dart_state != 100 && dart_launcher_status_->dart_state != 101) // 未处于boot/保护状态
+  if (green_light_ && dart_launcher_status_->dart_launcher_online && dart_launcher_status_->dart_state != 100 && dart_launcher_status_->dart_state != 101) // 未处于boot/保护状态
   {
     int32_t target_yaw_angle = this->get_parameter("target_yaw_angle").as_int();
     double target_yaw_x_axis = this->get_parameter("target_yaw_x_axis").as_double();
@@ -408,18 +432,14 @@ void NodeLVGLUI::calibration_yaw()
   }
   else
   {
-    RCLCPP_INFO(this->get_logger(), "Dart launcher is offline or in boot/protect state, skip calibration");
+    RCLCPP_INFO(this->get_logger(), "Dart launcher is offline or in boot/protect state, or camera is down, skip calibration");
   }
 }
 
-rcl_interfaces::msg::SetParametersResult NodeLVGLUI::set_parameters_callback(const vector<rclcpp::Parameter> &parameters)
+void NodeLVGLUI::callback_set_parameter(const vector<rclcpp::Parameter> &parameters)
 {
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
   RCLCPP_INFO(this->get_logger(), "Parameters set request received");
-  if (!callback_disabled)
-    update_parameters_to_gui();
-  return result;
+  update_parameters_to_gui();
 }
 
 void NodeLVGLUI::update_green_light_callback(info::msg::GreenLight::SharedPtr msg)
@@ -604,6 +624,9 @@ void NodeLVGLUI::update_cv_image(sensor_msgs::msg::Image::SharedPtr msg)
 {
   static lv_color_t img_buf_[2][LV_CANVAS_BUF_SIZE_TRUE_COLOR(606, 485)];
   static int buf_index = 0;
+  // 如果当前画面不在"视觉"，则不更新
+  if (lv_tabview_get_tab_act(guider_ui.Main_MainView) != 2)
+    return;
   buf_index %= 2;
   // img_buf = img_buf_;
   if (msg == nullptr)
@@ -637,8 +660,9 @@ void NodeLVGLUI::update_parameters_to_gui()
 {
   mutex_ui_.lock();
   // 禁用回调
-  callback_disabled = true;
-
+  // 取消回调函数
+  // callback_set_parameter_handle.reset();
+  callback_spinbox_disabled = true; // 禁止GUI回调操作
   lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_angle, this->get_parameter("target_yaw_angle").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_offset, this->get_parameter("target_yaw_angle_offset").as_int());
   lv_spinbox_set_value(guider_ui.Main_spinbox_yaw_angle_cv, this->get_parameter("target_yaw_angle").as_int());
@@ -652,15 +676,59 @@ void NodeLVGLUI::update_parameters_to_gui()
   set_switch_state(guider_ui.Main_sw_auto_yaw_calibration, this->get_parameter("auto_yaw_calibration").as_bool());
   set_switch_state(guider_ui.Main_sw_auto_yaw_calibration_cv, this->get_parameter("auto_yaw_calibration").as_bool());
 
-  callback_disabled = false;
+  // Distance & Delta Height
+  lv_spinbox_set_value(guider_ui.Main_spinbox_distance_X, this->get_parameter("target_distance").as_double() * 100);
+  lv_spinbox_set_value(guider_ui.Main_spinbox_target_delta_height, this->get_parameter("target_delta_height").as_double() * 100);
+
+  // 飞镖选择
+  auto names = dart_db_->getDartNames();
+  lv_obj_t *ddlist_darts[4] = {guider_ui.Main_ddlist_launch_dart_1, guider_ui.Main_ddlist_launch_dart_2, guider_ui.Main_ddlist_launch_dart_3, guider_ui.Main_ddlist_launch_dart_4};
+  // 存储ddlist已经选择的对象，并判断是否在飞镖列表中，如果没有则重置为default
+  vector<string> dart_selected = this->get_parameter("dart_selection").as_string_array();
+  for (size_t i = 0; i < 4; i++)
+  {
+    if (!(dart_db_->contains(dart_selected[i])))
+    {
+      lv_dropdown_set_selected(ddlist_darts[i], 0);
+      RCLCPP_WARN(this->get_logger(), "Dart %s not found in database, reset to default", dart_selected[i].c_str());
+    }
+    else
+    { // 1 for default
+      lv_dropdown_set_selected(ddlist_darts[i], find(names.begin(), names.end(), dart_selected[i]) - names.begin() + 1);
+    }
+  }
+  if (this->get_parameter("auto_fw_calibration").as_bool())
+    calibration_fw(false); // 不允许自动设置参数
+
+  // 如果Yaw轴offset与参数内的值不一致，则开启线程去更新他
+  if (target_yaw_launch_angle_offset[0] != this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[0] ||
+      target_yaw_launch_angle_offset[1] != this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[1] ||
+      target_yaw_launch_angle_offset[2] != this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[2] ||
+      target_yaw_launch_angle_offset[3] != this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[3])
+  {
+    RCLCPP_INFO(this->get_logger(), "Yaw offset dismatch, updating...");
+    thread t([this]()
+             { this->set_parameter(rclcpp::Parameter("target_yaw_launch_angle_offset", target_yaw_launch_angle_offset)); });
+    t.detach();
+  }
+
+  // // 重新注册回调函数
+  // callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::callback_set_parameter, this, std::placeholders::_1));
+  callback_spinbox_disabled = false;
+
   mutex_ui_.unlock();
 }
 
 void NodeLVGLUI::update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg)
 {
   RCLCPP_INFO(this->get_logger(), "Received dart_launcher_present_param");
+
+  // 取消回调函数
+  callback_set_parameter_handle.reset();
   loadParametersfromMsg(*this, msg);
   update_parameters_to_gui();
+  // 重新注册回调函数
+  callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::callback_set_parameter, this, std::placeholders::_1));
 }
 
 void NodeLVGLUI::update_ip_address()

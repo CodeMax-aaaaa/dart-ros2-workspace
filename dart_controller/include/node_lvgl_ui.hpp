@@ -41,15 +41,20 @@ namespace fs = std::filesystem;
 class NodeLVGLUI : public rclcpp::Node
 {
 public:
-    bool callback_disabled = false;
+    bool param_set_callback_disabled = false;
     NodeLVGLUI();
-    void loadParametersfromGUI();
+    void loadParametersfromGUI(bool update_to_ros_param = true);
     void calibration_yaw();
-    void calibration_fw();
+    void calibration_fw(bool set_parameter = true);
     std::filesystem::file_time_type last_write_time;
+    std::shared_ptr<DartAlgorithm::DartDataBase> dart_db_;
+    
+
+    rclcpp::node_interfaces::PostSetParametersCallbackHandle::SharedPtr callback_set_parameter_handle;
+    std::vector<int>
+        target_yaw_launch_angle_offset = {0, 0, 0, 0};
 
 private:
-    std::vector<int> target_yaw_launch_angle_offset = {0, 0, 0, 0};
 
     std::mutex mutex_ui_;
     rclcpp::TimerBase::SharedPtr timer_[3];
@@ -61,7 +66,6 @@ private:
 
     std::shared_ptr<info::msg::DartLauncherStatus> dart_launcher_status_;
     std::shared_ptr<info::msg::GreenLight> green_light_;
-    std::shared_ptr<DartAlgorithm::DartDataBase> dart_db_;
 
     std::vector<lv_obj_t *> Main_list_darts_items_;
 
@@ -71,7 +75,7 @@ private:
     void update_dart_database();
     void update_ip_address();
     void update_parameters_to_gui();
-    rcl_interfaces::msg::SetParametersResult set_parameters_callback(const std::vector<rclcpp::Parameter> &parameters);
+    void callback_set_parameter(const std::vector<rclcpp::Parameter> &parameters);
     void update_cv_image(sensor_msgs::msg::Image::SharedPtr msg);
     lv_color_t *img_buf;
     void timer_callback_ui();

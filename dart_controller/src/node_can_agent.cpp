@@ -359,11 +359,18 @@ private:
             {
                 RCLCPP_INFO(this->get_logger(), "Setting parameter from CAN");
                 // update _dartParamMsg from can bus to ros parameter
-                loadParametersfromMsg(std::make_shared<info::msg::DartParam>(_dartParamMsg));
                 // send _dartParamMsg to topic
                 static int64_t frame_id = 0;
                 _dartParamMsg.header.stamp = this->now();
                 _dartParamMsg.header.frame_id = std::to_string(frame_id++);
+                _dartParamMsg.auto_fw_calibration = this->get_parameter("auto_fw_calibration").as_bool();
+                _dartParamMsg.auto_yaw_calibration = this->get_parameter("auto_yaw_calibration").as_bool();
+                _dartParamMsg.target_yaw_x_axis = this->get_parameter("target_yaw_x_axis").as_double();
+                _dartParamMsg.target_delta_height = this->get_parameter("target_delta_height").as_double();
+                _dartParamMsg.target_distance = this->get_parameter("target_distance").as_double();
+                auto dart_selection_array = this->get_parameter("dart_selection").as_string_array();
+                _dartParamMsg.dart_selection = {dart_selection_array[0], dart_selection_array[1], dart_selection_array[2], dart_selection_array[3]};
+                loadParametersfromMsg(std::make_shared<info::msg::DartParam>(_dartParamMsg));
                 _dartParamPublisher->publish(_dartParamMsg);
                 _lastReceiveParameterFromRosTime = std::chrono::steady_clock::now();
                 _lastReceiveParameterFromCanTime = _lastReceiveParameterFromRosTime;
@@ -428,10 +435,6 @@ private:
                     {
                         setParameter(0x711, LAUNCH_PARAMS_TARGET_VELOCITY_FW_OFFSET_3, param.param_value);
                     }
-
-                    _dartParamMsg.auto_fw_calibration = this->get_parameter("auto_fw_calibration").as_bool();
-                    _dartParamMsg.auto_yaw_calibration = this->get_parameter("auto_yaw_calibration").as_bool();
-                    _dartParamMsg.target_yaw_x_axis = this->get_parameter("target_yaw_x_axis").as_double();
                 }
                 auto timepoint = std::chrono::steady_clock::now();
                 while (rclcpp::ok())
