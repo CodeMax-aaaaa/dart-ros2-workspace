@@ -60,6 +60,10 @@ bool NodeLoggerDog::check_changes(const info::msg::DartLauncherStatus *last_msg,
     {
         return true;
     }
+    if (last_msg->rc_online != msg->rc_online)
+    {
+        return true;
+    }
     for (size_t i = 0; i < 4; i++)
     {
         if (last_msg->motor_fw_online[i] != msg->motor_fw_online[i])
@@ -155,6 +159,14 @@ bool NodeLoggerDog::check_changes(const info::msg::DartParam *last_msg, const in
         {
             return true;
         }
+        if (last_msg->target_fw_velocity_launch_offset[i] != msg->target_fw_velocity_launch_offset[i])
+        {
+            return true;
+        }
+        if (last_msg->target_yaw_launch_angle_offset[i] != msg->target_yaw_launch_angle_offset[i])
+        {
+            return true;
+        }
     }
     return false;
 }
@@ -168,7 +180,7 @@ void NodeLoggerDog::dart_param_callback(const info::msg::DartParam::SharedPtr ms
     if (is_changed)
     {
         // 记录到日志
-        RCLCPP_INFO(this->get_logger(), "DartParam changed to: target_yaw_angle %d, target_yaw_angle_offset %d, target_fw_velocity %d, target_fw_velocity_offset %d, target_fw_velocity_ratio %f, target_yaw_x_axis %f, target_distance %f, target_delta_height %f, auto_yaw_calibration %d, auto_fw_calibration %d, dart_selection %s %s %s %s.",
+        RCLCPP_INFO(this->get_logger(), "DartParam changed to: target_yaw_angle %d, target_yaw_angle_offset %d, target_fw_velocity %d, target_fw_velocity_offset %d, target_fw_velocity_ratio %f, target_yaw_x_axis %f, target_distance %f, target_delta_height %f, auto_yaw_calibration %d, auto_fw_calibration %d",
                     msg->target_yaw_angle,
                     msg->target_yaw_angle_offset,
                     msg->target_fw_velocity,
@@ -178,11 +190,11 @@ void NodeLoggerDog::dart_param_callback(const info::msg::DartParam::SharedPtr ms
                     msg->target_distance,
                     msg->target_delta_height,
                     msg->auto_yaw_calibration,
-                    msg->auto_fw_calibration,
-                    msg->dart_selection[0].c_str(),
-                    msg->dart_selection[1].c_str(),
-                    msg->dart_selection[2].c_str(),
-                    msg->dart_selection[3].c_str());
+                    msg->auto_fw_calibration);
+
+        RCLCPP_INFO(this->get_logger(), "Dart Selection %s %s %s %s", msg->dart_selection[0].c_str(), msg->dart_selection[1].c_str(), msg->dart_selection[2].c_str(), msg->dart_selection[3].c_str());
+        RCLCPP_INFO(this->get_logger(), "Target FW Velocity offset(launch) %d %d %d %d", msg->target_fw_velocity_launch_offset[0], msg->target_fw_velocity_launch_offset[1], msg->target_fw_velocity_launch_offset[2], msg->target_fw_velocity_launch_offset[3]);
+        RCLCPP_INFO(this->get_logger(), "Target YAW Angle offset(launch) %d %d %d %d", msg->target_yaw_launch_angle_offset[0], msg->target_yaw_launch_angle_offset[1], msg->target_yaw_launch_angle_offset[2], msg->target_yaw_launch_angle_offset[3]);
         last_msg = *msg;
     }
 }
@@ -196,7 +208,7 @@ void NodeLoggerDog::dart_launcher_status_callback(const info::msg::DartLauncherS
     if (is_changed)
     {
         // 记录到日志
-        RCLCPP_INFO(this->get_logger(), "DartLauncher %s, Judge %s, Motor DM %s, Motor Y %s, Motor LS %s, Motor FW %s %s %s %s.",
+        RCLCPP_INFO(this->get_logger(), "DartLauncher %s, Judge %s, Motor DM %s, Motor Y %s, Motor LS %s, Motor FW %s %s %s %s, RC %s.",
                     msg->dart_launcher_online ? "Online" : "Offline",
                     msg->judge_online ? "Online" : "Offline",
                     msg->motor_dm_online ? "Online" : "Offline",
@@ -205,7 +217,9 @@ void NodeLoggerDog::dart_launcher_status_callback(const info::msg::DartLauncherS
                     msg->motor_fw_online[0] ? "Online" : "Offline",
                     msg->motor_fw_online[1] ? "Online" : "Offline",
                     msg->motor_fw_online[2] ? "Online" : "Offline",
-                    msg->motor_fw_online[3] ? "Online" : "Offline");
+                    msg->motor_fw_online[3] ? "Online" : "Offline",
+                    msg->rc_online ? "Online" : "Offline");
+        RCLCPP_INFO(this->get_logger(), "Bus Voltage: %f %f %f %f", msg->bus_voltage[0], msg->bus_voltage[1], msg->bus_voltage[2], msg->bus_voltage[3]);
         RCLCPP_INFO(this->get_logger(), "DartLaunchProcess %d, DartState %d.",
                     msg->dart_launch_process,
                     msg->dart_state);
@@ -239,7 +253,7 @@ void NodeLoggerDog::check_nodes()
     {
         timer_->cancel();
         first_update = false;
-        timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&NodeLoggerDog::check_nodes, this));
+        timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&NodeLoggerDog::check_nodes, this));
     }
     // 更新参数
     nodes_to_watch_ = this->get_parameter("nodes_to_watch").as_string_array();

@@ -122,15 +122,27 @@ void evdev_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 
     ssize_t read_result = read(evdev_fd, &in, sizeof(struct input_event));
 
+    static bool disconnected = false;
+    static int next_retry_count = 200;
+
     while (1)
     {
         if (read_result == -1 || evdev_fd == -1)
         {
-            if (errno == ENODEV || evdev_fd == -1)
+            // 打印errno
+            // printf("errno: %d\n", errno);
+            if (errno == ENODEV || errno == EBADF || evdev_fd == -1 || disconnected)
             {
-                LV_LOG_ERROR("evdev: device was removed, trying to re-open...");
-                close(evdev_fd);
-                evdev_init();
+                disconnected = true;
+                LV_LOG_ERROR("evdev: device was offline");
+                LV_LOG_ERROR("evdev: errno: %s", strerror(errno));
+                if (--next_retry_count == 0)
+                {
+                    LV_LOG_ERROR("evdev: trying to reopen");
+                    next_retry_count = 200;
+                    close(evdev_fd);
+                    evdev_init();
+                }
                 return;
             }
             else
@@ -140,6 +152,7 @@ void evdev_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
         }
         else if (read_result > 0)
         {
+            disconnected = false;
             if (in.type == EV_REL)
             {
                 if (in.code == REL_X)

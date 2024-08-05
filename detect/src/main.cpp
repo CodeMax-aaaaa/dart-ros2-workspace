@@ -49,7 +49,7 @@ private:
             cv::Mat resultImg = perform_detection(frame, is_detected, x, y);
             auto message = info::msg::GreenLight();
             message.header.stamp = this->get_clock()->now();
-            message.header.frame_id = "base_link";
+            message.header.frame_id = "detect";
             message.is_detected = is_detected;
             message.location.x = x;
             message.location.y = y;

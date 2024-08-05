@@ -6,7 +6,12 @@ import os
 
 def generate_launch_description():
     node_lvgl_ui = Node(package="dart_controller", executable="node_lvgl_ui")
-    node_can_agent = Node(package="dart_controller", executable="node_can_agent")
+    # 日志 DEBUG级别
+    node_can_agent = Node(
+        package="dart_controller",
+        executable="node_can_agent",
+        parameters=[{"log_level": "debug"}],
+    )
     node_dart_config = Node(package="dart_controller", executable="node_dart_config")
     node_camera = Node(package="detect", executable="camera_node")
     node_detect = Node(package="detect", executable="detect_node")

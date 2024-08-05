@@ -78,8 +78,18 @@ NodeDartConfig::NodeDartConfig(const std::string &yaml_file)
 
 void NodeDartConfig::loadParameters()
 {
-    YAML::Node config = YAML::LoadFile(yaml_file_);
-    config = config["/dart_config"]["ros__parameters"];
+    YAML::Node config;
+    try
+    {
+        RCLCPP_INFO(this->get_logger(), "Loading parameters from %s", yaml_file_.c_str());
+        config = YAML::LoadFile(yaml_file_);
+        config = config["/dart_config"]["ros__parameters"];
+    }
+    catch (...)
+    {
+        RCLCPP_ERROR(this->get_logger(), "Failed to load parameters from %s", yaml_file_.c_str());
+        config = YAML::Node();
+    }
 
     // If the file is empty (or corrupted), generate default parameters
     if (config.IsNull() || config.size() == 0)

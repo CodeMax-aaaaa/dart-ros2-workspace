@@ -384,7 +384,8 @@ void NodeLVGLUI::loadParametersfromGUI(bool update_to_ros_param)
   // 距离和目标速度加载到参数内
   msg.target_distance = lv_spinbox_get_value(guider_ui.Main_spinbox_distance_X) / 100.0;
   msg.dart_selection = selected_darts;
-
+  msg.header.stamp = this->now();
+  msg.header.frame_id = "lvgl_ui";
   dart_launcher_cmd_pub_->publish(msg);
 
   if (update_to_ros_param)
@@ -432,7 +433,7 @@ void NodeLVGLUI::calibration_yaw()
   }
   else
   {
-    RCLCPP_INFO(this->get_logger(), "Dart launcher is offline or in boot/protect state, or camera is down, skip calibration");
+    RCLCPP_DEBUG(this->get_logger(), "Dart launcher is offline or in boot/protect state, or camera is down, skip calibration");
   }
 }
 
@@ -464,7 +465,7 @@ void NodeLVGLUI::update_green_light_callback(info::msg::GreenLight::SharedPtr ms
     {
       static char buf[30];
       sprintf(buf, "%.1f, %.1f", msg->location.x, msg->location.y);
-      RCLCPP_INFO(this->get_logger(), "Green light detected at %.1f, %.1f", msg->location.x, msg->location.y);
+      RCLCPP_DEBUG(this->get_logger(), "Green light detected at %.1f, %.1f", msg->location.x, msg->location.y);
       lv_label_set_text(guider_ui.Main_label_yaw_location, buf);
       lv_label_set_text(guider_ui.Main_label_yaw_location_cv, buf);
     }

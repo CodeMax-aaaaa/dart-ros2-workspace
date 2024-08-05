@@ -430,6 +430,8 @@ void custom_init(lv_ui *ui)
     lv_spinbox_set_range(ui->Main_spinbox_distance_X, 0, 4000);
     lv_spinbox_set_range(ui->Main_spinbox_target_delta_height, -500, 500);
 
+	lv_label_set_text(ui->Init_label_2, "镖神保佑\n把把必中");
+
     // 创建并设置样式：选中项的样式
     static lv_style_t style_ddlist_selected_option;
     lv_style_init(&style_ddlist_selected_option);
