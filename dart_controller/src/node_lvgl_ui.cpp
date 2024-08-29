@@ -133,6 +133,14 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
   cv_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
       "detect/image", 1, bind(&NodeLVGLUI::update_cv_image, this, placeholders::_1));
 
+  judge_sub_ = this->create_subscription<info::msg::Judge>(
+      "/dart_controller/judge",
+      rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(),
+      [this](info::msg::Judge::SharedPtr msg) -> void
+      {
+        judge_msg_ = *msg;
+      });
+
   callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::callback_set_parameter, this, std::placeholders::_1));
 
   update_ip_address();
@@ -367,11 +375,6 @@ void NodeLVGLUI::loadParametersfromGUI(bool update_to_ros_param)
                                           lv_spinbox_get_value(spinboxs_fw_velocity_offset[3])};
   msg.target_delta_height = lv_spinbox_get_value(guider_ui.Main_spinbox_target_delta_height) / 100.0;
 
-  msg.target_yaw_launch_angle_offset[0] = this->target_yaw_launch_angle_offset[0];
-  msg.target_yaw_launch_angle_offset[1] = this->target_yaw_launch_angle_offset[1];
-  msg.target_yaw_launch_angle_offset[2] = this->target_yaw_launch_angle_offset[2];
-  msg.target_yaw_launch_angle_offset[3] = this->target_yaw_launch_angle_offset[3];
-
   // 已选择飞镖加载到参数内
   array<string, 4> selected_darts;
   lv_obj_t *ddlist_darts[4] = {guider_ui.Main_ddlist_launch_dart_1, guider_ui.Main_ddlist_launch_dart_2, guider_ui.Main_ddlist_launch_dart_3, guider_ui.Main_ddlist_launch_dart_4};
@@ -380,7 +383,14 @@ void NodeLVGLUI::loadParametersfromGUI(bool update_to_ros_param)
     char buf[20];
     lv_dropdown_get_selected_str(ddlist_darts[i], buf, sizeof(buf));
     selected_darts[i] = string(buf);
+    if (strcmp(buf, "Default") == 0 || !dart_db_->contains(string(buf)))
+    {
+      msg.target_yaw_launch_angle_offset[i] = 0;
+    }
+    else
+      msg.target_yaw_launch_angle_offset[i] = dart_db_->getYawOffset(string(buf));
   }
+
   // 距离和目标速度加载到参数内
   msg.target_distance = lv_spinbox_get_value(guider_ui.Main_spinbox_distance_X) / 100.0;
   msg.dart_selection = selected_darts;
@@ -398,7 +408,7 @@ void NodeLVGLUI::calibration_yaw()
 {
   // 检测参数内的Yaw轴x方向目标角度，如果有效检测到绿灯，则计算绿灯坐标与目标角度的差值，作为偏移量，进行折算后加到目标角度上
   // 如果未检测到绿灯，则不动
-  if (green_light_ && dart_launcher_status_->dart_launcher_online && dart_launcher_status_->dart_state != 100 && dart_launcher_status_->dart_state != 101 && dart_launcher_status_->dart_state != 105) // 未处于boot/保护/比赛发射状态
+  if (green_light_ && dart_launcher_status_->dart_launcher_online && dart_launcher_status_->dart_state != 100 && dart_launcher_status_->dart_state != 101 && dart_launcher_status_->dart_state != 105 && judge_msg_.game_progress != 2 && judge_msg_.game_progress != 3) // 未处于boot/保护/比赛准备/自检/发射状态
   {
     int32_t target_yaw_angle = this->get_parameter("target_yaw_angle").as_int();
     double target_yaw_x_axis = this->get_parameter("target_yaw_x_axis").as_double();
@@ -461,22 +471,23 @@ void NodeLVGLUI::update_green_light_callback(info::msg::GreenLight::SharedPtr ms
 
   with_ui_lock(node, [&]()
                {
-    if (msg->is_detected)
-    {
-      static char buf[30];
-      sprintf(buf, "%.1f, %.1f", msg->location.x, msg->location.y);
-      RCLCPP_DEBUG(this->get_logger(), "Green light detected at %.1f, %.1f", msg->location.x, msg->location.y);
-      lv_label_set_text(guider_ui.Main_label_yaw_location, buf);
-      lv_label_set_text(guider_ui.Main_label_yaw_location_cv, buf);
-    }
-    else
-    {
-      lv_label_set_text(guider_ui.Main_label_yaw_location, "N/A");
-      lv_label_set_text(guider_ui.Main_label_yaw_location_cv, "N/A");
-    } });
+                 if (msg->is_detected)
+                 {
+                   static char buf[30];
+                   sprintf(buf, "%.1f, %.1f", msg->location.x, msg->location.y);
+                   RCLCPP_DEBUG(this->get_logger(), "Green light detected at %.1f, %.1f", msg->location.x, msg->location.y);
+                   lv_label_set_text(guider_ui.Main_label_yaw_location, buf);
+                   lv_label_set_text(guider_ui.Main_label_yaw_location_cv, buf);
+                 }
+                 else
+                 {
+                   lv_label_set_text(guider_ui.Main_label_yaw_location, "N/A");
+                   lv_label_set_text(guider_ui.Main_label_yaw_location_cv, "N/A");
+                 }
 
-  if (this->get_parameter("auto_yaw_calibration").as_bool())
-    calibration_yaw(); // 10Hz
+                 if (this->get_parameter("auto_yaw_calibration").as_bool())
+                   calibration_yaw(); // 10Hz
+               });
 }
 
 void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg)
@@ -698,8 +709,37 @@ void NodeLVGLUI::update_parameters_to_gui()
       lv_dropdown_set_selected(ddlist_darts[i], find(names.begin(), names.end(), dart_selected[i]) - names.begin() + 1);
     }
   }
+
+  // 加载offset
+  // 已选择飞镖加载到参数内
+  array<string, 4> selected_darts;
+  for (size_t i = 0; i < 4; i++)
+  {
+    char buf[20];
+    lv_dropdown_get_selected_str(ddlist_darts[i], buf, sizeof(buf));
+    selected_darts[i] = string(buf);
+    if (strcmp(buf, "Default") == 0 || !dart_db_->contains(string(buf)))
+    {
+      target_yaw_launch_angle_offset[i] = 0;
+    }
+    else
+      target_yaw_launch_angle_offset[i] = dart_db_->getYawOffset(string(buf));
+  }
+
+  // 加载摩擦轮速度offset
+  static lv_obj_t *spinboxs_fw_velocity_offset[4] = {
+      guider_ui.Main_spinbox_slot1_fw_offset,
+      guider_ui.Main_spinbox_slot2_fw_offset,
+      guider_ui.Main_spinbox_slot3_fw_offset,
+      guider_ui.Main_spinbox_slot4_fw_offset};
+
+  for (size_t i = 0; i < 4; i++)
+  {
+    lv_spinbox_set_value(spinboxs_fw_velocity_offset[i], this->get_parameter("target_fw_velocity_launch_offset").as_integer_array()[i]);
+  }
+
   if (this->get_parameter("auto_fw_calibration").as_bool())
-    calibration_fw(false); // 不允许自动设置参数
+    calibration_fw(false); // 不允许自动设置参数，使用老参数，否则会引发参数设置的死循环。也就是说，上电时的参数都是未经计算的，除非勾选自动计算。
 
   // 如果Yaw轴offset与参数内的值不一致，则开启线程去更新他
   if (target_yaw_launch_angle_offset[0] != this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[0] ||
@@ -708,11 +748,27 @@ void NodeLVGLUI::update_parameters_to_gui()
       target_yaw_launch_angle_offset[3] != this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[3])
   {
     RCLCPP_INFO(this->get_logger(), "Yaw offset dismatch, updating...");
-    thread t([this]()
-             { this->set_parameter(rclcpp::Parameter("target_yaw_launch_angle_offset", target_yaw_launch_angle_offset)); });
-    t.detach();
-  }
 
+    RCLCPP_INFO(this->get_logger(), "Yaw offset parameter update: from %d %d %d %d to %d %d %d %d",
+                this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[0],
+                this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[1],
+                this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[2],
+                this->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[3],
+                target_yaw_launch_angle_offset[0],
+                target_yaw_launch_angle_offset[1],
+                target_yaw_launch_angle_offset[2],
+                target_yaw_launch_angle_offset[3]);
+
+    thread t([this]()
+             { this->set_parameter(rclcpp::Parameter("target_yaw_launch_angle_offset", target_yaw_launch_angle_offset)); }); // 将计算值设置为参数，但是不会主动更新，需要其他操作触发
+    t.detach();
+
+    // 将槽位yaw偏移角度写入label52 53 54 55
+    lv_label_set_text_fmt(guider_ui.Main_label_52, "槽位1偏移速度(y: %d)", target_yaw_launch_angle_offset[0]);
+    lv_label_set_text_fmt(guider_ui.Main_label_53, "槽位2偏移速度(y: %d)", target_yaw_launch_angle_offset[1]);
+    lv_label_set_text_fmt(guider_ui.Main_label_54, "槽位3偏移速度(y: %d)", target_yaw_launch_angle_offset[2]);
+    lv_label_set_text_fmt(guider_ui.Main_label_55, "槽位4偏移速度(y: %d)", target_yaw_launch_angle_offset[3]);
+  }
   // // 重新注册回调函数
   // callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::callback_set_parameter, this, std::placeholders::_1));
   callback_spinbox_disabled = false;

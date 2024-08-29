@@ -113,6 +113,8 @@ typedef struct
 	lv_obj_t *Main_spinbox_target_delta_height_btn;
 	lv_obj_t *Main_spinbox_target_delta_height_btn_minus;
 	lv_obj_t *Main_label_57;
+	lv_obj_t *Main_btn_force_refresh;
+	lv_obj_t *Main_btn_force_refresh_label;
 	lv_obj_t *Main_list_darts;
 	lv_obj_t *Main_label_35;
 	lv_obj_t *Main_cont_dart_param;

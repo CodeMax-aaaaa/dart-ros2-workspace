@@ -13,6 +13,7 @@
 #ifdef __cplusplus
 #include <string>
 void loadDartInfo(std::string dart_name);
+// std::mutex mutex_Main_list_darts_;
 extern "C"
 {
 #endif

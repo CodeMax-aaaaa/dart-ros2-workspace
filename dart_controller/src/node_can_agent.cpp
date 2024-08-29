@@ -653,10 +653,10 @@ public:
                 if (msg->header.frame_id == "can_agent")
                     return;
                 // 设置参数
-                loadParametersfromMsg(msg);
-                RCLCPP_INFO(this->get_logger(), "Received params MSG from ROS");
-                // _mutex.lock();
                 _lastReceiveParameterFromRosTime = std::chrono::steady_clock::now();
+                RCLCPP_INFO(this->get_logger(), "Received params MSG from ROS");
+                loadParametersfromMsg(msg);
+                // _mutex.lock();
                 // _mutex.unlock();
             });
 

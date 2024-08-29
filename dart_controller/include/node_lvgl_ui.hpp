@@ -9,6 +9,7 @@
 #include <info/msg/dart_launcher_status.hpp>
 #include <info/msg/dart_param.hpp>
 #include <info/msg/green_light.hpp>
+#include <info/msg/judge.hpp>
 #include <std_srvs/srv/empty.hpp>
 #include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -48,14 +49,12 @@ public:
     void calibration_fw(bool set_parameter = true);
     std::filesystem::file_time_type last_write_time;
     std::shared_ptr<DartAlgorithm::DartDataBase> dart_db_;
-    
 
     rclcpp::node_interfaces::PostSetParametersCallbackHandle::SharedPtr callback_set_parameter_handle;
     std::vector<int>
         target_yaw_launch_angle_offset = {0, 0, 0, 0};
 
 private:
-
     std::mutex mutex_ui_;
     rclcpp::TimerBase::SharedPtr timer_[3];
     rclcpp::Publisher<info::msg::DartParam>::SharedPtr dart_launcher_cmd_pub_;
@@ -63,6 +62,9 @@ private:
     rclcpp::Subscription<info::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
     rclcpp::Subscription<info::msg::GreenLight>::SharedPtr green_light_sub_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr cv_image_sub_;
+    rclcpp::Subscription<info::msg::Judge>::SharedPtr judge_sub_;
+
+    info::msg::Judge judge_msg_;
 
     std::shared_ptr<info::msg::DartLauncherStatus> dart_launcher_status_;
     std::shared_ptr<info::msg::GreenLight> green_light_;

@@ -7,8 +7,8 @@ link_libraries(lvgl)
 
 # 编译gui guider的generate为共享库
 FILE(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_LIST_DIR}/*.c)
-# add_library(guider_generated SHARED ${SOURCES})
-add_library(guider_generated STATIC ${SOURCES})
+add_library(guider_generated SHARED ${SOURCES})
+# add_library(guider_generated STATIC ${SOURCES})
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/../../lvgl/include/

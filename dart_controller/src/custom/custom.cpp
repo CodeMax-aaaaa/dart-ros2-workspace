@@ -31,8 +31,8 @@ typedef enum
  *********************/
 lv_anim_ready_cb_t ready_cb(lv_anim_t *a);
 lv_anim_ready_cb_t dequeue_ready_cb(lv_anim_t *a);
-
-// /**********************
+// std::mutex mutex_Main_list_darts_;
+/**********************
 //  *  STATIC PROTOTYPES
 //  **********************/
 
@@ -80,10 +80,13 @@ void spinbox_event_cb(lv_event_t *event)
         while (!(node->callback_set_parameter_handle))
         {
         } // 等待参数设置完成
-        node->loadParametersfromGUI();
         if (node->get_parameter("auto_fw_calibration").as_bool())
         {
             node->calibration_fw();
+            node->loadParametersfromGUI();
+        }
+        else
+        {
             node->loadParametersfromGUI();
         }
     }
@@ -230,6 +233,29 @@ void btn_calibration_rpm_cb(lv_event_t *event)
     }
 }
 
+void btn_force_refresh_cb(lv_event_t *event)
+{
+    if (node)
+    {
+        while (!(node->callback_set_parameter_handle))
+        {
+        } // 等待参数设置完成
+        node->loadParametersfromGUI();
+        // 自动校准
+        if (node->get_parameter("auto_fw_calibration").as_bool())
+        {
+            node->calibration_fw();
+            node->loadParametersfromGUI();
+            // node->set_parameter(rclcpp::Parameter("target_yaw_launch_angle_offset", node->target_yaw_launch_angle_offset));
+        }
+        // 将槽位yaw偏移角度写入label52 53 54 55
+        lv_label_set_text_fmt(guider_ui.Main_label_52, "槽位1偏移速度(y: %d)", (int32_t)node->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[0]);
+        lv_label_set_text_fmt(guider_ui.Main_label_53, "槽位2偏移速度(y: %d)", (int32_t)node->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[1]);
+        lv_label_set_text_fmt(guider_ui.Main_label_54, "槽位3偏移速度(y: %d)", (int32_t)node->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[2]);
+        lv_label_set_text_fmt(guider_ui.Main_label_55, "槽位4偏移速度(y: %d)", (int32_t)node->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[3]);
+    }
+}
+
 void ddlist_dart_chosen_cb(lv_event_t *event)
 {
     if (node)
@@ -245,6 +271,11 @@ void ddlist_dart_chosen_cb(lv_event_t *event)
             node->loadParametersfromGUI();
             // node->set_parameter(rclcpp::Parameter("target_yaw_launch_angle_offset", node->target_yaw_launch_angle_offset));
         }
+        // 将槽位yaw偏移角度写入label52 53 54 55
+        lv_label_set_text_fmt(guider_ui.Main_label_52, "槽位1偏移速度(y: %d)", (int32_t)node->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[0]);
+        lv_label_set_text_fmt(guider_ui.Main_label_53, "槽位2偏移速度(y: %d)", (int32_t)node->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[1]);
+        lv_label_set_text_fmt(guider_ui.Main_label_54, "槽位3偏移速度(y: %d)", (int32_t)node->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[2]);
+        lv_label_set_text_fmt(guider_ui.Main_label_55, "槽位4偏移速度(y: %d)", (int32_t)node->get_parameter("target_yaw_launch_angle_offset").as_integer_array()[3]);
     }
 }
 
@@ -326,12 +357,24 @@ void btn_reload_dart_cb(lv_event_t *event)
 
 void btn_save_dart_cb(lv_event_t *event)
 {
+    static bool save_operating = false;
     if (node)
     {
-        if (obj_dart_list_seleted)
+        if (obj_dart_list_seleted && !save_operating)
         {
-            RCLCPP_INFO(rclcpp::get_logger("lvgl_ui"), "Dart %s is chosen", lv_list_get_btn_text(guider_ui.Main_list_darts, obj_dart_list_seleted));
-            saveDartInfo(std::string(lv_list_get_btn_text(guider_ui.Main_list_darts, obj_dart_list_seleted)));
+            save_operating = true;
+            lv_label_set_text(guider_ui.Main_btn_dart_param_save_label, "保存...");
+
+            std::thread([&]()
+                        {           
+                            with_ui_lock(node, [&]()
+                            {
+                                RCLCPP_INFO(rclcpp::get_logger("lvgl_ui"), "Dart %s is chosen", lv_list_get_btn_text(guider_ui.Main_list_darts, obj_dart_list_seleted));
+                                saveDartInfo(std::string(lv_list_get_btn_text(guider_ui.Main_list_darts, obj_dart_list_seleted))); 
+                                lv_label_set_text(guider_ui.Main_btn_dart_param_save_label, "保存");
+                            });
+                            save_operating = false; })
+                .detach();
         }
     }
 }
@@ -415,7 +458,7 @@ void custom_init(lv_ui *ui)
 {
     /* Add your codes here */
     lv_textarea_set_accepted_chars(ui->Main_ta_dart_param_number, "1234567890-_.ABCDEFGHIJKLMNOPQRSTtUVWXYZ");
-    lv_spinbox_set_range(ui->Main_spinbox_fw_speed, 0, 7070);
+    lv_spinbox_set_range(ui->Main_spinbox_fw_speed, 0, 7714);
     lv_spinbox_set_range(ui->Main_spinbox_fw_speed_offset, -2000, 2000);
     lv_spinbox_set_range(ui->Main_spinbox_fw_speed_ratio, 0, 3000);
     lv_spinbox_set_range(ui->Main_spinbox_yaw_angle, 5000, 360000);
@@ -423,14 +466,19 @@ void custom_init(lv_ui *ui)
     lv_spinbox_set_range(ui->Main_spinbox_yaw_angle_cv, 5000, 360000);
     lv_spinbox_set_range(ui->Main_spinbox_yaw_angle_offset_cv, -50000, 50000);
     lv_spinbox_set_range(ui->Main_spinbox_yaw_calibration_x, 0, 102400);
-    lv_spinbox_set_range(ui->Main_spinbox_slot1_fw_offset, -7070, 7070);
-    lv_spinbox_set_range(ui->Main_spinbox_slot2_fw_offset, -7070, 7070);
-    lv_spinbox_set_range(ui->Main_spinbox_slot3_fw_offset, -7070, 7070);
-    lv_spinbox_set_range(ui->Main_spinbox_slot4_fw_offset, -7070, 7070);
+    lv_spinbox_set_range(ui->Main_spinbox_slot1_fw_offset, -7714, 7714);
+    lv_spinbox_set_range(ui->Main_spinbox_slot2_fw_offset, -7714, 7714);
+    lv_spinbox_set_range(ui->Main_spinbox_slot3_fw_offset, -7714, 7714);
+    lv_spinbox_set_range(ui->Main_spinbox_slot4_fw_offset, -7714, 7714);
     lv_spinbox_set_range(ui->Main_spinbox_distance_X, 0, 4000);
     lv_spinbox_set_range(ui->Main_spinbox_target_delta_height, -500, 500);
 
-	lv_label_set_text(ui->Init_label_2, "镖神保佑\n把把必中");
+    lv_obj_set_width(ui->Main_label_52, 341);
+    lv_obj_set_width(ui->Main_label_53, 341);
+    lv_obj_set_width(ui->Main_label_54, 341);
+    lv_obj_set_width(ui->Main_label_55, 341);
+
+    lv_label_set_text(ui->Init_label_2, "镖神保佑\n把把必中");
 
     // 创建并设置样式：选中项的样式
     static lv_style_t style_ddlist_selected_option;
@@ -482,6 +530,7 @@ void custom_init(lv_ui *ui)
     lv_obj_add_event_cb(guider_ui.Main_btn_rpm_calibration, btn_calibration_rpm_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_btn_dart_param_save, btn_save_dart_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_btn_dart_param_reload, btn_reload_dart_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(guider_ui.Main_btn_force_refresh, btn_force_refresh_cb, LV_EVENT_CLICKED, NULL);
 
     lv_obj_add_event_cb(guider_ui.Main_ddlist_launch_dart_1, ddlist_dart_chosen_cb, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(guider_ui.Main_ddlist_launch_dart_2, ddlist_dart_chosen_cb, LV_EVENT_VALUE_CHANGED, NULL);
