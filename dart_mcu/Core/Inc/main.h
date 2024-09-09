@@ -59,7 +59,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 
 /* USER CODE BEGIN Private defines */
-
+void MX_FREERTOS_Init(void);
+void task_init(void * argument);
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

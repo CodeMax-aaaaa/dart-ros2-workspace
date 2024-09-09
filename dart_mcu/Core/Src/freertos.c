@@ -50,19 +50,39 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){return false;}}
+#define EXECUTE_EVERY_N_MS(MS, X)  do { \
+    static volatile int64_t init = -1; \
+    if (init == -1) { init = uxr_millis();} \
+    if (uxr_millis() - init > MS) { X; init = uxr_millis();} \
+  } while (0)\
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+rcl_allocator_t allocator;
+rcl_publisher_t publisher;
+rcl_node_t node;
+rclc_support_t support;
 
+rcl_timer_t timer;
+rclc_executor_t executor;
+std_msgs__msg__Int64 msg;
+bool micro_ros_init_successful;
+
+enum states {
+    WAITING_AGENT,
+    AGENT_AVAILABLE,
+    AGENT_CONNECTED,
+    AGENT_DISCONNECTED
+} state;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .stack_size = 3000 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+        .name = "defaultTask",
+        .stack_size = 3000 * 4,
+        .priority = (osPriority_t) osPriorityNormal,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -83,11 +103,16 @@ void *microros_reallocate(void *pointer, size_t size, void *state);
 
 void *microros_zero_allocate(size_t number_of_elements, size_t size_of_element, void *state);
 
+bool create_entities();
+
+void destroy_entities();
+
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
+
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
@@ -96,37 +121,37 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   * @retval None
   */
 void MX_FREERTOS_Init(void) {
-  /* USER CODE BEGIN Init */
+    /* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+    /* USER CODE END Init */
 
-  /* USER CODE BEGIN RTOS_MUTEX */
+    /* USER CODE BEGIN RTOS_MUTEX */
     /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
+    /* USER CODE END RTOS_MUTEX */
 
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
+    /* USER CODE BEGIN RTOS_SEMAPHORES */
     /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
+    /* USER CODE END RTOS_SEMAPHORES */
 
-  /* USER CODE BEGIN RTOS_TIMERS */
+    /* USER CODE BEGIN RTOS_TIMERS */
     /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
+    /* USER CODE END RTOS_TIMERS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
+    /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
+    /* USER CODE END RTOS_QUEUES */
 
-  /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+    /* Create the thread(s) */
+    /* creation of defaultTask */
+    defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* USER CODE BEGIN RTOS_THREADS */
+    /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
+    /* USER CODE END RTOS_THREADS */
 
-  /* USER CODE BEGIN RTOS_EVENTS */
+    /* USER CODE BEGIN RTOS_EVENTS */
     /* add events, ... */
-  /* USER CODE END RTOS_EVENTS */
+    /* USER CODE END RTOS_EVENTS */
 
 }
 
@@ -137,13 +162,11 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
-{
-  /* init code for USB_DEVICE */
-  MX_USB_DEVICE_Init();
-  /* USER CODE BEGIN StartDefaultTask */
-
-    bool first_connection = true;
+void StartDefaultTask(void *argument) {
+    /* init code for USB_DEVICE */
+    MX_USB_DEVICE_Init();
+    /* USER CODE BEGIN StartDefaultTask */
+    state = WAITING_AGENT;
     // micro-ROS configuration
     rmw_uros_set_custom_transport(
             true,
@@ -152,90 +175,97 @@ void StartDefaultTask(void *argument)
             cubemx_transport_close,
             cubemx_transport_write,
             cubemx_transport_read);
-    rcl_allocator_t allocator;
+
+
+    while (1) {
+        switch (state) {
+            case WAITING_AGENT:
+                EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE
+                                                                                            : WAITING_AGENT;);
+                break;
+            case AGENT_AVAILABLE:
+                state = (true == create_entities()) ? AGENT_CONNECTED : WAITING_AGENT;
+                if (state == WAITING_AGENT) {
+                    destroy_entities();
+                };
+                break;
+            case AGENT_CONNECTED:
+                EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED
+                                                                                            : AGENT_DISCONNECTED;);
+                if (state == AGENT_CONNECTED) {
+                    rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+                }
+                break;
+            case AGENT_DISCONNECTED:
+                destroy_entities();
+                state = WAITING_AGENT;
+                break;
+            default:
+                break;
+        }
+
+    }
+
+    /* USER CODE END StartDefaultTask */
+}
+
+/* Private application code --------------------------------------------------*/
+/* USER CODE BEGIN Application */
+void timer_callback(rcl_timer_t *timer, int64_t last_call_time) {
+    (void) last_call_time;
+    if (timer != NULL) {
+        rcl_publish(&publisher, &msg, NULL);
+        msg.data = rmw_uros_epoch_millis();
+    }
+}
+
+bool create_entities() {
     allocator = rcl_get_default_allocator();
     rcl_allocator_t freeRTOS_allocator = rcutils_get_zero_initialized_allocator();
     freeRTOS_allocator.allocate = microros_allocate;
     freeRTOS_allocator.deallocate = microros_deallocate;
     freeRTOS_allocator.reallocate = microros_reallocate;
     freeRTOS_allocator.zero_allocate = microros_zero_allocate;
-    while (1) {
-        rcl_publisher_t publisher;
-        std_msgs__msg__Int64 msg;
-        rcl_node_t node;
-        rclc_support_t support;
-        if (!rcutils_set_default_allocator(&freeRTOS_allocator)) {
-            printf("Error on default allocators (line %d)\n", __LINE__);
-        }
 
-        // micro-ROS app
+    // create init_options
+    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
-        //create init_options
-        rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
-        rcl_init_options_init(&init_options, allocator);
-        rcl_init_options_set_domain_id(&init_options, 7);
-        rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator);
-        rcl_init_options_fini(&init_options);
+    // create node
+    RCCHECK(rclc_node_init_default(&node, "cubemx_node", "", &support));
 
-        // create node
-        rcl_ret_t ret;
-        ret = rclc_node_init_default(&node, "cubemx_node", "", &support);
-        if (ret != RCL_RET_OK) {
-            printf("Error on node init (line %d)\n", __LINE__);
-            HAL_NVIC_SystemReset();
-        }
+    // create publisher
+    rclc_publisher_init_default(
+            &publisher,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64),
+            "cubemx_publisher");
 
+    // create timer,
+    const unsigned int timer_timeout = 1000;
+    RCCHECK(rclc_timer_init_default2(
+            &timer,
+            &support,
+            RCL_MS_TO_NS(timer_timeout),
+            timer_callback, true));
 
-        // create publisher
-        rclc_publisher_init_default(
-                &publisher,
-                &node,
-                ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64),
-                "cubemx_publisher");
+    // create executor
+    executor = rclc_executor_get_zero_initialized_executor();
+    RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+    RCCHECK(rclc_executor_add_timer(&executor, &timer));
 
-        msg.data = 0;
-
-        for (;;) {
-            rcl_ret_t ret = rcl_publish(&publisher, &msg, NULL);
-            if (ret != RCL_RET_OK) {
-                printf("Error publishing (line %d)\n", __LINE__);
-            }
-            // 获取当前时间
-//        rcl_time_point_value_t now;
-//        rcl_clock_get_now(&support.clock, &now);
-            // 同步时间�?
-//            static int error_count = 0;
-//            rmw_ret_t ping_ret = rmw_uros_ping_agent(100, 5);
-//            if (ping_ret != RMW_RET_OK && first_connection == false) {
-//                printf("Error sync session (line %d)\n", __LINE__);
-//
-//                // 重新连接Session
-//                printf("Reconnect session (line %d)\n", __LINE__);
-////                    HAL_NVIC_SystemReset();
-//                // fini
-//                rmw_context_t *rmw_context = rcl_context_get_rmw_context(&support.context);
-//                (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
-//                rcl_publisher_fini(&publisher, &node);
-//                rcl_node_fini(&node);
-//                rclc_support_fini(&support);
-//                break;
-//            } else if (first_connection == true && ping_ret == RMW_RET_OK) {
-//                first_connection = false;
-//            } else
-//                error_count = 0;
-
-
-            msg.data = rmw_uros_epoch_millis();
-            osDelay(1000);
-        }
-        // 重新连接Session
-        printf("Reconnect session (line %d)\n", __LINE__);
-    }
-  /* USER CODE END StartDefaultTask */
+    return true;
 }
 
-/* Private application code --------------------------------------------------*/
-/* USER CODE BEGIN Application */
+void destroy_entities() {
+    rmw_context_t *rmw_context = rcl_context_get_rmw_context(&support.context);
+    (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
+
+    rcl_publisher_fini(&publisher, &node);
+    rcl_timer_fini(&timer);
+    rclc_executor_fini(&executor);
+    rcl_node_fini(&node);
+    rclc_support_fini(&support);
+}
 
 /* USER CODE END Application */
 
