@@ -3,3 +3,4 @@ cmake-build-debug/
 build/
 install/
 log/
+generate_lib_microros_ws/
