@@ -47,7 +47,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-Buzzer_HandleTypeDef hbuzzer;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,10 +103,12 @@ int main(void) {
     Buzzer_Init(&hbuzzer, &buzzerConfig);
     Buzzer_Start(&hbuzzer);
 
-    const size_t songSize = sizeof(buzzer_startup) / sizeof(buzzer_startup[0]);
-    for (size_t i = 0; i < songSize; i++) {
-        Buzzer_Note(&hbuzzer, buzzer_startup[i].pitch);
-        HAL_Delay(buzzer_startup[i].duration * 15);
+    const size_t songSize = sizeof(buzzer_reconnect) / sizeof(buzzer_reconnect[0]);
+    for (size_t j = 0; j < 1; j++) {
+        for (size_t i = 0; i < songSize; i++) {
+            Buzzer_Note(&hbuzzer, buzzer_reconnect[i].pitch);
+            HAL_Delay(buzzer_reconnect[i].duration);
+        }
     }
     Buzzer_NoNote(&hbuzzer);
     /* USER CODE END 2 */

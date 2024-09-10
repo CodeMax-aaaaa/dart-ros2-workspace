@@ -32,11 +32,11 @@ add_compile_options(-ffunction-sections -fdata-sections -fno-common -fmessage-le
 # uncomment to mitigate c++17 absolute addresses warnings
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-register")
 
-include_directories(micro_ros_stm32cubemx_utils/microros_static_library_ide/libmicroros/microros_include)
+include_directories(Middlewares/Third_Party/libmicroros/include)
 include_directories(Drivers/stm32-buzzer/src)
-file(GLOB_RECURSE SOURCES Drivers/stm32-buzzer/src/buzzer.c)
+file(GLOB_RECURSE SOURCES Drivers/stm32-buzzer/src/buzzer.cpp)
 
-link_directories(micro_ros_stm32cubemx_utils/microros_static_library_ide/libmicroros)
+link_directories(Middlewares/Third_Party/libmicroros)
 link_libraries(microros)
 
 
@@ -61,7 +61,7 @@ include_directories(Core/Inc USB_DEVICE/App USB_DEVICE/Target Drivers/STM32F4xx_
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32F427xx)
 
-file(GLOB_RECURSE SOURCES "Core/*.*" "Middlewares/*.*" "Drivers/*.*" "USB_DEVICE/*.*" "Core/Src/*.c" "Core/Src/*.cpp")
+file(GLOB_RECURSE SOURCES "Core/*.*" "Middlewares/*.*" "Drivers/*.*" "USB_DEVICE/*.*")
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F427IIHX_FLASH.ld)
 

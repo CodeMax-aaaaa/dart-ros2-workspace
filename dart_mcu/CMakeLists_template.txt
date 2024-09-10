@@ -31,11 +31,11 @@ add_compile_options(-ffunction-sections -fdata-sections -fno-common -fmessage-le
 # uncomment to mitigate c++17 absolute addresses warnings
 #set(CMAKE_CXX_FLAGS "$${CMAKE_CXX_FLAGS} -Wno-register")
 
-include_directories(micro_ros_stm32cubemx_utils/microros_static_library_ide/libmicroros/microros_include)
+include_directories(Middlewares/Third_Party/libmicroros/include)
 include_directories(Drivers/stm32-buzzer/src)
 file(GLOB_RECURSE SOURCES Drivers/stm32-buzzer/src/buzzer.cpp)
 
-link_directories(micro_ros_stm32cubemx_utils/microros_static_library_ide/libmicroros)
+link_directories(Middlewares/Third_Party/libmicroros)
 link_libraries(microros)
 
 
