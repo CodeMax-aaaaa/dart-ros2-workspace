@@ -6,11 +6,9 @@
 #define DART_MCU_SERVO_H
 
 
-
 class servo {
 
 };
-
 
 
 #endif //DART_MCU_SERVO_H
