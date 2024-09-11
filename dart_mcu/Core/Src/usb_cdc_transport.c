@@ -10,6 +10,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "usb_cdc_transport.h"
+
 #ifdef RMW_UXRCE_TRANSPORT_CUSTOM
 
 // --- USB CDC Handles ---
@@ -75,27 +77,27 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 // Data received callback
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
-	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+    USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
 
     // Circular buffer
     if ((it_tail + *Len) > USB_BUFFER_SIZE)
-	{
+    {
         size_t first_section = USB_BUFFER_SIZE - it_tail;
         size_t second_section = *Len - first_section;
 
-		memcpy((void*) &storage_buffer[it_tail] , Buf, first_section);
-		memcpy((void*) &storage_buffer[0] , Buf, second_section);
+        memcpy((void*) &storage_buffer[it_tail] , Buf, first_section);
+        memcpy((void*) &storage_buffer[0] , Buf, second_section);
         it_tail = second_section;
-	}
+    }
     else
     {
-		memcpy((void*) &storage_buffer[it_tail] , Buf, *Len);
-		it_tail += *Len;
+        memcpy((void*) &storage_buffer[it_tail] , Buf, *Len);
+        it_tail += *Len;
     }
 
-	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+    USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
-	return (USBD_OK);
+    return (USBD_OK);
 }
 
 bool cubemx_transport_open(struct uxrCustomTransport * transport){
@@ -116,27 +118,27 @@ bool cubemx_transport_close(struct uxrCustomTransport * transport){
     return true;
 }
 
-size_t cubemx_transport_write(struct uxrCustomTransport* transport, uint8_t * buf, size_t len, uint8_t * err){
-	uint8_t ret = CDC_Transmit_FS(buf, len);
+unsigned int cubemx_transport_write(struct uxrCustomTransport* transport, const uint8_t * buf, unsigned int len, uint8_t * err){
+    uint8_t ret = CDC_Transmit_FS(buf, len);
 
-	if (USBD_OK != ret)
-	{
-		return 0;
-	}
+    if (USBD_OK != ret)
+    {
+        return 0;
+    }
 
     int64_t start = uxr_millis();
     while(!g_write_complete && (uxr_millis() -  start) < WRITE_TIMEOUT_MS)
     {
-    	vTaskDelay( 1 / portTICK_PERIOD_MS);
+        vTaskDelay( 1 / portTICK_PERIOD_MS);
     }
 
     size_t writed = g_write_complete ? len : 0;
     g_write_complete = false;
 
-	return writed;
+    return writed;
 }
 
-size_t cubemx_transport_read(struct uxrCustomTransport* transport, uint8_t* buf, size_t len, int timeout, uint8_t* err){
+unsigned int cubemx_transport_read(struct uxrCustomTransport* transport, uint8_t* buf, unsigned int len, int timeout, uint8_t* err){
 
     int64_t start = uxr_millis();
     size_t readed = 0;
@@ -154,7 +156,7 @@ size_t cubemx_transport_read(struct uxrCustomTransport* transport, uint8_t* buf,
             break;
         }
 
-       vTaskDelay( 1 / portTICK_PERIOD_MS );
+        vTaskDelay( 1 / portTICK_PERIOD_MS );
     } while ((uxr_millis() -  start) < timeout);
 
     return readed;

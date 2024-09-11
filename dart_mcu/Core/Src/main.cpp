@@ -22,11 +22,9 @@
 #include "tim.h"
 #include "usb_device.h"
 #include "gpio.h"
-
+#include "sound_effect.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "buzzer.h"
-#include "buzzer_examples.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -95,22 +93,8 @@ int main(void) {
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_TIM12_Init();
+    MX_TIM6_Init();
     /* USER CODE BEGIN 2 */
-    Buzzer_InitTypeDef buzzerConfig;
-    buzzerConfig.channel = TIM_CHANNEL_1;
-    buzzerConfig.timer = &htim12;
-    buzzerConfig.timerClockFreqHz = HAL_RCC_GetPCLK2Freq(); // NOTE: this should be freq of timer, not frequency of peripheral clock
-    Buzzer_Init(&hbuzzer, &buzzerConfig);
-    Buzzer_Start(&hbuzzer);
-
-    const size_t songSize = sizeof(buzzer_reconnect) / sizeof(buzzer_reconnect[0]);
-    for (size_t j = 0; j < 1; j++) {
-        for (size_t i = 0; i < songSize; i++) {
-            Buzzer_Note(&hbuzzer, buzzer_reconnect[i].pitch);
-            HAL_Delay(buzzer_reconnect[i].duration);
-        }
-    }
-    Buzzer_NoNote(&hbuzzer);
     /* USER CODE END 2 */
 
     /* Init scheduler */
@@ -193,8 +177,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM2) {
         HAL_IncTick();
     }
-    /* USER CODE BEGIN Callback 1 */
+        /* USER CODE BEGIN Callback 1 */
+    else if (htim->Instance == TIM6) {
 
+    }
     /* USER CODE END Callback 1 */
 }
 
