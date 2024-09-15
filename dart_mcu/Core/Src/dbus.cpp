@@ -40,7 +40,7 @@ void DT7_Reset() {
 //    MX_DMA_Init();
 //
 //    MX_USART3_UART_Init();
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart3, uart3RecBuffer, UART3_MAX_RECEIVE_BUFFER_LENGTH);
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart3, uart1RecBuffer, UART1_MAX_RECEIVE_BUFFER_LENGTH);
 }
 
 void DT7_Decode() {

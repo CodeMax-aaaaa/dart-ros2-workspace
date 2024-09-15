@@ -213,7 +213,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
         HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart1RecBuffer, UART1_MAX_RECEIVE_BUFFER_LENGTH);
     } else if (huart == &huart3 && huart->RxEventType == HAL_UART_RXEVENT_IDLE
             ) {
-        // 双缓�?
+        // 双缓�?
         static uint8_t decode_memory_ = MEMORY0;
         HAL_UARTEx_ReceiveToIdle_DMA(&huart1, judge_rx_buffer[(decode_memory_ + 1) % 2],
                                      UART6_MAX_RECEIVE_BUFFER_LENGTH);
@@ -280,10 +280,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     static bool begin = false;
     if (htim == &htim8) {
-        if (!begin) {
+        if (!begin && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
             meter::velocity_meter.onCaptureBegin(htim->Instance->CCR1);
             begin = true;
-        } else if (begin) {
+        } else if (begin && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
             meter::velocity_meter.onCaptureEnd(htim->Instance->CCR2);
             begin = false;
         } else {

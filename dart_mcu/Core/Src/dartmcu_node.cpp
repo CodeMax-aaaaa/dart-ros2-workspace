@@ -17,12 +17,17 @@
 
 #include <std_msgs/msg/int32.h>
 #include <std_msgs/msg/int64.h>
+#include <std_msgs/msg/float64.h>
 #include <buzzer.h>
 #include "buzzer_examples.h"
 #include "dartmcu_node.h"
 
 #include "sound_effect.h"
 #include "tim.h"
+
+#include "led.h"
+#include "velocimeter.h"
+#include "servo.h"
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){return false;}}
 #define EXECUTE_EVERY_N_MS(MS, X)  do { \
@@ -42,8 +47,10 @@ enum states {
 
 
 rcl_allocator_t allocator;
-rcl_subscription_t subscriber = rcl_get_zero_initialized_subscription();
+rcl_subscription_t subscriber_buzzer = rcl_get_zero_initialized_subscription();
+rcl_subscription_t subscriber_servo = rcl_get_zero_initialized_subscription();
 rcl_publisher_t publisher;
+rcl_publisher_t publisher_dart_velocity_meter;
 rcl_node_t node;
 rclc_support_t support;
 rcl_timer_t timer;
@@ -53,6 +60,7 @@ std_msgs__msg__Int64 msg;
 bool micro_ros_init_successful;
 
 SoundEffectManager soundEffectManager;
+servo test_servo;
 
 bool create_entities();
 
@@ -62,12 +70,45 @@ void destroy_entities();
 
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time);
 
-void subscription_callback(const void *msgin);
+void subscription_buzzer_callback(const void *msgin);
+
+void subscription_servo_callback(const void *msgin);
+
+struct {
+    double velocity;
+    bool is_valid;
+} velocity_meter_result;
+
+TaskHandle_t velocity_meter_result_task_handle;
+
+void publish_velocity_meter_result(void *arg) {
+    double velocity = 0;
+    while (1) {
+        // 等待任务通知
+        xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
+        velocity = velocity_meter_result.velocity;
+        std_msgs__msg__Float64 msg_velocity;
+        msg_velocity.data = velocity;
+        rcl_publish(&publisher_dart_velocity_meter, &msg_velocity, NULL);
+    }
+}
 
 void microros_node_task(void) {
     soundEffectManager.Init(&htim12, &htim6, TIM_CHANNEL_1, HAL_RCC_GetPCLK2Freq());
 
+    LED::led_flow.begin();
+
     soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_reconnect));
+    test_servo.begin(&htim4, TIM_CHANNEL_1, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
+
+    meter::velocity_meter.init(&htim8, TIM_CHANNEL_1, &htim8, TIM_CHANNEL_2, 65536, [=](float velocity) {
+        velocity_meter_result.velocity = velocity;
+        velocity_meter_result.is_valid = true;
+        xTaskNotifyFromISR(velocity_meter_result_task_handle, 0, eNoAction, NULL);
+    }, 0.1, 0.000001);
+
+    xTaskCreate(publish_velocity_meter_result, "publish_velocity_meter_result", 512, NULL, 1,
+                &velocity_meter_result_task_handle);
 
     set_ros_transport();
     state = WAITING_AGENT;
@@ -75,7 +116,7 @@ void microros_node_task(void) {
     while (1) {
         switch (state) {
             case WAITING_AGENT:
-                EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE
+                EXECUTE_EVERY_N_MS(1000, state = (RMW_RET_OK == rmw_uros_ping_agent(50, 1)) ? AGENT_AVAILABLE
                                                                                             : WAITING_AGENT;);
                 break;
             case AGENT_AVAILABLE:
@@ -84,15 +125,19 @@ void microros_node_task(void) {
                     destroy_entities();
                 } else if (state == AGENT_CONNECTED) {
                     soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_plug_in), false, false);
+                    LED::setLED(LED::LED_GREEN, true);
+                    LED::led_flow.flow_state_ = LED::LED_Flow_State::FLOW_NORMAL;
                 }
                 break;
             case AGENT_CONNECTED:
-                EXECUTE_EVERY_N_MS(1000, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 5)) ? AGENT_CONNECTED
+                EXECUTE_EVERY_N_MS(3000, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 5)) ? AGENT_CONNECTED
                                                                                              : AGENT_DISCONNECTED;);
                 if (state == AGENT_CONNECTED) {
                     rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1000));
                 } else if (state == AGENT_DISCONNECTED) {
                     soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_remove), false, false);
+                    LED::setLED(LED::LED_GREEN, false);
+                    LED::led_flow.flow_state_ = LED::LED_Flow_State::FLOW_NONE;
                 }
                 break;
             case AGENT_DISCONNECTED:
@@ -102,7 +147,7 @@ void microros_node_task(void) {
             default:
                 break;
         }
-
+        vTaskDelay(1);
     }
 };
 
@@ -132,13 +177,27 @@ bool create_entities() {
             &node,
             ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64),
             "controller/time_since_epoch");
+
+    rclc_publisher_init_default(
+            &publisher_dart_velocity_meter,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
+            "controller/dart_velocity_meter");
+
     // subscribe to /buzzer/cmd_note and /buzzer/cmd_sound_effect
     // create subscriber
     RCSOFTCHECK(rclc_subscription_init_best_effort(
-            &subscriber,
+            &subscriber_buzzer,
             &node,
             ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
             "buzzer/cmd_sound_effect"));
+
+    RCSOFTCHECK(rclc_subscription_init_best_effort(
+            &subscriber_servo,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+            "controller/cmd_servo_test"));
+
     // create timer,
     const unsigned int timer_timeout = 10000;
     RCCHECK(rclc_timer_init_default2(
@@ -149,11 +208,15 @@ bool create_entities() {
 
     // create executor
     executor = rclc_executor_get_zero_initialized_executor();
-    RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
+    RCCHECK(rclc_executor_init(&executor, &support.context, 4, &allocator));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
-    RCSOFTCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg,
-                                               &subscription_callback,
+    RCSOFTCHECK(rclc_executor_add_subscription(&executor, &subscriber_buzzer, &msg,
+                                               &subscription_buzzer_callback,
                                                ON_NEW_DATA));
+    RCSOFTCHECK(rclc_executor_add_subscription(&executor, &subscriber_servo, &msg,
+                                               &subscription_servo_callback,
+                                               ON_NEW_DATA));
+
     return true;
 }
 
@@ -162,8 +225,10 @@ void destroy_entities() {
     (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
 
     rcl_publisher_fini(&publisher, &node);
+    rcl_publisher_fini(&publisher_dart_velocity_meter, &node);
     rcl_timer_fini(&timer);
-    rcl_subscription_fini(&subscriber, &node);
+    rcl_subscription_fini(&subscriber_buzzer, &node);
+    rcl_subscription_fini(&subscriber_servo, &node);
     rclc_executor_fini(&executor);
     rcl_node_fini(&node);
     rclc_support_fini(&support);
@@ -174,7 +239,7 @@ void destroy_entities() {
     USB_DEVICE_Start();
 }
 
-void subscription_callback(const void *msgin) {
+void subscription_buzzer_callback(const void *msgin) {
     const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *) msgin;
     switch (msg->data) {
         case song_list::Eautopilot_disconnect:
@@ -201,5 +266,20 @@ void subscription_callback(const void *msgin) {
         default:
             soundEffectManager.stopCurrentSoundEffect();
             break;
+    }
+}
+
+void subscription_servo_callback(const void *msgin) {
+    const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *) msgin;
+
+    if (msgin != NULL) {
+        // Limit the angle
+        int angle = msg->data;
+        if (angle < 0) {
+            angle = 0;
+        } else if (angle > 180) {
+            angle = 180;
+        }
+        test_servo.setAngle(angle);
     }
 }

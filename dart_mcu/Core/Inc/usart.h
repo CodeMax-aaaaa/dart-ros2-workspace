@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    tim.h
+  * @file    usart.h
   * @brief   This file contains all the function prototypes for
-  *          the tim.c file
+  *          the usart.c file
   ******************************************************************************
   * @attention
   *
@@ -18,8 +18,8 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __TIM_H__
-#define __TIM_H__
+#ifndef __USART_H__
+#define __USART_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,35 +32,25 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern TIM_HandleTypeDef htim4;
+extern UART_HandleTypeDef huart1;
 
-extern TIM_HandleTypeDef htim5;
-
-extern TIM_HandleTypeDef htim6;
-
-extern TIM_HandleTypeDef htim8;
-
-extern TIM_HandleTypeDef htim12;
+extern UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN Private defines */
+#define UART1_MAX_RECEIVE_BUFFER_LENGTH 50
 
 /* USER CODE END Private defines */
 
-void MX_TIM4_Init(void);
-void MX_TIM5_Init(void);
-void MX_TIM6_Init(void);
-void MX_TIM8_Init(void);
-void MX_TIM12_Init(void);
-
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+void MX_USART1_UART_Init(void);
+void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+extern uint8_t uart1RecBuffer[UART1_MAX_RECEIVE_BUFFER_LENGTH];
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __TIM_H__ */
+#endif /* __USART_H__ */
 

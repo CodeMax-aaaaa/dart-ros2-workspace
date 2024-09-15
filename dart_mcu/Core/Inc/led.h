@@ -31,7 +31,7 @@ namespace LED {
 
     enum LED_Flow_State {
         FLOW_NORMAL,
-        FLOW_ERROR,
+        FLOW_NONE,
         FLOW_STATE_NUM
     };
 
@@ -39,7 +39,7 @@ namespace LED {
     private:
         bool led_state_[8] = {false, false, false, false, false, false, false, false};
     public:
-        uint8_t flow_state_;
+        uint8_t flow_state_ = FLOW_NONE;
 
         LED_Flow() = default;
 
@@ -49,6 +49,8 @@ namespace LED {
 
         static void flowTask(void *pvParameters);
     };
+
+    extern LED_Flow led_flow;
 }
 
 #endif //DART_MCU_LED_H
