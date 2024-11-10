@@ -31,7 +31,7 @@
      (#) Declare a PCD_HandleTypeDef handle structure, for example:
          PCD_HandleTypeDef  hpcd;
 
-     (#) Fill parameters of begin structure in HCD handle
+     (#) Fill parameters of Init structure in HCD handle
 
      (#) Call HAL_PCD_Init() API to initialize the PCD peripheral (Core, Device core, ...)
 

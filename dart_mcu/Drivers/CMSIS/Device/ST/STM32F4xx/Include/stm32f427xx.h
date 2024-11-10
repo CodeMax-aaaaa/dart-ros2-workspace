@@ -2406,7 +2406,7 @@ typedef struct
 /*******************  Bit definition for CAN_FMR register  ********************/
 #define CAN_FMR_FINIT_Pos      (0U)
 #define CAN_FMR_FINIT_Msk      (0x1UL << CAN_FMR_FINIT_Pos)                     /*!< 0x00000001 */
-#define CAN_FMR_FINIT          CAN_FMR_FINIT_Msk                               /*!<Filter begin Mode */
+#define CAN_FMR_FINIT          CAN_FMR_FINIT_Msk                               /*!<Filter Init Mode */
 #define CAN_FMR_CAN2SB_Pos     (8U)
 #define CAN_FMR_CAN2SB_Msk     (0x3FUL << CAN_FMR_CAN2SB_Pos)                   /*!< 0x00003F00 */
 #define CAN_FMR_CAN2SB         CAN_FMR_CAN2SB_Msk                              /*!<CAN2 start bank */
@@ -2417,88 +2417,88 @@ typedef struct
 #define CAN_FM1R_FBM           CAN_FM1R_FBM_Msk                                /*!<Filter Mode */
 #define CAN_FM1R_FBM0_Pos      (0U)
 #define CAN_FM1R_FBM0_Msk      (0x1UL << CAN_FM1R_FBM0_Pos)                     /*!< 0x00000001 */
-#define CAN_FM1R_FBM0          CAN_FM1R_FBM0_Msk                               /*!<Filter begin Mode bit 0 */
+#define CAN_FM1R_FBM0          CAN_FM1R_FBM0_Msk                               /*!<Filter Init Mode bit 0 */
 #define CAN_FM1R_FBM1_Pos      (1U)
 #define CAN_FM1R_FBM1_Msk      (0x1UL << CAN_FM1R_FBM1_Pos)                     /*!< 0x00000002 */
-#define CAN_FM1R_FBM1          CAN_FM1R_FBM1_Msk                               /*!<Filter begin Mode bit 1 */
+#define CAN_FM1R_FBM1          CAN_FM1R_FBM1_Msk                               /*!<Filter Init Mode bit 1 */
 #define CAN_FM1R_FBM2_Pos      (2U)
 #define CAN_FM1R_FBM2_Msk      (0x1UL << CAN_FM1R_FBM2_Pos)                     /*!< 0x00000004 */
-#define CAN_FM1R_FBM2          CAN_FM1R_FBM2_Msk                               /*!<Filter begin Mode bit 2 */
+#define CAN_FM1R_FBM2          CAN_FM1R_FBM2_Msk                               /*!<Filter Init Mode bit 2 */
 #define CAN_FM1R_FBM3_Pos      (3U)
 #define CAN_FM1R_FBM3_Msk      (0x1UL << CAN_FM1R_FBM3_Pos)                     /*!< 0x00000008 */
-#define CAN_FM1R_FBM3          CAN_FM1R_FBM3_Msk                               /*!<Filter begin Mode bit 3 */
+#define CAN_FM1R_FBM3          CAN_FM1R_FBM3_Msk                               /*!<Filter Init Mode bit 3 */
 #define CAN_FM1R_FBM4_Pos      (4U)
 #define CAN_FM1R_FBM4_Msk      (0x1UL << CAN_FM1R_FBM4_Pos)                     /*!< 0x00000010 */
-#define CAN_FM1R_FBM4          CAN_FM1R_FBM4_Msk                               /*!<Filter begin Mode bit 4 */
+#define CAN_FM1R_FBM4          CAN_FM1R_FBM4_Msk                               /*!<Filter Init Mode bit 4 */
 #define CAN_FM1R_FBM5_Pos      (5U)
 #define CAN_FM1R_FBM5_Msk      (0x1UL << CAN_FM1R_FBM5_Pos)                     /*!< 0x00000020 */
-#define CAN_FM1R_FBM5          CAN_FM1R_FBM5_Msk                               /*!<Filter begin Mode bit 5 */
+#define CAN_FM1R_FBM5          CAN_FM1R_FBM5_Msk                               /*!<Filter Init Mode bit 5 */
 #define CAN_FM1R_FBM6_Pos      (6U)
 #define CAN_FM1R_FBM6_Msk      (0x1UL << CAN_FM1R_FBM6_Pos)                     /*!< 0x00000040 */
-#define CAN_FM1R_FBM6          CAN_FM1R_FBM6_Msk                               /*!<Filter begin Mode bit 6 */
+#define CAN_FM1R_FBM6          CAN_FM1R_FBM6_Msk                               /*!<Filter Init Mode bit 6 */
 #define CAN_FM1R_FBM7_Pos      (7U)
 #define CAN_FM1R_FBM7_Msk      (0x1UL << CAN_FM1R_FBM7_Pos)                     /*!< 0x00000080 */
-#define CAN_FM1R_FBM7          CAN_FM1R_FBM7_Msk                               /*!<Filter begin Mode bit 7 */
+#define CAN_FM1R_FBM7          CAN_FM1R_FBM7_Msk                               /*!<Filter Init Mode bit 7 */
 #define CAN_FM1R_FBM8_Pos      (8U)
 #define CAN_FM1R_FBM8_Msk      (0x1UL << CAN_FM1R_FBM8_Pos)                     /*!< 0x00000100 */
-#define CAN_FM1R_FBM8          CAN_FM1R_FBM8_Msk                               /*!<Filter begin Mode bit 8 */
+#define CAN_FM1R_FBM8          CAN_FM1R_FBM8_Msk                               /*!<Filter Init Mode bit 8 */
 #define CAN_FM1R_FBM9_Pos      (9U)
 #define CAN_FM1R_FBM9_Msk      (0x1UL << CAN_FM1R_FBM9_Pos)                     /*!< 0x00000200 */
-#define CAN_FM1R_FBM9          CAN_FM1R_FBM9_Msk                               /*!<Filter begin Mode bit 9 */
+#define CAN_FM1R_FBM9          CAN_FM1R_FBM9_Msk                               /*!<Filter Init Mode bit 9 */
 #define CAN_FM1R_FBM10_Pos     (10U)
 #define CAN_FM1R_FBM10_Msk     (0x1UL << CAN_FM1R_FBM10_Pos)                    /*!< 0x00000400 */
-#define CAN_FM1R_FBM10         CAN_FM1R_FBM10_Msk                              /*!<Filter begin Mode bit 10 */
+#define CAN_FM1R_FBM10         CAN_FM1R_FBM10_Msk                              /*!<Filter Init Mode bit 10 */
 #define CAN_FM1R_FBM11_Pos     (11U)
 #define CAN_FM1R_FBM11_Msk     (0x1UL << CAN_FM1R_FBM11_Pos)                    /*!< 0x00000800 */
-#define CAN_FM1R_FBM11         CAN_FM1R_FBM11_Msk                              /*!<Filter begin Mode bit 11 */
+#define CAN_FM1R_FBM11         CAN_FM1R_FBM11_Msk                              /*!<Filter Init Mode bit 11 */
 #define CAN_FM1R_FBM12_Pos     (12U)
 #define CAN_FM1R_FBM12_Msk     (0x1UL << CAN_FM1R_FBM12_Pos)                    /*!< 0x00001000 */
-#define CAN_FM1R_FBM12         CAN_FM1R_FBM12_Msk                              /*!<Filter begin Mode bit 12 */
+#define CAN_FM1R_FBM12         CAN_FM1R_FBM12_Msk                              /*!<Filter Init Mode bit 12 */
 #define CAN_FM1R_FBM13_Pos     (13U)
 #define CAN_FM1R_FBM13_Msk     (0x1UL << CAN_FM1R_FBM13_Pos)                    /*!< 0x00002000 */
-#define CAN_FM1R_FBM13         CAN_FM1R_FBM13_Msk                              /*!<Filter begin Mode bit 13 */
+#define CAN_FM1R_FBM13         CAN_FM1R_FBM13_Msk                              /*!<Filter Init Mode bit 13 */
 #define CAN_FM1R_FBM14_Pos     (14U)
 #define CAN_FM1R_FBM14_Msk     (0x1UL << CAN_FM1R_FBM14_Pos)                    /*!< 0x00004000 */
-#define CAN_FM1R_FBM14         CAN_FM1R_FBM14_Msk                              /*!<Filter begin Mode bit 14 */
+#define CAN_FM1R_FBM14         CAN_FM1R_FBM14_Msk                              /*!<Filter Init Mode bit 14 */
 #define CAN_FM1R_FBM15_Pos     (15U)
 #define CAN_FM1R_FBM15_Msk     (0x1UL << CAN_FM1R_FBM15_Pos)                    /*!< 0x00008000 */
-#define CAN_FM1R_FBM15         CAN_FM1R_FBM15_Msk                              /*!<Filter begin Mode bit 15 */
+#define CAN_FM1R_FBM15         CAN_FM1R_FBM15_Msk                              /*!<Filter Init Mode bit 15 */
 #define CAN_FM1R_FBM16_Pos     (16U)
 #define CAN_FM1R_FBM16_Msk     (0x1UL << CAN_FM1R_FBM16_Pos)                    /*!< 0x00010000 */
-#define CAN_FM1R_FBM16         CAN_FM1R_FBM16_Msk                              /*!<Filter begin Mode bit 16 */
+#define CAN_FM1R_FBM16         CAN_FM1R_FBM16_Msk                              /*!<Filter Init Mode bit 16 */
 #define CAN_FM1R_FBM17_Pos     (17U)
 #define CAN_FM1R_FBM17_Msk     (0x1UL << CAN_FM1R_FBM17_Pos)                    /*!< 0x00020000 */
-#define CAN_FM1R_FBM17         CAN_FM1R_FBM17_Msk                              /*!<Filter begin Mode bit 17 */
+#define CAN_FM1R_FBM17         CAN_FM1R_FBM17_Msk                              /*!<Filter Init Mode bit 17 */
 #define CAN_FM1R_FBM18_Pos     (18U)
 #define CAN_FM1R_FBM18_Msk     (0x1UL << CAN_FM1R_FBM18_Pos)                    /*!< 0x00040000 */
-#define CAN_FM1R_FBM18         CAN_FM1R_FBM18_Msk                              /*!<Filter begin Mode bit 18 */
+#define CAN_FM1R_FBM18         CAN_FM1R_FBM18_Msk                              /*!<Filter Init Mode bit 18 */
 #define CAN_FM1R_FBM19_Pos     (19U)
 #define CAN_FM1R_FBM19_Msk     (0x1UL << CAN_FM1R_FBM19_Pos)                    /*!< 0x00080000 */
-#define CAN_FM1R_FBM19         CAN_FM1R_FBM19_Msk                              /*!<Filter begin Mode bit 19 */
+#define CAN_FM1R_FBM19         CAN_FM1R_FBM19_Msk                              /*!<Filter Init Mode bit 19 */
 #define CAN_FM1R_FBM20_Pos     (20U)
 #define CAN_FM1R_FBM20_Msk     (0x1UL << CAN_FM1R_FBM20_Pos)                    /*!< 0x00100000 */
-#define CAN_FM1R_FBM20         CAN_FM1R_FBM20_Msk                              /*!<Filter begin Mode bit 20 */
+#define CAN_FM1R_FBM20         CAN_FM1R_FBM20_Msk                              /*!<Filter Init Mode bit 20 */
 #define CAN_FM1R_FBM21_Pos     (21U)
 #define CAN_FM1R_FBM21_Msk     (0x1UL << CAN_FM1R_FBM21_Pos)                    /*!< 0x00200000 */
-#define CAN_FM1R_FBM21         CAN_FM1R_FBM21_Msk                              /*!<Filter begin Mode bit 21 */
+#define CAN_FM1R_FBM21         CAN_FM1R_FBM21_Msk                              /*!<Filter Init Mode bit 21 */
 #define CAN_FM1R_FBM22_Pos     (22U)
 #define CAN_FM1R_FBM22_Msk     (0x1UL << CAN_FM1R_FBM22_Pos)                    /*!< 0x00400000 */
-#define CAN_FM1R_FBM22         CAN_FM1R_FBM22_Msk                              /*!<Filter begin Mode bit 22 */
+#define CAN_FM1R_FBM22         CAN_FM1R_FBM22_Msk                              /*!<Filter Init Mode bit 22 */
 #define CAN_FM1R_FBM23_Pos     (23U)
 #define CAN_FM1R_FBM23_Msk     (0x1UL << CAN_FM1R_FBM23_Pos)                    /*!< 0x00800000 */
-#define CAN_FM1R_FBM23         CAN_FM1R_FBM23_Msk                              /*!<Filter begin Mode bit 23 */
+#define CAN_FM1R_FBM23         CAN_FM1R_FBM23_Msk                              /*!<Filter Init Mode bit 23 */
 #define CAN_FM1R_FBM24_Pos     (24U)
 #define CAN_FM1R_FBM24_Msk     (0x1UL << CAN_FM1R_FBM24_Pos)                    /*!< 0x01000000 */
-#define CAN_FM1R_FBM24         CAN_FM1R_FBM24_Msk                              /*!<Filter begin Mode bit 24 */
+#define CAN_FM1R_FBM24         CAN_FM1R_FBM24_Msk                              /*!<Filter Init Mode bit 24 */
 #define CAN_FM1R_FBM25_Pos     (25U)
 #define CAN_FM1R_FBM25_Msk     (0x1UL << CAN_FM1R_FBM25_Pos)                    /*!< 0x02000000 */
-#define CAN_FM1R_FBM25         CAN_FM1R_FBM25_Msk                              /*!<Filter begin Mode bit 25 */
+#define CAN_FM1R_FBM25         CAN_FM1R_FBM25_Msk                              /*!<Filter Init Mode bit 25 */
 #define CAN_FM1R_FBM26_Pos     (26U)
 #define CAN_FM1R_FBM26_Msk     (0x1UL << CAN_FM1R_FBM26_Pos)                    /*!< 0x04000000 */
-#define CAN_FM1R_FBM26         CAN_FM1R_FBM26_Msk                              /*!<Filter begin Mode bit 26 */
+#define CAN_FM1R_FBM26         CAN_FM1R_FBM26_Msk                              /*!<Filter Init Mode bit 26 */
 #define CAN_FM1R_FBM27_Pos     (27U)
 #define CAN_FM1R_FBM27_Msk     (0x1UL << CAN_FM1R_FBM27_Pos)                    /*!< 0x08000000 */
-#define CAN_FM1R_FBM27         CAN_FM1R_FBM27_Msk                              /*!<Filter begin Mode bit 27 */
+#define CAN_FM1R_FBM27         CAN_FM1R_FBM27_Msk                              /*!<Filter Init Mode bit 27 */
 
 /*******************  Bit definition for CAN_FS1R register  *******************/
 #define CAN_FS1R_FSC_Pos       (0U)

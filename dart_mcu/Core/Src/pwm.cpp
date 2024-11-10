@@ -1,4 +1,4 @@
-#include "PWM.h"
+#include "pwm.h"
 
 void
 PWM::configure(TIM_HandleTypeDef *htim, uint32_t channel, uint32_t timerClock, uint32_t period, uint32_t frequency) {

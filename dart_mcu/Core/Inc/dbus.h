@@ -2,7 +2,7 @@
 #define __DBUS_H
 
 #include "main.h"
-#include "freertos.h"
+#include "FreeRTOS.h"
 #include "event_groups.h"
 #include "task.h"
 
@@ -86,10 +86,10 @@
 struct RCDecoding_Type {
     uint16_t RCFrameCounter;
 
-    uint16_t ch0; // ÓÒÒ¡¸ËXÖá
-    uint16_t ch1; // ÓÒÒ¡¸ËYÖá
-    uint16_t ch2; // ×óÒ¡¸ËXÖá
-    uint16_t ch3; // ×óÒ¡¸ËYÖá
+    uint16_t ch0; // ï¿½ï¿½Ò¡ï¿½ï¿½Xï¿½ï¿½
+    uint16_t ch1; // ï¿½ï¿½Ò¡ï¿½ï¿½Yï¿½ï¿½
+    uint16_t ch2; // ï¿½ï¿½Ò¡ï¿½ï¿½Xï¿½ï¿½
+    uint16_t ch3; // ï¿½ï¿½Ò¡ï¿½ï¿½Yï¿½ï¿½
     uint16_t ch4_wheel; // Wheel
     uint8_t Switch_Right;
     uint8_t Switch_Left;

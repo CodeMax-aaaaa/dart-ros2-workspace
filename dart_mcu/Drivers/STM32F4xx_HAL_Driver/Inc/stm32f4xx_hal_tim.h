@@ -1289,7 +1289,7 @@ typedef  void (*pTIM_CallbackTypeDef)(TIM_HandleTypeDef *htim);  /*!< pointer to
 #define __HAL_TIM_GET_COUNTER(__HANDLE__)  ((__HANDLE__)->Instance->CNT)
 
 /**
-  * @brief  Set the TIM Autoreload Register value on runtime without calling another time any begin function.
+  * @brief  Set the TIM Autoreload Register value on runtime without calling another time any Init function.
   * @param  __HANDLE__ TIM handle.
   * @param  __AUTORELOAD__ specifies the Counter register new value.
   * @retval None
@@ -1308,7 +1308,7 @@ typedef  void (*pTIM_CallbackTypeDef)(TIM_HandleTypeDef *htim);  /*!< pointer to
 #define __HAL_TIM_GET_AUTORELOAD(__HANDLE__)  ((__HANDLE__)->Instance->ARR)
 
 /**
-  * @brief  Set the TIM Clock Division value on runtime without calling another time any begin function.
+  * @brief  Set the TIM Clock Division value on runtime without calling another time any Init function.
   * @param  __HANDLE__ TIM handle.
   * @param  __CKD__ specifies the clock division value.
   *          This parameter can be one of the following value:

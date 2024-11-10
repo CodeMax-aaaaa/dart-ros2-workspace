@@ -52,7 +52,7 @@
                   (used for last byte sending completion detection in DMA non circular mode)
 
     (#) Program the Baud Rate, Word Length, Stop Bit, Parity, Hardware
-        flow control and Mode(Receiver/Transmitter) in the huart begin structure.
+        flow control and Mode(Receiver/Transmitter) in the huart Init structure.
 
     (#) For the UART asynchronous mode, initialize the UART registers by calling
         the HAL_UART_Init() API.
@@ -134,7 +134,7 @@
     Callbacks can be registered/unregistered in HAL_UART_STATE_READY state only.
     Exception done MspInit/MspDeInit that can be registered/unregistered
     in HAL_UART_STATE_READY or HAL_UART_STATE_RESET state, thus registered (user)
-    MspInit/DeInit callbacks can be used during the begin/DeInit.
+    MspInit/DeInit callbacks can be used during the Init/DeInit.
     In that case first register the MspInit/MspDeInit user callbacks
     using HAL_UART_RegisterCallback() before calling HAL_UART_DeInit()
     or HAL_UART_Init() function.
@@ -707,7 +707,7 @@ HAL_StatusTypeDef HAL_UART_DeInit(UART_HandleTypeDef *huart)
 }
 
 /**
-  * @brief  UART MSP begin.
+  * @brief  UART MSP Init.
   * @param  huart  Pointer to a UART_HandleTypeDef structure that contains
   *                the configuration information for the specified UART module.
   * @retval None

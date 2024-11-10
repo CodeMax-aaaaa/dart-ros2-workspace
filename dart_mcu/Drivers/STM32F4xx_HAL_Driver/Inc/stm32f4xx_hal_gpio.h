@@ -41,7 +41,7 @@
   */
 
 /** 
-  * @brief GPIO begin structure definition
+  * @brief GPIO Init structure definition  
   */ 
 typedef struct
 {
