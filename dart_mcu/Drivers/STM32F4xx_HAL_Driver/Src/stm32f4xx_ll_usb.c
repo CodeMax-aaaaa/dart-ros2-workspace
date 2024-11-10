@@ -27,7 +27,7 @@
                     ##### How to use this driver #####
   ==============================================================================
     [..]
-      (#) Fill parameters of Init structure in USB_CfgTypeDef structure.
+      (#) Fill parameters of begin structure in USB_CfgTypeDef structure.
 
       (#) Call USB_CoreInit() API to initialize the USB Core peripheral.
 

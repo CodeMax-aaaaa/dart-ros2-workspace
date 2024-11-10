@@ -64,7 +64,7 @@ void USB_DEVICE_Start(void) {
 /* USER CODE END 1 */
 
 /**
-  * Init USB device Library, add supported class and start the library
+  * begin USB device Library, add supported class and start the library
   * @retval None
   */
 void MX_USB_DEVICE_Init(void)

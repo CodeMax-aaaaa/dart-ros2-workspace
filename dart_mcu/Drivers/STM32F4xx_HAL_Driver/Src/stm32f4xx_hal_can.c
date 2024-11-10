@@ -196,7 +196,7 @@
   Callbacks can be registered/unregistered in HAL_CAN_STATE_READY state only.
   Exception done MspInit/MspDeInit that can be registered/unregistered
   in HAL_CAN_STATE_READY or HAL_CAN_STATE_RESET state,
-  thus registered (user) MspInit/DeInit callbacks can be used during the Init/DeInit.
+  thus registered (user) MspInit/DeInit callbacks can be used during the begin/DeInit.
   In that case first register the MspInit/MspDeInit user callbacks
   using HAL_CAN_RegisterCallback() before calling HAL_CAN_DeInit()
   or HAL_CAN_Init() function.

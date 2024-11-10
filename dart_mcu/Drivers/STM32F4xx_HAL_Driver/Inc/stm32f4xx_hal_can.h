@@ -55,7 +55,7 @@ typedef enum
 } HAL_CAN_StateTypeDef;
 
 /**
-  * @brief  CAN init structure definition
+  * @brief  CAN begin structure definition
   */
 typedef struct
 {

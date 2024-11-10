@@ -8,11 +8,11 @@ namespace meter {
 
     velocimeter velocity_meter;
 
-    void velocimeter::init(TIM_HandleTypeDef *htim_begin, uint32_t channel_begin, TIM_HandleTypeDef *htim_end,
-                           uint32_t channel_end,
-                           uint32_t timer_period, std::function<void(float)> onVelocityUpdate,
-                           double distanceBetweenTwoPulse,
-                           double seconds_per_tick) {
+    void velocimeter::begin(TIM_HandleTypeDef *htim_begin, uint32_t channel_begin, TIM_HandleTypeDef *htim_end,
+                            uint32_t channel_end,
+                            uint32_t timer_period, std::function<void(float)> onVelocityUpdate,
+                            double distanceBetweenTwoPulse,
+                            double seconds_per_tick) {
         this->htim_begin = htim_begin;
         this->timer_period = timer_period;
         this->onVelocityUpdate = onVelocityUpdate;

@@ -17,6 +17,8 @@
 #include "stm32f4xx_hal_tim.h"
 #include "tim.h"
 
+#define BUZZER_NOTE(x) x, (sizeof(x) / sizeof(x[0]))
+
 // 智能指针
 #include <memory>
 
@@ -53,10 +55,10 @@ public:
     SoundEffectManager() = default;
 
     // Timer_Beep必须配成10000Hz
-    void Init(TIM_HandleTypeDef *timer_pwm,
-              TIM_HandleTypeDef *timer_beep_,
-              __IO uint32_t pwm_channel,
-              uint32_t timerClockFreqHz);
+    void begin(TIM_HandleTypeDef *timer_pwm,
+               TIM_HandleTypeDef *timer_beep_,
+               __IO uint32_t pwm_channel,
+               uint32_t timerClockFreqHz);
 
     std::shared_ptr<soundEffect_t>
     addSoundEffect(note_t *notes_, size_t notes_size_, bool emergency = false, bool circulating = false);

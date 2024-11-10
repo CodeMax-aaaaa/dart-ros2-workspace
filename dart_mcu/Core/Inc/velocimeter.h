@@ -37,9 +37,9 @@ namespace meter {
         velocimeter() = default;
 
         void
-        init(TIM_HandleTypeDef *htim_begin, uint32_t channel_begin, TIM_HandleTypeDef *htim_end, uint32_t channel_end,
-             uint32_t timer_period, std::function<void(float)> onVelocityUpdate, double distanceBetweenTwoPulse,
-             double seconds_per_tick);
+        begin(TIM_HandleTypeDef *htim_begin, uint32_t channel_begin, TIM_HandleTypeDef *htim_end, uint32_t channel_end,
+              uint32_t timer_period, std::function<void(float)> onVelocityUpdate, double distanceBetweenTwoPulse,
+              double seconds_per_tick);
 
         void onUpdate(TIM_HandleTypeDef *htim);
 

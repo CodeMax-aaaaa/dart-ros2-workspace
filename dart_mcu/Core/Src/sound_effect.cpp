@@ -12,10 +12,12 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-void SoundEffectManager::Init(TIM_HandleTypeDef *timer_pwm,
-                              TIM_HandleTypeDef *timer_beep_,
-                              __IO uint32_t pwm_channel,
-                              uint32_t timerClockFreqHz) {
+SoundEffectManager soundEffectManager;
+
+void SoundEffectManager::begin(TIM_HandleTypeDef *timer_pwm,
+                               TIM_HandleTypeDef *timer_beep_,
+                               __IO uint32_t pwm_channel,
+                               uint32_t timerClockFreqHz) {
     Buzzer_InitTypeDef buzzerConfig;
     buzzerConfig.channel = pwm_channel;
     buzzerConfig.timer = timer_pwm;
