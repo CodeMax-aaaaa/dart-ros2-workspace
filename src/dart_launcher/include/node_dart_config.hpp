@@ -29,7 +29,7 @@ namespace DartConfig
         std::filesystem::file_time_type last_write_time;
 
         // subscriber
-        rclcpp::Subscription<info::msg::DartParam>::SharedPtr sub_dart_param_[2];
+        rclcpp::Subscription<dart_msgs::msg::DartParam>::SharedPtr sub_dart_param_[2];
 
         // server for reset to default parameter yaml
         rclcpp::Service<std_srvs::srv::Empty>::SharedPtr srv_reset_;

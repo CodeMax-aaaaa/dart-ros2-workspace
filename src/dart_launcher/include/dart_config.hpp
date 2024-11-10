@@ -10,7 +10,7 @@
 #define MAX_YAW_CALIBRATION_DELTA_X 5000.0
 
 #include "rclcpp/rclcpp.hpp"
-#include <info/msg/dart_param.hpp>
+#include <dart_msgs/msg/dart_param.hpp>
 #include <string>
 #include <yaml-cpp/yaml.h>
 
@@ -27,14 +27,14 @@
 //  一 0X708 发射参数8 【摩擦轮速度比】 double*10000
 //  一 0X709 裁判日志【ext_dart_client_cmd.dart_launch_opening_status +
 //  ext_game_status.game_progress +
-//  ext_dart_info.dart_remaining_time +
+//  ext_dart_dart_msgs.dart_remaining_time +
 //  ext_dart_client_cmd.latest_launch_cmd_time +
 //  ext_game_status.stage_remain_time + 在线判断位】
 
 namespace DartConfig
 {
     void declareParameters(rclcpp::Node &node);
-    void loadParametersfromMsg(rclcpp::Node &node, const info::msg::DartParam::SharedPtr msg);
+    void loadParametersfromMsg(rclcpp::Node &node, const dart_msgs::msg::DartParam::SharedPtr msg);
 };
 
 #endif // DART_CONFIG_H

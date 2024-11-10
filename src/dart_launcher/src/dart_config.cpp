@@ -1,6 +1,6 @@
 #include "dart_config.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include <info/msg/dart_param.hpp>
+#include <dart_msgs/msg/dart_param.hpp>
 
 using namespace DartConfig;
 
@@ -36,7 +36,7 @@ void DartConfig::declareParameters(rclcpp::Node &node)
     RCLCPP_INFO(node.get_logger(), "DartParam declared");
 }
 
-void DartConfig::loadParametersfromMsg(rclcpp::Node &node, const info::msg::DartParam::SharedPtr msg)
+void DartConfig::loadParametersfromMsg(rclcpp::Node &node, const dart_msgs::msg::DartParam::SharedPtr msg)
 {
     // 取消回调函数
     node.set_parameter(rclcpp::Parameter("target_yaw_angle", int(msg->target_yaw_angle)));

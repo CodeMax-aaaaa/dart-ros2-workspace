@@ -6,10 +6,10 @@
 #include "lvgl/lvgl.h"
 #include "lv_drivers/display/fbdev.h"
 #include "lv_drivers/indev/evdev.h"
-#include <info/msg/dart_launcher_status.hpp>
-#include <info/msg/dart_param.hpp>
-#include <info/msg/green_light.hpp>
-#include <info/msg/judge.hpp>
+#include <dart_msgs/msg/dart_launcher_status.hpp>
+#include <dart_msgs/msg/dart_param.hpp>
+#include <dart_msgs/msg/green_light.hpp>
+#include <dart_msgs/msg/judge.hpp>
 #include <std_srvs/srv/empty.hpp>
 #include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -31,7 +31,7 @@
 #include <filesystem>
 
 #ifndef YAML_PATH
-#define YAML_PATH "/home/chenyu/dart24_ws/install/dart_controller/share/dart_controller/config" + "dart_config.yaml"
+#define YAML_PATH "/home/chenyu/dart24_ws/install/dart_launcher/share/dart_launcher/config" + "dart_config.yaml"
 #endif
 
 namespace fs = std::filesystem;
@@ -57,23 +57,23 @@ public:
 private:
     std::mutex mutex_ui_;
     rclcpp::TimerBase::SharedPtr timer_[3];
-    rclcpp::Publisher<info::msg::DartParam>::SharedPtr dart_launcher_cmd_pub_;
-    rclcpp::Subscription<info::msg::DartLauncherStatus>::SharedPtr dart_launcher_status_sub_;
-    rclcpp::Subscription<info::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
-    rclcpp::Subscription<info::msg::GreenLight>::SharedPtr green_light_sub_;
+    rclcpp::Publisher<dart_msgs::msg::DartParam>::SharedPtr dart_launcher_cmd_pub_;
+    rclcpp::Subscription<dart_msgs::msg::DartLauncherStatus>::SharedPtr dart_launcher_status_sub_;
+    rclcpp::Subscription<dart_msgs::msg::DartParam>::SharedPtr dart_launcher_present_param_sub_;
+    rclcpp::Subscription<dart_msgs::msg::GreenLight>::SharedPtr green_light_sub_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr cv_image_sub_;
-    rclcpp::Subscription<info::msg::Judge>::SharedPtr judge_sub_;
+    rclcpp::Subscription<dart_msgs::msg::Judge>::SharedPtr judge_sub_;
 
-    info::msg::Judge judge_msg_;
+    dart_msgs::msg::Judge judge_msg_;
 
-    std::shared_ptr<info::msg::DartLauncherStatus> dart_launcher_status_;
-    std::shared_ptr<info::msg::GreenLight> green_light_;
+    std::shared_ptr<dart_msgs::msg::DartLauncherStatus> dart_launcher_status_;
+    std::shared_ptr<dart_msgs::msg::GreenLight> green_light_;
 
     std::vector<lv_obj_t *> Main_list_darts_items_;
 
-    void update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg);
-    void update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg);
-    void update_green_light_callback(info::msg::GreenLight::SharedPtr msg);
+    void update_dart_launcher_status_callback(dart_msgs::msg::DartLauncherStatus::SharedPtr msg);
+    void update_dart_launcher_present_param_callback(dart_msgs::msg::DartParam::SharedPtr msg);
+    void update_green_light_callback(dart_msgs::msg::GreenLight::SharedPtr msg);
     void update_dart_database();
     void update_ip_address();
     void update_parameters_to_gui();

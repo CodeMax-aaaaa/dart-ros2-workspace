@@ -3,9 +3,9 @@
  * @brief 日志节点，以及看门狗
  */
 #include <rclcpp/rclcpp.hpp>
-#include <info/msg/dart_launcher_status.hpp>
-#include <info/msg/judge.hpp>
-#include <info/msg/dart_param.hpp>
+#include <dart_msgs/msg/dart_launcher_status.hpp>
+#include <dart_msgs/msg/judge.hpp>
+#include <dart_msgs/msg/dart_param.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <cstdio>
 #include <cstdlib>
@@ -24,7 +24,7 @@ void NodeLoggerDog::on_parameter_change(const std::vector<rclcpp::Parameter> &pa
     }
 }
 
-bool NodeLoggerDog::check_changes(const info::msg::DartLauncherStatus *last_msg, const info::msg::DartLauncherStatus::SharedPtr msg)
+bool NodeLoggerDog::check_changes(const dart_msgs::msg::DartLauncherStatus *last_msg, const dart_msgs::msg::DartLauncherStatus::SharedPtr msg)
 {
     static bool first_update = true;
     if (first_update)
@@ -74,7 +74,7 @@ bool NodeLoggerDog::check_changes(const info::msg::DartLauncherStatus *last_msg,
     return false;
 }
 
-bool NodeLoggerDog::check_changes(const info::msg::Judge *last_msg, const info::msg::Judge::SharedPtr msg)
+bool NodeLoggerDog::check_changes(const dart_msgs::msg::Judge *last_msg, const dart_msgs::msg::Judge::SharedPtr msg)
 {
     static bool first_update = true;
     if (first_update)
@@ -105,7 +105,7 @@ bool NodeLoggerDog::check_changes(const info::msg::Judge *last_msg, const info::
     return false;
 }
 
-bool NodeLoggerDog::check_changes(const info::msg::DartParam *last_msg, const info::msg::DartParam::SharedPtr msg)
+bool NodeLoggerDog::check_changes(const dart_msgs::msg::DartParam *last_msg, const dart_msgs::msg::DartParam::SharedPtr msg)
 {
     static bool first_update = true;
     if (first_update)
@@ -171,10 +171,10 @@ bool NodeLoggerDog::check_changes(const info::msg::DartParam *last_msg, const in
     return false;
 }
 
-void NodeLoggerDog::dart_param_callback(const info::msg::DartParam::SharedPtr msg)
+void NodeLoggerDog::dart_param_callback(const dart_msgs::msg::DartParam::SharedPtr msg)
 {
     // 记录参数的改变
-    static info::msg::DartParam last_msg = *msg;
+    static dart_msgs::msg::DartParam last_msg = *msg;
     // 如果有变动才记录
     bool is_changed = check_changes(&last_msg, msg);
     if (is_changed)
@@ -199,10 +199,10 @@ void NodeLoggerDog::dart_param_callback(const info::msg::DartParam::SharedPtr ms
     }
 }
 
-void NodeLoggerDog::dart_launcher_status_callback(const info::msg::DartLauncherStatus::SharedPtr msg)
+void NodeLoggerDog::dart_launcher_status_callback(const dart_msgs::msg::DartLauncherStatus::SharedPtr msg)
 {
     // 记录异常掉线情况、电池电压、发射参数的改变
-    static info::msg::DartLauncherStatus last_msg = *msg;
+    static dart_msgs::msg::DartLauncherStatus last_msg = *msg;
     // 如果有变动才记录
     bool is_changed = check_changes(&last_msg, msg);
     if (is_changed)
@@ -227,10 +227,10 @@ void NodeLoggerDog::dart_launcher_status_callback(const info::msg::DartLauncherS
     }
 }
 
-void NodeLoggerDog::judge_callback(const info::msg::Judge::SharedPtr msg)
+void NodeLoggerDog::judge_callback(const dart_msgs::msg::Judge::SharedPtr msg)
 {
     // 记录裁判系统的状态
-    static info::msg::Judge last_msg = *msg;
+    static dart_msgs::msg::Judge last_msg = *msg;
     // 如果有变动才记录
     bool is_changed = check_changes(&last_msg, msg);
     if (is_changed)
@@ -314,11 +314,11 @@ NodeLoggerDog::NodeLoggerDog() : Node("dart_logger_dog")
     /*/dart_config
     /can_agent
     /lvgl_ui
-    /detect_node
-    /detect_publisher
+    /dart_detector_node
+    /dart_detector_publisher
     /camera
     /dart_logger_dog*/
-    this->declare_parameter("nodes_to_watch", std::vector<std::string>{"dart_config", "can_agent", "lvgl_ui", "detect_node", "detect_publisher", "camera"});
+    this->declare_parameter("nodes_to_watch", std::vector<std::string>{"dart_config", "can_agent", "lvgl_ui", "dart_detector_node", "dart_detector_publisher", "camera"});
 
     param_cb_handle_ =
         this->add_post_set_parameters_callback(std::bind(&NodeLoggerDog::on_parameter_change, this, std::placeholders::_1));
@@ -328,20 +328,20 @@ NodeLoggerDog::NodeLoggerDog() : Node("dart_logger_dog")
     enable = this->get_parameter("watchdog_on").as_bool();
 
     // callback register
-    dart_launcher_status_sub_ = this->create_subscription<info::msg::DartLauncherStatus>(
-        "/dart_controller/dart_launcher_status",
+    dart_launcher_status_sub_ = this->create_subscription<dart_msgs::msg::DartLauncherStatus>(
+        "/dart_launcher/dart_launcher_status",
         10, std::bind(&NodeLoggerDog::dart_launcher_status_callback, this, std::placeholders::_1));
 
-    dart_param_present_sub_ = this->create_subscription<info::msg::DartParam>(
-        "/dart_controller/dart_launcher_present_param",
+    dart_param_present_sub_ = this->create_subscription<dart_msgs::msg::DartParam>(
+        "/dart_launcher/dart_launcher_present_param",
         rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), std::bind(&NodeLoggerDog::dart_param_callback, this, std::placeholders::_1));
 
-    dart_param_sub_ = this->create_subscription<info::msg::DartParam>(
-        "/dart_controller/dart_launcher_param_cmd",
+    dart_param_sub_ = this->create_subscription<dart_msgs::msg::DartParam>(
+        "/dart_launcher/dart_launcher_param_cmd",
         rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), std::bind(&NodeLoggerDog::dart_param_callback, this, std::placeholders::_1));
 
-    judge_sub_ = this->create_subscription<info::msg::Judge>(
-        "/dart_controller/judge",
+    judge_sub_ = this->create_subscription<dart_msgs::msg::Judge>(
+        "/dart_launcher/judge",
         rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), std::bind(&NodeLoggerDog::judge_callback, this, std::placeholders::_1));
 
     timer_ = this->create_wall_timer(std::chrono::seconds(10), std::bind(&NodeLoggerDog::check_nodes, this));

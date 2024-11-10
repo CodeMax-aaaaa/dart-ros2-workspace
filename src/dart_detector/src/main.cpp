@@ -4,7 +4,7 @@
 #include "geometry_msgs/msg/point.hpp"
 #include <cv_bridge/cv_bridge.hpp>
 #include <image_transport/image_transport.hpp>
-#include "info/msg/green_light.hpp"
+#include "dart_msgs/msg/green_light.hpp"
 #include "detect/detect.h"
 #include <chrono>
 
@@ -12,14 +12,14 @@ class DetectPublisher : public rclcpp::Node
 {
 public:
     DetectPublisher(std::chrono::milliseconds interval)
-        : Node("detect_node"), it_(std::make_shared<rclcpp::Node>("detect_publisher"))
+        : Node("dart_detector_node"), it_(std::make_shared<rclcpp::Node>("dart_detector_publisher"))
     {
-        publisher_ = this->create_publisher<info::msg::GreenLight>(
-            "detect/locate",
+        publisher_ = this->create_publisher<dart_msgs::msg::GreenLight>(
+            "dart_detector/locate",
             rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
-        // image_publisher_ = it_.advertise("detect/image", 1);
+        // image_publisher_ = it_.advertise("dart_detector/image", 1);
         // image_subscriber_ = it_.subscribe("camera/image", 1, &DetectPublisher::image_callback, this);
-        image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("detect/image", 1);
+        image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("dart_detector/image", 1);
         image_subscriber_ = this->create_subscription<sensor_msgs::msg::Image>("camera/image", 1, std::bind(&DetectPublisher::image_callback, this, std::placeholders::_1));
         RCLCPP_INFO(this->get_logger(), "DetectPublisher has been started.");
     }
@@ -47,9 +47,9 @@ private:
             bool is_detected = false;
             double x = 0, y = 0;
             cv::Mat resultImg = perform_detection(frame, is_detected, x, y);
-            auto message = info::msg::GreenLight();
+            auto message = dart_msgs::msg::GreenLight();
             message.header.stamp = this->get_clock()->now();
-            message.header.frame_id = "detect";
+            message.header.frame_id = "dart_detector";
             message.is_detected = is_detected;
             message.location.x = x;
             message.location.y = y;
@@ -70,7 +70,7 @@ private:
     }
 
     TopArmorDetect detector_;
-    rclcpp::Publisher<info::msg::GreenLight>::SharedPtr publisher_;
+    rclcpp::Publisher<dart_msgs::msg::GreenLight>::SharedPtr publisher_;
     image_transport::ImageTransport it_;
     // image_transport::Publisher image_publisher_;
     // image_transport::Subscriber image_subscriber_;

@@ -1,8 +1,8 @@
 #include "CanDriver.hpp"
 #include <rclcpp/rclcpp.hpp>
-#include <info/msg/dart_launcher_status.hpp>
-#include <info/msg/dart_param.hpp>
-#include <info/msg/judge.hpp>
+#include <dart_msgs/msg/dart_launcher_status.hpp>
+#include <dart_msgs/msg/dart_param.hpp>
+#include <dart_msgs/msg/judge.hpp>
 #include <std_srvs/srv/empty.hpp>
 #include <std_msgs/msg/int32_multi_array.hpp>
 
@@ -58,14 +58,14 @@ class NodeCanAgent : public rclcpp::Node,
 private:
     std::shared_ptr<std::thread> _canReceiveThread;
     std::shared_ptr<std::thread> _canSetThread;
-    std::shared_ptr<rclcpp::Publisher<info::msg::DartLauncherStatus>> _dartLauncherStatusPublisher;
-    std::shared_ptr<rclcpp::Publisher<info::msg::DartParam>> _dartParamPublisher;
-    std::shared_ptr<rclcpp::Subscription<info::msg::DartParam>> _dartParamCmdSubscriber;
-    std::shared_ptr<rclcpp::Publisher<info::msg::Judge>> _judgePublisher;
+    std::shared_ptr<rclcpp::Publisher<dart_msgs::msg::DartLauncherStatus>> _dartLauncherStatusPublisher;
+    std::shared_ptr<rclcpp::Publisher<dart_msgs::msg::DartParam>> _dartParamPublisher;
+    std::shared_ptr<rclcpp::Subscription<dart_msgs::msg::DartParam>> _dartParamCmdSubscriber;
+    std::shared_ptr<rclcpp::Publisher<dart_msgs::msg::Judge>> _judgePublisher;
 
-    info::msg::DartLauncherStatus _dartLauncherStatusMsg;
-    info::msg::DartParam _dartParamMsg;
-    info::msg::Judge _judgeMsg;
+    dart_msgs::msg::DartLauncherStatus _dartLauncherStatusMsg;
+    dart_msgs::msg::DartParam _dartParamMsg;
+    dart_msgs::msg::Judge _judgeMsg;
 
     // 前
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback_set_parameter_handle;
@@ -120,7 +120,7 @@ private:
         //  一 0X707 发射参数8 【摩擦轮速度比】 double*10000
         //  一 0X708 裁判日志【ext_dart_client_cmd.dart_launch_opening_status +
         //  ext_game_status.game_progress +
-        //  ext_dart_info.dart_remaining_time +
+        //  ext_dart_dart_msgs.dart_remaining_time +
         //  ext_dart_client_cmd.latest_launch_cmd_time +
         //  ext_game_status.stage_remain_time + 在线判断位】
         // 转发到话题/dart_status/system_status
@@ -275,7 +275,7 @@ private:
         _canWriteDriver->sendMessage(CanMessage(frame));
     }
 
-    void checkParamChanged(info::msg::DartParam _dartParamMsg)
+    void checkParamChanged(dart_msgs::msg::DartParam _dartParamMsg)
     {
         // check every parameter in _dartParamMsg and check if it is different from the ros parameter
         if (_dartParamMsg.target_yaw_angle != this->get_parameter("target_yaw_angle").as_int())
@@ -297,7 +297,7 @@ private:
         }
     }
 
-    void checkParamChanged(info::msg::DartParam _dartParamMsg, info::msg::DartParam _dartParameterstoSet)
+    void checkParamChanged(dart_msgs::msg::DartParam _dartParamMsg, dart_msgs::msg::DartParam _dartParameterstoSet)
     {
         // check every parameter in _dartParamMsg and check if it is different from the ros parameter
         if (_dartParamMsg.target_yaw_angle != _dartParameterstoSet.target_yaw_angle)
@@ -337,7 +337,7 @@ private:
         RCLCPP_INFO(this->get_logger(), "Mutex released in post callback.");
     }
 
-    void loadParametersfromMsg(const info::msg::DartParam::SharedPtr msg)
+    void loadParametersfromMsg(const dart_msgs::msg::DartParam::SharedPtr msg)
     {
         // _mutex.lock();
         // 取消回调函数
@@ -350,7 +350,7 @@ private:
         // _mutex.unlock();
     }
 
-    void loadParameterstoMsg(info::msg::DartParam &msg, bool all = false)
+    void loadParameterstoMsg(dart_msgs::msg::DartParam &msg, bool all = false)
     {
         msg.header.frame_id = "can_agent";
         msg.auto_fw_calibration = this->get_parameter("auto_fw_calibration").as_bool();
@@ -413,8 +413,8 @@ private:
             std::chrono::steady_clock::time_point _lastReceiveParameterFromCanTime_local = _lastReceiveParameterFromCanTime;
             std::chrono::steady_clock::time_point _lastReceiveParameterFromRosTime_local = _lastReceiveParameterFromRosTime;
             loadParameterstoMsg(_dartParamMsg);
-            info::msg::DartParam _dartParamMsg_local = _dartParamMsg;
-            info::msg::DartParam _dartParameterstoSet;
+            dart_msgs::msg::DartParam _dartParamMsg_local = _dartParamMsg;
+            dart_msgs::msg::DartParam _dartParameterstoSet;
             loadParameterstoMsg(_dartParameterstoSet, true);
             _mutex.unlock();
 
@@ -456,7 +456,7 @@ private:
             {
                 _dartParamMsg_local.header.stamp = this->now();
                 RCLCPP_INFO(this->get_logger(), "Setting parameter from CAN");
-                loadParametersfromMsg(std::make_shared<info::msg::DartParam>(_dartParamMsg_local));
+                loadParametersfromMsg(std::make_shared<dart_msgs::msg::DartParam>(_dartParamMsg_local));
                 _dartParamPublisher->publish(_dartParamMsg_local);
                 _lastReceiveParameterFromRosTime_local = std::chrono::steady_clock::now();
                 _lastReceiveParameterFromCanTime_local = _lastReceiveParameterFromRosTime_local;
@@ -637,17 +637,17 @@ public:
         RCLCPP_INFO(this->get_logger(), "CAN interface activated");
 
         // 初始化节点消息
-        _dartLauncherStatusPublisher = this->create_publisher<info::msg::DartLauncherStatus>(
-            "/dart_controller/dart_launcher_status", 10);
+        _dartLauncherStatusPublisher = this->create_publisher<dart_msgs::msg::DartLauncherStatus>(
+            "/dart_launcher/dart_launcher_status", 10);
 
-        _dartParamPublisher = this->create_publisher<info::msg::DartParam>(
-            "/dart_controller/dart_launcher_present_param",
+        _dartParamPublisher = this->create_publisher<dart_msgs::msg::DartParam>(
+            "/dart_launcher/dart_launcher_present_param",
             rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
-        _dartParamCmdSubscriber = this->create_subscription<info::msg::DartParam>(
-            "/dart_controller/dart_launcher_param_cmd",
+        _dartParamCmdSubscriber = this->create_subscription<dart_msgs::msg::DartParam>(
+            "/dart_launcher/dart_launcher_param_cmd",
             rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(),
-            [this](const info::msg::DartParam::SharedPtr msg)
+            [this](const dart_msgs::msg::DartParam::SharedPtr msg)
             {
                 // 丢弃自己发的包
                 if (msg->header.frame_id == "can_agent")
@@ -660,13 +660,13 @@ public:
                 // _mutex.unlock();
             });
 
-        _judgePublisher = this->create_publisher<info::msg::Judge>(
-            "/dart_controller/judge", rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
+        _judgePublisher = this->create_publisher<dart_msgs::msg::Judge>(
+            "/dart_launcher/judge", rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
-        _judgeMsg = info::msg::Judge();
+        _judgeMsg = dart_msgs::msg::Judge();
 
-        _dartLauncherStatusMsg = info::msg::DartLauncherStatus();
-        _dartParamMsg = info::msg::DartParam();
+        _dartLauncherStatusMsg = dart_msgs::msg::DartLauncherStatus();
+        _dartParamMsg = dart_msgs::msg::DartParam();
 
         // 开启CAN总线收发线程
         _canReceiveThread = std::make_shared<std::thread>(&NodeCanAgent::canReceiveThread, this);

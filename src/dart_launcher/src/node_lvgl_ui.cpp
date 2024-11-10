@@ -111,32 +111,32 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
   custom_init(&guider_ui);
 
   DartConfig::declareParameters(*this);
-  // Subscribe /dart_controller/dart_launcher_status /dart_controller/dart_launcher_present_param
-  // Publish /dart_controller/dart_launcher_cmd
-  dart_launcher_status_sub_ = this->create_subscription<info::msg::DartLauncherStatus>(
-      "/dart_controller/dart_launcher_status",
+  // Subscribe /dart_launcher/dart_launcher_status /dart_launcher/dart_launcher_present_param
+  // Publish /dart_launcher/dart_launcher_cmd
+  dart_launcher_status_sub_ = this->create_subscription<dart_msgs::msg::DartLauncherStatus>(
+      "/dart_launcher/dart_launcher_status",
       10, bind(&NodeLVGLUI::update_dart_launcher_status_callback, this, placeholders::_1));
 
-  dart_launcher_present_param_sub_ = this->create_subscription<info::msg::DartParam>(
-      "/dart_controller/dart_launcher_present_param",
+  dart_launcher_present_param_sub_ = this->create_subscription<dart_msgs::msg::DartParam>(
+      "/dart_launcher/dart_launcher_present_param",
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), bind(&NodeLVGLUI::update_dart_launcher_present_param_callback, this, placeholders::_1));
 
-  dart_launcher_cmd_pub_ = this->create_publisher<info::msg::DartParam>(
-      "/dart_controller/dart_launcher_param_cmd",
+  dart_launcher_cmd_pub_ = this->create_publisher<dart_msgs::msg::DartParam>(
+      "/dart_launcher/dart_launcher_param_cmd",
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable());
 
-  green_light_sub_ = this->create_subscription<info::msg::GreenLight>(
-      "/detect/locate",
+  green_light_sub_ = this->create_subscription<dart_msgs::msg::GreenLight>(
+      "/dart_detector/locate",
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(),
       bind(&NodeLVGLUI::update_green_light_callback, this, placeholders::_1));
 
   cv_image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-      "detect/image", 1, bind(&NodeLVGLUI::update_cv_image, this, placeholders::_1));
+      "dart_detector/image", 1, bind(&NodeLVGLUI::update_cv_image, this, placeholders::_1));
 
-  judge_sub_ = this->create_subscription<info::msg::Judge>(
-      "/dart_controller/judge",
+  judge_sub_ = this->create_subscription<dart_msgs::msg::Judge>(
+      "/dart_launcher/judge",
       rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(),
-      [this](info::msg::Judge::SharedPtr msg) -> void
+      [this](dart_msgs::msg::Judge::SharedPtr msg) -> void
       {
         judge_msg_ = *msg;
       });
@@ -167,7 +167,7 @@ NodeLVGLUI::NodeLVGLUI() : Node("lvgl_ui")
   };
 
   timer_[0] = this->create_wall_timer(1000ms, timer_callback_ip_update);
-  // timer_[1] = this->create_wall_timer(1s, timer_callback_informational_update);
+  // timer_[1] = this->create_wall_timer(1s, timer_callback_dart_msgsrmational_update);
   timer_[1] = this->create_wall_timer(1ms, timer_callback_lv_tick_inc);
   timer_[2] = this->create_wall_timer(2s, timer_init_screen_switch);
 
@@ -360,7 +360,7 @@ void NodeLVGLUI::loadParametersfromGUI(bool update_to_ros_param)
   // 取消回调函数
   callback_set_parameter_handle.reset();
   // generate a msg from GUI
-  info::msg::DartParam msg;
+  dart_msgs::msg::DartParam msg;
   msg.target_yaw_angle = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_angle);
   msg.target_yaw_angle_offset = lv_spinbox_get_value(guider_ui.Main_spinbox_yaw_offset);
   msg.target_fw_velocity = lv_spinbox_get_value(guider_ui.Main_spinbox_fw_speed);
@@ -399,7 +399,7 @@ void NodeLVGLUI::loadParametersfromGUI(bool update_to_ros_param)
   dart_launcher_cmd_pub_->publish(msg);
 
   if (update_to_ros_param)
-    loadParametersfromMsg(*this, std::make_shared<info::msg::DartParam>(msg));
+    loadParametersfromMsg(*this, std::make_shared<dart_msgs::msg::DartParam>(msg));
   // 重新注册回调函数
   callback_set_parameter_handle = this->add_post_set_parameters_callback(std::bind(&NodeLVGLUI::callback_set_parameter, this, std::placeholders::_1));
 }
@@ -453,7 +453,7 @@ void NodeLVGLUI::callback_set_parameter(const vector<rclcpp::Parameter> &paramet
   update_parameters_to_gui();
 }
 
-void NodeLVGLUI::update_green_light_callback(info::msg::GreenLight::SharedPtr msg)
+void NodeLVGLUI::update_green_light_callback(dart_msgs::msg::GreenLight::SharedPtr msg)
 {
   if (msg == nullptr)
     return;
@@ -490,7 +490,7 @@ void NodeLVGLUI::update_green_light_callback(info::msg::GreenLight::SharedPtr ms
                });
 }
 
-void NodeLVGLUI::update_dart_launcher_status_callback(info::msg::DartLauncherStatus::SharedPtr msg)
+void NodeLVGLUI::update_dart_launcher_status_callback(dart_msgs::msg::DartLauncherStatus::SharedPtr msg)
 {
   // 离线警告 如果bool任意一个为零则将msgbox取消hidden，内容为"弹鼓/Yaw轴/丝杆/摩擦轮电机/遥控器/C板/裁判离线"，如多个则用 连接并叠加
   /*
@@ -776,7 +776,7 @@ void NodeLVGLUI::update_parameters_to_gui()
   mutex_ui_.unlock();
 }
 
-void NodeLVGLUI::update_dart_launcher_present_param_callback(info::msg::DartParam::SharedPtr msg)
+void NodeLVGLUI::update_dart_launcher_present_param_callback(dart_msgs::msg::DartParam::SharedPtr msg)
 {
   RCLCPP_INFO(this->get_logger(), "Received dart_launcher_present_param");
 

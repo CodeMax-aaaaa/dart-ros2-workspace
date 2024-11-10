@@ -3,9 +3,9 @@
  */
 #include <rclcpp/rclcpp.hpp>
 // qos
-#include <info/msg/dart_param.hpp>
+#include <dart_msgs/msg/dart_param.hpp>
 #include <node_dart_config.hpp>
-#include <info/msg/dart_param.hpp>
+#include <dart_msgs/msg/dart_param.hpp>
 #include <dart_config.hpp>
 
 #include <thread>
@@ -13,7 +13,7 @@
 #include <iostream>
 
 #ifndef YAML_PATH
-#define YAML_PATH "/home/chenyu/dart24_ws/install/dart_controller/share/dart_controller/config" + "dart_config.yaml"
+#define YAML_PATH "/home/chenyu/dart24_ws/install/dart_launcher/share/dart_launcher/config" + "dart_config.yaml"
 #endif
 
 namespace fs = std::filesystem;
@@ -27,7 +27,7 @@ NodeDartConfig::NodeDartConfig(const std::string &yaml_file)
     // syncParameters(false);
     watchFile();
 
-    auto sub_dart_param_change_callback = [this](const info::msg::DartParam::SharedPtr msg)
+    auto sub_dart_param_change_callback = [this](const dart_msgs::msg::DartParam::SharedPtr msg)
     {
         RCLCPP_INFO(this->get_logger(), "Received dart param: %s", msg->header.frame_id.c_str());
         loadParametersfromMsg(*this, msg);
@@ -35,12 +35,12 @@ NodeDartConfig::NodeDartConfig(const std::string &yaml_file)
         saveParameters();
     };
 
-    sub_dart_param_[0] = this->create_subscription<info::msg::DartParam>(
-        "/dart_controller/dart_launcher_param_cmd",
+    sub_dart_param_[0] = this->create_subscription<dart_msgs::msg::DartParam>(
+        "/dart_launcher/dart_launcher_param_cmd",
         rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), sub_dart_param_change_callback);
 
-    sub_dart_param_[1] = this->create_subscription<info::msg::DartParam>(
-        "/dart_controller/dart_launcher_present_param",
+    sub_dart_param_[1] = this->create_subscription<dart_msgs::msg::DartParam>(
+        "/dart_launcher/dart_launcher_present_param",
         rclcpp::QoS(rclcpp::KeepLast(10)).durability_volatile().reliable(), sub_dart_param_change_callback);
 
     // 重设参数服务

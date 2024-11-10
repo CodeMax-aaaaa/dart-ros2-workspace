@@ -50,7 +50,7 @@ int param2_Max = 50;
 
 string dstName = "dst";
 
-void saveParameters(const string& filename="./src/detect/config/config.csv") 
+void saveParameters(const string& filename="./src/dart_detector/config/config.csv") 
 {
     ofstream file(filename);
     if (file.is_open()) 
@@ -75,7 +75,7 @@ void saveParameters(const string& filename="./src/detect/config/config.csv")
     }
 }
 
-void loadParameters(const std::string& paramFile="./src/detect/config/config.csv")
+void loadParameters(const std::string& paramFile="./src/dart_detector/config/config.csv")
 {
     ifstream file(paramFile);
     if (!file.is_open()) 

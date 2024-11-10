@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(dart_controller)
+project(dart_launcher)
 
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 14)
@@ -15,7 +15,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(info REQUIRED)
+find_package(dart_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
@@ -30,10 +30,10 @@ find_package(yaml-cpp REQUIRED)
 include_directories(include)
 # 看门狗
 add_executable(node_dart_logger_dog src/node_dart_logger_dog.cpp src/dart_config.cpp)
-ament_target_dependencies(node_dart_logger_dog rclcpp std_msgs info std_srvs)
+ament_target_dependencies(node_dart_logger_dog rclcpp std_msgs dart_msgs std_srvs)
 # Add node_lvgl_ui target
 add_executable(node_lvgl_ui src/node_lvgl_ui.cpp src/get_ip.cpp src/dart_config.cpp src/dart_algorithm.cpp)
-ament_target_dependencies(node_lvgl_ui rclcpp std_msgs info std_srvs sensor_msgs cv_bridge)
+ament_target_dependencies(node_lvgl_ui rclcpp std_msgs dart_msgs std_srvs sensor_msgs cv_bridge)
 
 # Add Lvgl support
 target_include_directories(node_lvgl_ui PRIVATE
@@ -59,7 +59,7 @@ target_link_libraries(node_lvgl_ui)
 
 # Add node_can_agent target
 add_executable(node_can_agent src/node_can_agent.cpp src/dart_config.cpp)
-ament_target_dependencies(node_can_agent rclcpp std_msgs info std_srvs)
+ament_target_dependencies(node_can_agent rclcpp std_msgs dart_msgs std_srvs)
 
 # Add libsockcancpp support
 target_include_directories(node_can_agent PRIVATE libsockcancpp/include libsockcancpp/include/exceptions include)
@@ -83,7 +83,7 @@ target_include_directories(node_dart_config PRIVATE include)
 target_link_libraries(node_dart_config yaml-cpp ${GSL_LIBRARIES})
 
 # target_link_libraries(node_can_agent yaml-cpp)
-ament_target_dependencies(node_dart_config rclcpp std_msgs info std_srvs)
+ament_target_dependencies(node_dart_config rclcpp std_msgs dart_msgs std_srvs)
 
 # Set the path to the YAML file relative to the ROS 2 install directory
 # set(YAML_PATH "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config/")
