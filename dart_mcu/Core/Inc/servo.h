@@ -28,5 +28,7 @@ private:
     inline uint32_t calCompareValue(uint16_t angle);
 };
 
+extern servo trigger_servo[2];
+
 
 #endif //DART_MCU_SERVO_H

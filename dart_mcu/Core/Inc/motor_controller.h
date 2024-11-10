@@ -55,7 +55,12 @@ namespace motor_controller {
 
         T update();
 
-        void set_state(E_PID_Velocity_Angle_Controller_State state);
+        void set_state(E_PID_Velocity_Angle_Controller_State state) {
+            if (state_ != state) {
+                state_ = state;
+                reset();
+            }
+        }
 
         void reset();
     };

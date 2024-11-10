@@ -52,7 +52,7 @@ namespace motor {
         uint8_t motor_id_;
 
         // Motor State
-        E_MotorState motor_state_;
+        E_MotorState motor_state_ = DISCONNECTED;
     private:
         // Motor Angle Reverse Flag
         bool angle_reverse_;

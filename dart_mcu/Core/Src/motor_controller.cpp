@@ -3,8 +3,52 @@
 //
 
 #include "motor_controller.h"
+#include "cstring"
+
+#define  update_controller_current(motor_, motor_controller_) \
+if (motor_.motor_state_ == motor::RUNNING) { \
+motor_.setCurrent(motor_controller_.update()); \
+} else { \
+motor_controller_.reset(); \
+}
 
 namespace motor_controller {
+    pid_angle_velocity_controller<double> MotorTriggerLSController(
+            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+            &motor::MotorTriggerLS,
+            VELOCITY_CONTROL
+    );
+
+    pid_angle_velocity_controller<double> MotorYawLSController(
+            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+            &motor::MotorYawLS,
+            VELOCITY_CONTROL
+    );
+
+    pid_angle_velocity_controller<double> MotorPitchLSController(
+            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+            &motor::MotorPitchLS,
+            VELOCITY_CONTROL
+    );
+
+    pid_angle_velocity_controller<double> MotorLoadController[2] = {
+            pid_angle_velocity_controller<double>(
+                    pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+                    pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+                    &motor::MotorLoad[0],
+                    VELOCITY_CONTROL
+            ),
+            pid_angle_velocity_controller<double>(
+                    pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+                    pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+                    &motor::MotorLoad[1],
+                    VELOCITY_CONTROL
+            )
+    };
+
     template<typename T>
     pid_controller<T>::pid_controller(T kp, T ki, T kd, T sum_error_max, T p_max, T i_max, T output_max)
             :
@@ -46,7 +90,7 @@ namespace motor_controller {
                                                                     pid_controller<T> pid_angle,
                                                                     motor::motor_rm *motor,
                                                                     E_PID_Velocity_Angle_Controller_State state
-    )  : pid_velocity_(pid_velocity), pid_angle_(pid_angle), motor_(motor), state_(state), target_velocity_(0){
+    )  : pid_velocity_(pid_velocity), pid_angle_(pid_angle), motor_(motor), state_(state), target_velocity_(0) {
         target_angle_with_rounds_ = 0;
         current_angle_with_rounds_ = motor_->current_round_ * 8192 + motor_->current_angle_;
     }
@@ -72,21 +116,13 @@ namespace motor_controller {
     }
 
     template<typename T>
-    void pid_angle_velocity_controller<T>::set_state(E_PID_Velocity_Angle_Controller_State state) {
-        if (state_ != state) {
-            state_ = state;
-            reset();
-        }
-    }
-
-    template<typename T>
     void pid_angle_velocity_controller<T>::reset() {
         pid_velocity_.reset();
         pid_angle_.reset();
     }
 
     [[noreturn]] void pid_control_task(void *pvParameter) {
-// 1KHz
+        // 1KHz
         // Initialize PID Controller
         TickType_t xLastWakeTime = xTaskGetTickCount();
         static uint32_t tx_mailbox;
@@ -99,15 +135,45 @@ namespace motor_controller {
         tx_header.TransmitGlobalTime = DISABLE;
 
         uint8_t can_array[8];
-        while (true) {
-            // Update Controller
-            if (motor::MotorYawLS.motor_state_ == motor::RUNNING) {
-                motor::MotorYawLS.setCurrent(MotorYawLSController.update());
-            } else {
-                MotorYawLSController.reset();
-            }
-            motor::MotorYawLS.updateCurrent(); // Will detect Motor Next State Automatically
 
+        // Wait for Motor to Connect
+        while (motor::MotorYawLS.motor_state_ == motor::E_MotorState::DISCONNECTED ||
+               motor::MotorLoad[0].motor_state_ == motor::E_MotorState::DISCONNECTED ||
+               motor::MotorLoad[1].motor_state_ == motor::E_MotorState::DISCONNECTED ||
+               motor::MotorTriggerLS.motor_state_ == motor::E_MotorState::DISCONNECTED ||
+               motor::MotorPitchLS.motor_state_ == motor::E_MotorState::DISCONNECTED)
+            vTaskDelayUntil(&xLastWakeTime, 100);
+
+        while (true) {
+            {
+                // CAN1
+                memset(can_array, 0, 8);
+                // Will detect Motor Next State Automatically
+                tx_header.StdId = 0x200;
+                update_controller_current(motor::MotorTriggerLS, MotorTriggerLSController);
+                motor::update_can_array(can_array, 0, motor::MotorTriggerLS.updateCurrent());
+                update_controller_current(motor::MotorLoad[0], MotorLoadController[0]);
+                motor::update_can_array(can_array, 1, motor::MotorLoad[0].updateCurrent());
+                update_controller_current(motor::MotorLoad[1], MotorLoadController[1]);
+                motor::update_can_array(can_array, 2, motor::MotorLoad[1].updateCurrent());
+
+                HAL_CAN_AddTxMessage(&hcan1, &tx_header, can_array, &tx_mailbox);
+            }
+
+            {
+                // CAN2
+                // Will detect Motor Next State Automatically
+                memset(can_array, 0, 8);
+                tx_header.StdId = 0x1fe;
+                // Update Controller
+                update_controller_current(motor::MotorPitchLS, MotorPitchLSController);
+                motor::update_can_array(can_array, 0, motor::MotorPitchLS.updateCurrent());
+
+                update_controller_current(motor::MotorYawLS, MotorYawLSController);
+                motor::update_can_array(can_array, 1, motor::MotorYawLS.updateCurrent());
+
+                HAL_CAN_AddTxMessage(&hcan2, &tx_header, can_array, &tx_mailbox);
+            }
             vTaskDelayUntil(&xLastWakeTime, 1);
         }
         vTaskDelete(nullptr);

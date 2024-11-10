@@ -126,19 +126,19 @@
 
   [..]
   These functions allow to register/unregister following callbacks:
-    (+) Base_MspInitCallback              : TIM Base Msp Init Callback.
+    (+) Base_MspInitCallback              : TIM Base Msp begin Callback.
     (+) Base_MspDeInitCallback            : TIM Base Msp DeInit Callback.
-    (+) IC_MspInitCallback                : TIM IC Msp Init Callback.
+    (+) IC_MspInitCallback                : TIM IC Msp begin Callback.
     (+) IC_MspDeInitCallback              : TIM IC Msp DeInit Callback.
-    (+) OC_MspInitCallback                : TIM OC Msp Init Callback.
+    (+) OC_MspInitCallback                : TIM OC Msp begin Callback.
     (+) OC_MspDeInitCallback              : TIM OC Msp DeInit Callback.
-    (+) PWM_MspInitCallback               : TIM PWM Msp Init Callback.
+    (+) PWM_MspInitCallback               : TIM PWM Msp begin Callback.
     (+) PWM_MspDeInitCallback             : TIM PWM Msp DeInit Callback.
-    (+) OnePulse_MspInitCallback          : TIM One Pulse Msp Init Callback.
+    (+) OnePulse_MspInitCallback          : TIM One Pulse Msp begin Callback.
     (+) OnePulse_MspDeInitCallback        : TIM One Pulse Msp DeInit Callback.
-    (+) Encoder_MspInitCallback           : TIM Encoder Msp Init Callback.
+    (+) Encoder_MspInitCallback           : TIM Encoder Msp begin Callback.
     (+) Encoder_MspDeInitCallback         : TIM Encoder Msp DeInit Callback.
-    (+) HallSensor_MspInitCallback        : TIM Hall Sensor Msp Init Callback.
+    (+) HallSensor_MspInitCallback        : TIM Hall Sensor Msp begin Callback.
     (+) HallSensor_MspDeInitCallback      : TIM Hall Sensor Msp DeInit Callback.
     (+) PeriodElapsedCallback             : TIM Period Elapsed Callback.
     (+) PeriodElapsedHalfCpltCallback     : TIM Period Elapsed half complete Callback.
@@ -155,23 +155,23 @@
     (+) BreakCallback                     : TIM Break Callback.
 
   [..]
-By default, after the Init and when the state is HAL_TIM_STATE_RESET
+By default, after the begin and when the state is HAL_TIM_STATE_RESET
 all interrupt callbacks are set to the corresponding weak functions:
   examples HAL_TIM_TriggerCallback(), HAL_TIM_ErrorCallback().
 
   [..]
   Exception done for MspInit and MspDeInit functions that are reset to the legacy weak
-  functionalities in the Init / DeInit only when these callbacks are null
-  (not registered beforehand). If not, MspInit or MspDeInit are not null, the Init / DeInit
+  functionalities in the begin / DeInit only when these callbacks are null
+  (not registered beforehand). If not, MspInit or MspDeInit are not null, the begin / DeInit
     keep and use the user MspInit / MspDeInit callbacks(registered beforehand)
 
   [..]
     Callbacks can be registered / unregistered in HAL_TIM_STATE_READY state only.
     Exception done MspInit / MspDeInit that can be registered / unregistered
     in HAL_TIM_STATE_READY or HAL_TIM_STATE_RESET state,
-    thus registered(user) MspInit / DeInit callbacks can be used during the Init / DeInit.
+    thus registered(user) MspInit / DeInit callbacks can be used during the begin / DeInit.
   In that case first register the MspInit/MspDeInit user callbacks
-      using HAL_TIM_RegisterCallback() before calling DeInit or Init function.
+      using HAL_TIM_RegisterCallback() before calling DeInit or begin function.
 
   [..]
       When The compilation define USE_HAL_TIM_REGISTER_CALLBACKS is set to 0 or
