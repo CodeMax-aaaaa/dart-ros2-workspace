@@ -17,7 +17,7 @@ find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 
-set(SOURCES src/main.cpp src/dart_detector.cpp)
+set(SOURCES src/node_detector.cpp src/dart_detector.cpp)
 
 # dart_detector node executable
 add_executable(dart_detector_node ${SOURCES})
