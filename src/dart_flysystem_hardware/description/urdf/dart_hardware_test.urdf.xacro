@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot_name">
+    <xacro:include
+        filename="$(find dart_flysystem_description)/urdf/dart.urdf.xacro" />
+    <xacro:include
+        filename="$(find dart_flysystem_hardware)/control/dart_hardware_ros2_control.urdf.xacro" />
+
+    <xacro:dart prefix="dart_" parent="base_link"/>
+
+    <xacro:dart_servo_ros2_control name="DartServo" prefix="dart_" />
+</robot>

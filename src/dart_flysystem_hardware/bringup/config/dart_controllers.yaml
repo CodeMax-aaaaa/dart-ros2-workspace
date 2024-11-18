@@ -1,0 +1,17 @@
+# 制导飞镖硬件控制器绑定配置
+controller_manager:
+  ros__parameters:
+   update_rate: 500  # Hz
+
+   joint_state_broadcaster:
+     type: joint_state_broadcaster/JointStateBroadcaster
+
+forward_position_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - dart_base_link_to_servoLU_joint
+      - dart_base_link_to_servoRU_joint
+      - dart_base_link_to_servoLD_joint
+      - dart_base_link_to_servoRD_joint
+    interface_name: position

@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="dart">
+    <xacro:include
+        filename="$(find dart_flysystem_description)/urdf/dart.urdf.xacro" />   
+    <xacro:dart prefix="dart_" parent="base_link"/> 
+</robot>

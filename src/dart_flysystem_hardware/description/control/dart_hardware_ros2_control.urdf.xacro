@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="dart_servo_ros2_control" params="name prefix">
+        <xacro:property name="PI" value="3.1415926535897931" />
+        <ros2_control name="${name}" type="system">
+            <hardware>
+                <plugin>dart_flysystem_hardware/DartFlySystemHardwareServo</plugin>
+                <param name="debug">true</param>
+                <param name="offset_angle">${PI/2}</param>
+            </hardware>
+
+            <joint name="${prefix}base_link_to_servoLU_joint">
+                <command_interface name="position">
+                </command_interface>
+                <param name="min">${-PI/8}</param>
+                <param name="max">${PI/8}</param>
+                <state_interface name="position" />
+                <!-- pwm14@fe700020 -->
+                <param name="pwm_chip">4</param>
+                <param name="pwm_channel">0</param>
+            </joint>
+
+            <joint name="${prefix}base_link_to_servoLD_joint">
+                <command_interface name="position">
+                </command_interface>
+                <param name="min">${-PI/8}</param>
+                <param name="max">${PI/8}</param>
+                <state_interface name="position" />
+                <!-- pwm15@fe700030 -->
+                <param name="pwm_chip">5</param>
+                <param name="pwm_channel"> 0</param>
+            </joint>
+
+            <joint name="${prefix}base_link_to_servoRU_joint">
+                <command_interface name="position">
+                </command_interface>
+                <param name="min">${-PI/8}</param>
+                <param name="max">${PI/8}</param>
+                <state_interface name="position" />
+                <!-- pwm12@fe700000 -->
+                <param name="pwm_chip">2</param>
+                <param name="pwm_channel"> 0</param>
+            </joint>
+
+            <joint name="${prefix}base_link_to_servoRD_joint">
+                <command_interface name="position">
+                </command_interface>
+                <param name="min">${-PI/8}</param>
+                <param name="max">${PI/8}</param>
+                <state_interface name="position" />
+                <!-- pwm13@fe700010 -->
+                <param name="pwm_chip">3</param>
+                <param name="pwm_channel"> 0</param>
+            </joint>
+
+        </ros2_control>
+    </xacro:macro>
+</robot> 

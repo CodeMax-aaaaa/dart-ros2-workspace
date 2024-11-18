@@ -1,0 +1,9 @@
+<library path="dart_flysystem_hardware">
+  <class name="dart_flysystem_hardware/DartFlySystemHardwareServo"
+    type="dart_flysystem_hardware::DartFlySystemHardwareServo"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>
+      用于导出飞镖硬件的舵机控制接口
+    </description>
+  </class>
+</library>

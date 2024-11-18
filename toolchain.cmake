@@ -4,8 +4,8 @@ set(CMAKE_SYSTEM_PROCESSOR aarch64)
 # 指定交叉编译的编译器
 set(TRIPLE ${CMAKE_SYSTEM_PROCESSOR}-linux-gnu)
 
-set(CMAKE_C_COMPILER /usr/bin/${TRIPLE}-gcc)
-set(CMAKE_CXX_COMPILER /usr/bin/${TRIPLE}-g++)
+set(CMAKE_C_COMPILER /usr/bin/ccache /usr/bin/${TRIPLE}-gcc)
+set(CMAKE_CXX_COMPILER /usr/bin/ccache /usr/bin/${TRIPLE}-g++)
 set(CMAKE_LINKER /usr/bin/${TRIPLE}-ld)
 
 # Generic

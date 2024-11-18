@@ -1,0 +1,152 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="dart">
+    <!--制导飞镖，具有四个舵机作为航向控制，一个函道电机作为推进器，一个风标传感器，一个IMU.-->
+    <xacro:macro name="dart" params="prefix parent">
+        <!-- Constants for robot dimensions -->
+        <xacro:property name="PI" value="3.1415926535897931" />
+        <!-- Base Link -->
+        <link name="base_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <mesh
+                        filename="package://dart_flysystem_description/urdf/dart.stl"
+                        scale="1 1 1" />
+                </geometry>
+                <material name="white">
+                    <color rgba="1 1 1 1" />
+                </material>
+            </visual>
+        </link>
+
+        <!-- Joint -->
+        <joint name="${prefix}base_link_to_servoLU_joint" type="revolute">
+            <origin xyz="-0.011329 -0.1922 0.015161" rpy="${PI} -2.35619449 0" />
+            <parent link="${parent}" />
+            <child link="${prefix}servo_LU_link" />
+            <!-- +-PI/8 for joint limit -->
+            <limit lower="${PI/-8}" upper="${PI/8}" effort="10" velocity="24.353431423" />
+        </joint>
+
+        <joint name="${prefix}base_link_to_servoLD_joint" type="revolute">
+            <origin xyz="-0.011527 -0.1922 -0.007267" rpy="${PI} 2.35619449 0" />
+            <parent link="${parent}" />
+            <child link="${prefix}servo_LD_link" />
+            <!-- +-PI/8 for joint limit -->
+            <limit lower="${PI/-8}" upper="${PI/8}" effort="10" velocity="24.353431423" />
+        </joint>
+
+        <joint name="${prefix}base_link_to_servoRU_joint" type="revolute">
+            <origin xyz="0.011329 -0.1922 0.015161" rpy="${PI} -0.785398163 0" />
+            <!-- <origin xyz="0 0 0" rpy="0 0 0" /> -->
+            <parent link="${parent}" />
+            <child link="${prefix}servo_RU_link" />
+            <!-- +-PI/8 for joint limit -->
+            <limit lower="${PI/-8}" upper="${PI/8}" effort="10" velocity="24.353431423" />
+        </joint>
+
+        <joint name="${prefix}base_link_to_servoRD_joint" type="revolute">
+            <origin xyz="0.011527 -0.1922 -0.007267" rpy="${PI} 0.785398163 0" />
+            <parent link="${parent}" />
+            <child link="${prefix}servo_RD_link" />
+            <!-- +-PI/8 for joint limit -->
+            <limit lower="${PI/-8}" upper="${PI/8}" effort="10" velocity="24.353431423" />
+        </joint>
+
+        <!-- wind_wing joint -->
+        <joint name="${prefix}base_link_to_wind_wing_L_joint" type="continuous">
+            <origin xyz="0.018259 -0.028026 -0.002116" rpy="0 ${PI} 0" />
+            <parent link="${parent}" />
+            <child link="${prefix}wind_wing_L_link" />
+        </joint>
+
+        <!-- throttle joint -->
+        <joint name="${prefix}base_link_to_throttle_joint" type="continuous">
+            <origin xyz="0.000199 -0.11952 0.003881" rpy="0 0 ${-PI/2}" />
+            <parent link="${parent}" />
+            <child link="${prefix}throttle_link" />
+        </joint>
+
+        <link name="${prefix}servo_LU_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 1.570796327" />
+                <geometry>
+                    <mesh
+                        filename="package://dart_flysystem_description/urdf/vector_servo.stl"
+                        scale="1 1 1" />
+                </geometry>
+                <material name="white">
+                    <color rgba="1 1 1 1" />
+                </material>
+            </visual>
+        </link>
+
+        <link name="${prefix}servo_LD_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 1.570796327" />
+                <geometry>
+                    <mesh
+                        filename="package://dart_flysystem_description/urdf/vector_servo.stl"
+                        scale="1 1 1" />
+                </geometry>
+                <material name="white">
+                    <color rgba="1 1 1 1" />
+                </material>
+            </visual>
+        </link>
+
+        <link name="${prefix}servo_RU_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 1.570796327" />
+                <geometry>
+                    <mesh
+                        filename="package://dart_flysystem_description/urdf/vector_servo.stl"
+                        scale="1 1 1" />
+                </geometry>
+                <material name="white">
+                    <color rgba="1 1 1 1" />
+                </material>
+            </visual>
+        </link>
+
+        <link name="${prefix}servo_RD_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 1.570796327" />
+                <geometry>
+                    <mesh
+                        filename="package://dart_flysystem_description/urdf/vector_servo.stl"
+                        scale="1 1 1" />
+                </geometry>
+                <material name="white">
+                    <color rgba="1 1 1 1" />
+                </material>
+            </visual>
+        </link>
+
+        <link name="${prefix}wind_wing_L_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="${PI} 0 ${-PI/2}"/>
+                <geometry>
+                    <mesh
+                        filename="package://dart_flysystem_description/urdf/wind_wing.stl"
+                        scale="1 1 1" />
+                </geometry>
+                <material name="white">
+                    <color rgba="1 1 1 1" />
+                </material>
+            </visual>
+        </link>
+
+        <link name="${prefix}throttle_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="0 ${-PI/2} 0" />
+                <geometry>
+                    <cylinder radius="0.005" length="0.01" />
+                </geometry>
+                <material name="white">
+                    <color rgba="1 1 1 1" />
+                </material>
+            </visual>
+        </link>
+    </xacro:macro>
+</robot>

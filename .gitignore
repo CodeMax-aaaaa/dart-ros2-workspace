@@ -9,3 +9,5 @@ generate_lib_microros_ws/
 # Cross Compile
 ubuntu_*/
 src/ros2_control_demos
+src/plugin_lib_demo
+.vscode/settings.json

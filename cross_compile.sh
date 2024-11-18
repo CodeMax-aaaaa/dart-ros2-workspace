@@ -34,7 +34,9 @@ ln -s $(pwd)/install $SYSROOT/$ROS_WS_INSTALL_PATH
 colcon build --merge-install \
     --cmake-force-configure \
     --cmake-args \
-        -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
+    -G Ninja
 
 if [ $? -ne 0 ]; then
     echo -e "\033[1;31mFailed to build ROS2 packages\033[0m"
@@ -49,7 +51,7 @@ echo -e "\033[1;32mROS2 packages built successfully.\033[0m"
 
 if [ "$1" == "dest" ]; then
     echo -e "\033[1;32mCopying the install folder to the target device\033[0m"
-    scp -rP $2 $(pwd)/install $3
+    scp -rP $2 $(pwd)/install $3 > /dev/null
     if [ $? -ne 0 ]; then
         echo -e "\033[1;31mFailed to copy the install folder to the target device\033[0m"
         exit 1
@@ -58,3 +60,7 @@ else
     echo -e "\033[1;33mSkip copying the install folder to the target device\033[0m"
     exit 0
 fi
+
+echo -e "\033[1;32mROS2 packages copied successfully.\033[0m"
+# DBUS通知
+notify-send "ROS2 packages built successfully." --icon=dialog-information --app-name="ROS2 Cross Compile"
