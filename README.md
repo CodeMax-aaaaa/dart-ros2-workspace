@@ -29,8 +29,8 @@ sequenceDiagram
     participant B as 相机节点(camera_node)
     participant A as 自瞄响应节点(dart_detector_node)
     participant C as 飞镖发射架UI(node_lvgl_ui)
-    B->>A: /camera/image
-    A->>C: /dart_detector/green_light
+    B->>+A: /camera/image
+    A->>-C: /dart_detector/green_light
 ```
 
 注意，自瞄支持包使用的是**OpenCV**库，需要自行编译安装。
