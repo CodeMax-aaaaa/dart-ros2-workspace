@@ -51,6 +51,44 @@ sequenceDiagram
 4. 添加(主要是制导镖的)相机的参数同步功能。
 5. 引入生命周期(ROS2 Lifecycle)控制。
 
+### 重构后的架构
+```mermaid
+graph LR
+    A[ROS Package:
+    dart_detector]
+    A --> G[ParameterTuner] --> F[Parameter]
+    B[ROS Package:
+    dart_camera]
+    A --> E[NodeDartDetector] --> F[Detector]
+    B --> C[NodeCamera] --> D[CameraDriver（实现）]
+```
+> 注意，这里的CameraDriver是一个基类的实现，需要使用pluginlib编写插件，用于支持不同的相机。
+```mermaid
+classDiagram
+    class CameraDriver{
+        <<abstract>>
+        +open(std::unordered_map<string, string>)
+        +close()
+        +CV::Mat read()
+        +bool write(std::string, std::string)
+    }
+    class CameraDriverDH{
+        +open(std::unordered_map<string, string>)
+        +close()
+        +CV::Mat read()
+        +bool write(std::string, std::string)
+    }
+    class CameraDriverMIPI{
+        +open(std::unordered_map<string, string>)
+        +close()
+        +CV::Mat read()
+        +bool write(std::string, std::string)
+    }
+    CameraDriver <|-- CameraDriverDH
+    CameraDriver <|-- CameraDriverMIPI
+    
+```
+
 ## 飞镖架发射控制包(dart_launcher)
 > 飞镖架发射控制包是飞镖机器人的发射控制功能的ROS功能包。主要功能是飞镖架的上位机控制和发射参数池的维护。内置非线性回归机器学习算法(依赖于GSL库)，可以由参数数据集拟合出合适的发射参数，可以通过LVGL UI界面调用/调整发射参数。
 
@@ -150,3 +188,49 @@ bool judge_online
 4. 针对下位机切换为MicroROS，需要重新设计该包的数据流，简少维护压力。
 5. 引入生命周期(ROS2 Lifecycle)控制。
 6. 改进抛物线预测算法。他还不太准。
+
+### 重构数据流
+#### 最重要的是这个**Config Manager**的重新编写。写得好是可以拿来给开源社区用的。
+首先，分析之前的数据流。
+```mermaid
+sequenceDiagram
+    participant A as NodeDartConfig
+    participant B as NodeLVGLUI
+    participant C as NodeCanAgent
+    participant D as NodeCamera
+    participant E as NodeDetector
+
+    A->>+A: Load Config
+    A->>+B: Config同步到node parameter
+    B->>B: 向UI更新参数，按参数内容计算发射参数
+    deactivate B
+    A->>C: Config同步到node parameter
+    A->>D: Config同步到node parameter
+    A->>E: Config同步到node parameter
+    deactivate A
+    B->>B: 用户调整参数
+    activate B
+    B->>C: /dart_launcher/dart_launcher_param_cmd
+    activate C
+    B->>+A: /dart_launcher/dart_launcher_param_cmd
+    C->>C: 发射参数同步到CAN总线
+    deactivate C
+    A->>-A: 更新到文件
+    deactivate B
+    activate C
+    C->>C: CAN总线上参数变化
+    C->>+A: /dart_launcher/dart_launcher_param_cmd
+    A->>-A: 更新到文件
+    C->>B: /dart_launcher/dart_launcher_param_cmd
+    deactivate C
+    activate B
+    B->>B: 向UI更新参数，按参数内容计算发射参数
+    deactivate B
+    D->>E: /camera/image
+    E->>+B: /dart_detector/green_light
+    B->>-B: 更新UI参数，计算发射参数
+    B->>+C: /dart_launcher/dart_launcher_param_cmd
+    B->>+A: /dart_launcher/dart_launcher_param_cmd
+    A->>-A: 更新到文件
+    C->>-C: 发射参数同步到CAN总线
+```
