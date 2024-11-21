@@ -6,4 +6,11 @@
       用于导出飞镖硬件的舵机控制接口
     </description>
   </class>
+  <class name="dart_flysystem_hardware/DartFlySystemHardwareIMU"
+    type="dart_flysystem_hardware::DartFlySystemHardwareIMU"
+    base_class_type="hardware_interface::SensorInterface">
+    <description>
+      用于导出飞镖硬件的IMU传感器接口
+    </description>
+  </class>
 </library>

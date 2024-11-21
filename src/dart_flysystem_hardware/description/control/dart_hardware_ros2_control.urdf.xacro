@@ -55,4 +55,28 @@
 
         </ros2_control>
     </xacro:macro>
+    <xacro:macro name="dart_sensors_ros2_control" params="name prefix">
+        <!-- IMU and wind wing sensor -->
+        <ros2_control name="${name}" type="sensor">
+            <hardware>
+                <plugin>dart_flysystem_hardware/DartFlySystemHardwareIMU</plugin>
+                <param name="serial_file">/dev/ttyS1</param>
+                <param name="baudrate">230400</param>
+                <param name="imu_address">80</param>
+            </hardware>
+
+            <sensor name="${prefix}imu">
+                <state_interface name="linear_acceleration.x" />
+                <state_interface name="linear_acceleration.y" />
+                <state_interface name="linear_acceleration.z" />
+                <state_interface name="angular_velocity.x" />
+                <state_interface name="angular_velocity.y" />
+                <state_interface name="angular_velocity.z" />
+                <state_interface name="orientation.x" />
+                <state_interface name="orientation.y" />
+                <state_interface name="orientation.z" />
+                <state_interface name="orientation.w" />
+            </sensor>
+        </ros2_control>
+    </xacro:macro>
 </robot> 

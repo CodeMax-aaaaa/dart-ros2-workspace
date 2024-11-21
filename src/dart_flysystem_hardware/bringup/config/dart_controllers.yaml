@@ -15,3 +15,10 @@ forward_position_controller:
       - dart_base_link_to_servoLD_joint
       - dart_base_link_to_servoRD_joint
     interface_name: position
+
+imu_sensor_broadcaster:
+  ros__parameters:
+    type: imu_sensor_broadcaster/IMUSensorBroadcaster
+    sensor_name: "dart_imu"
+    frame_id: "imu_sensor_frame"
+    publish_rate: 200  # Hz

@@ -36,7 +36,9 @@ add_library(
   dart_flysystem_hardware
   SHARED
   hardware/dart_flysystem_hardware_servo.cpp
+  hardware/dart_flysystem_hardware_imu.cpp
   hardware/linux_pwm.cpp
+  hardware/wit_c_sdk.c
 )
 target_compile_features(dart_flysystem_hardware PUBLIC cxx_std_17)
 target_include_directories(dart_flysystem_hardware PUBLIC
