@@ -41,6 +41,37 @@ namespace dart_flysystem_hardware
             return hardware_interface::CallbackReturn::ERROR;
         }
 
+        // 检查参数是否存在
+        if (info_.hardware_parameters.empty())
+        {
+            RCLCPP_ERROR(get_logger(), "IMU Hardware Interface Init Error: No Parameters");
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
+        if (info_.hardware_parameters.find("imu_address") == info_.hardware_parameters.end())
+        {
+            RCLCPP_ERROR(get_logger(), "IMU Hardware Interface Init Error: No IMU Address");
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
+        if (info_.hardware_parameters.find("serial_file") == info_.hardware_parameters.end())
+        {
+            RCLCPP_ERROR(get_logger(), "IMU Hardware Interface Init Error: No Serial File");
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
+        if (info_.hardware_parameters.find("baudrate") == info_.hardware_parameters.end())
+        {
+            RCLCPP_ERROR(get_logger(), "IMU Hardware Interface Init Error: No Baudrate");
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
+        if (info_.sensors.empty())
+        {
+            RCLCPP_ERROR(get_logger(), "IMU Hardware Interface Init Error: No Sensors");
+            return hardware_interface::CallbackReturn::ERROR;
+        }
+
         RCLCPP_INFO(get_logger(), "IMU Hardware Interface Init");
 
         return hardware_interface::CallbackReturn::SUCCESS;
@@ -79,6 +110,7 @@ namespace dart_flysystem_hardware
                 RCLCPP_ERROR(get_logger(), "Can't Read Baudrate");
                 return hardware_interface::CallbackReturn::ERROR;
             }
+            RCLCPP_INFO(get_logger(), "IMU Serial File: %s, Baudrate: %d", serial_file_.c_str(), std::stoi(info_.hardware_parameters["baudrate"]));
         }
         catch (const std::exception &e)
         {
@@ -141,10 +173,10 @@ namespace dart_flysystem_hardware
                 serial_thread_running_ = false;
                 close(serial_fd_);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                continue;
             }
-            serial_thread_running_ = true;
-            WitSerialWriteRegister(&DartFlySystemHardwareIMU::serialWrite);
-            WitRegisterCallBack(&DartFlySystemHardwareIMU::updateNotifier);
+            WitSerialWriteRegister(DartFlySystemHardwareIMU::serialWrite);
+            WitRegisterCallBack(DartFlySystemHardwareIMU::updateNotifier);
 
             // 串口配置
             struct termios options;
@@ -179,7 +211,10 @@ namespace dart_flysystem_hardware
 
                 // 读取数据
                 int len = serialRead(serial_fd_, serial_buffer_, SERIAL_BUFFER_SIZE);
-                WitCanDataIn(&serial_buffer_[i], len);
+                if (len > 0)
+                    for (size_t i = 0; i < len; i++)
+                        WitSerialDataIn(serial_buffer_[i]);
+                    
 
                 if (new_data_)
                 {
@@ -189,7 +224,7 @@ namespace dart_flysystem_hardware
                 }
                 else
                 {
-                    RCLCPP_ERROR(get_logger(), "IMU Not Responding, retrying in 1s");
+                    RCLCPP_ERROR(get_logger(), "IMU Not Responding in init procedure, retrying in 1s");
                     serial_thread_running_ = false;
                 }
             }
@@ -198,20 +233,25 @@ namespace dart_flysystem_hardware
             {
                 RCLCPP_ERROR(get_logger(), "IMU Not Responding, Closing Serial Port");
                 close(serial_fd_);
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                continue;
+                return;
             }
 
             int timeout = 0;
 
             while (rclcpp::ok())
             {
-                if(serial_thread_running_ == false)
+                if (serial_thread_running_ == false)
                 {
                     RCLCPP_ERROR(get_logger(), "IMU Thread should stop");
                     close(serial_fd_);
                     return;
                 }
+
+                // 读取数据
+                int len = serialRead(serial_fd_, serial_buffer_, SERIAL_BUFFER_SIZE);
+                if (len > 0)
+                    for (size_t i = 0; i < len; i++)
+                        WitSerialDataIn(serial_buffer_[i]);
 
                 if (new_data_ | 0 == 0)
                 {
@@ -221,23 +261,18 @@ namespace dart_flysystem_hardware
                         RCLCPP_ERROR(get_logger(), "IMU Timeout, Closing Serial Port");
                         close(serial_fd_);
                         serial_thread_running_ = false;
+                        timeout = 0;
                         break;
                     }
                 }
-                else
-                {
-                    timeout = 0;
-                }
-
-                // 读取数据
-                int len = serialRead(serial_fd_, serial_buffer_, SERIAL_BUFFER_SIZE);
-                WitCanDataIn(serial_buffer_, len);
 
                 if (new_data_ & ACC_UPDATE)
                 {
                     for (size_t i = 0; i < 3; i++)
                         imu_data_raw_linear_acceleration_[i] = (float)sReg[AX + i] / 32768.0f * 16.0f;
                     new_data_ &= ~ACC_UPDATE;
+
+                    timeout = 0;
                 }
 
                 if (new_data_ & GYRO_UPDATE)
@@ -245,6 +280,8 @@ namespace dart_flysystem_hardware
                     for (size_t i = 0; i < 3; i++)
                         imu_data_raw_angular_velocity_[i] = (float)sReg[GX + i] / 32768.0f * 2000.0f;
                     new_data_ &= ~GYRO_UPDATE;
+
+                    timeout = 0;
                 }
 
                 if (new_data_ & ORIENTATION_UPDATE)
@@ -253,9 +290,11 @@ namespace dart_flysystem_hardware
 
                         imu_data_raw_orientation_[i] = (float)sReg[q0 + i] / 32768.0f;
                     new_data_ &= ~ORIENTATION_UPDATE;
+
+                    timeout = 0;
                 }
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
         }
     }
@@ -269,8 +308,9 @@ namespace dart_flysystem_hardware
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (count++ > 10)
             {
-                RCLCPP_ERROR(get_logger(), "Serial Thread Start Failed, Using Fake Data until Serial Thread Start");
-                break;
+                RCLCPP_ERROR(get_logger(), "Serial Thread Start Failed!");
+                serial_thread_.join();
+                return hardware_interface::CallbackReturn::ERROR;
             }
         }
 
@@ -286,10 +326,6 @@ namespace dart_flysystem_hardware
 
     hardware_interface::return_type DartFlySystemHardwareIMU::read(const rclcpp::Time &time, const rclcpp::Duration &period)
     {
-        if (!serial_thread_running_)
-        {
-            return hardware_interface::return_type::ERROR;
-        }
         RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "IMU Data: Acc: %f %f %f, Gyro: %f %f %f, Ori: %f %f %f %f",
                              imu_data_raw_linear_acceleration_[0], imu_data_raw_linear_acceleration_[1], imu_data_raw_linear_acceleration_[2],
                              imu_data_raw_angular_velocity_[0], imu_data_raw_angular_velocity_[1], imu_data_raw_angular_velocity_[2],
@@ -300,51 +336,53 @@ namespace dart_flysystem_hardware
     std::vector<hardware_interface::StateInterface> DartFlySystemHardwareIMU::export_state_interfaces()
     {
         std::vector<hardware_interface::StateInterface> state_interfaces;
+        RCLCPP_INFO(get_logger(), "Export IMU State Interface for %s", info_.sensors[0].name.c_str());
+
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "linear_acceleration.x",
             &imu_data_raw_linear_acceleration_[0]));
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "linear_acceleration.y",
             &imu_data_raw_linear_acceleration_[1]));
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "linear_acceleration.z",
             &imu_data_raw_linear_acceleration_[2]));
 
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "angular_velocity.x",
             &imu_data_raw_angular_velocity_[0]));
 
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "angular_velocity.y",
             &imu_data_raw_angular_velocity_[1]));
 
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "angular_velocity.z",
             &imu_data_raw_angular_velocity_[2]));
 
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "orientation.x",
             &imu_data_raw_orientation_[0]));
 
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "orientation.y",
             &imu_data_raw_orientation_[1]));
 
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "orientation.z",
             &imu_data_raw_orientation_[2]));
 
         state_interfaces.emplace_back(hardware_interface::StateInterface(
-            info_.joints[0].name,
+            info_.sensors[0].name,
             "orientation.w",
             &imu_data_raw_orientation_[3]));
 
