@@ -44,7 +44,10 @@ stateDiagram-v2
     休眠 --> fork_state_更新状态: RTC唤醒/按键唤醒
 
     note right of 初始化: 初始化I2C，RTC，尝试打开BQ40Z50的PCHG、CHG、DSG FET，防止亏电充不进电FET，防止亏电充不进电
-    
+    note right of 休眠: 低功耗模式，如果PRES为低，说明电池未接入任何系统，大部分时间系统处于此状态
+    note right of 按键第一次按下: 此时开灯效进入短暂显示状态
+    note right of 按键已经短按一次: 此时开灯效进入短按长按灯效状态，灯效状态根据电源为开为关确认
+    note right of 按键长按中（LED灯效）: 此时开灯效进入常亮显示状态，关灯效进入关闭状态
 ```
 
 系统FET电源状态机
