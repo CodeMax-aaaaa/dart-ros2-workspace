@@ -53,9 +53,9 @@ void SystemClock_Config(void);
 
 static void MX_GPIO_Init(void);
 
-static void MX_I2C1_Init(void);
-
 static void MX_TIM2_Init(void);
+
+static void MX_I2C1_Init(void);
 
 /* USER CODE BEGIN PFP */
 
@@ -93,8 +93,8 @@ int main(void) {
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
-    MX_I2C1_Init();
     MX_TIM2_Init();
+    MX_I2C1_Init();
     /* USER CODE BEGIN 2 */
     chalie_leds_init();
     /* USER CODE END 2 */
@@ -112,21 +112,27 @@ int main(void) {
     uint8_t DSG_address = 0x0020;
     uint8_t CHG_address = 0x001F;
     uint8_t PCHG_address = 0x001E;
+    uint8_t button_state_machine = 0;
+    enum {
+        BUTTON_STATE_IDLE = 0,
+        BUTTON_STATE_SHORT_PRESS = 1,
+        BUTTON_STATE_L
+    };
     // 启动DSG，CHG，PCHG
-    HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &soc_address, 1, HAL_MAX_DELAY);
     while (1) {
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
         // SMBUS 读取0x0D寄存器 State of Charge，格式WORD
         if (HAL_GetTick() % 1000 > 500 && !read) {
-            HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &soc_address, 1, HAL_MAX_DELAY);
-            HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &soc, 1, HAL_MAX_DELAY);
-            HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &current_address, 1, HAL_MAX_DELAY);
-            HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &current, 2, HAL_MAX_DELAY);
+            HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &soc_address, 1, 100);
+            HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &soc, 1, 100);
+            HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &current_address, 1, 100);
+            HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &current, 2, 100);
+
             read = 1;
             // 将SOC0～100转换到0-7的范围
-            code = soc / 12.5;
+            code = soc / 12.5 + 1;
         } else if (HAL_GetTick() % 1000 < 500) {
             read = 0;
         }
@@ -166,6 +172,8 @@ int main(void) {
             if (last_timer_it_state) {
                 HAL_TIM_Base_Stop_IT(&htim2);
                 last_timer_it_state = 0;
+                chalie_led_timer_update(1);
+                chalie_leds_set(1, GPIO_PIN_RESET);
             }
 
             HAL_Delay(10);
@@ -232,7 +240,7 @@ static void MX_I2C1_Init(void) {
 
     /* USER CODE END I2C1_Init 1 */
     hi2c1.Instance = I2C1;
-    hi2c1.Init.Timing = 0x00000202;
+    hi2c1.Init.Timing = 0x00000000;
     hi2c1.Init.OwnAddress1 = 0;
     hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -252,7 +260,7 @@ static void MX_I2C1_Init(void) {
 
     /** Configure Digital filter
     */
-    if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK) {
+    if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 7) != HAL_OK) {
         Error_Handler();
     }
     /* USER CODE BEGIN I2C1_Init 2 */
@@ -313,20 +321,10 @@ static void MX_GPIO_Init(void) {
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
-    /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
-
     /*Configure GPIO pin : PA0 */
     GPIO_InitStruct.Pin = GPIO_PIN_0;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /*Configure GPIO pin : PA1 */
-    GPIO_InitStruct.Pin = GPIO_PIN_1;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* USER CODE BEGIN MX_GPIO_Init_2 */
