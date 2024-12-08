@@ -18,9 +18,15 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
+#include "rtc.h"
+#include "tim.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <sys/types.h>
+
 #include "chalie_leds.h"
 /* USER CODE END Includes */
 
@@ -40,24 +46,37 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-I2C_HandleTypeDef hi2c1;
-
-TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-
+uint8_t DateAndTime[7] = {};
+uint8_t Periph; // 当前进行I2C通信的外设的逻辑地址
+uint8_t offset_rx; // 从机被写寄存器当前偏移地�???
+uint8_t offset_tx; // 从机被读寄存器当前偏移地�???
+uint8_t Error[6] = {0x11, 0x45, 0x14};
+static uint8_t first_byte_state = 1; // 是否收到�???1个字�???,也就逻辑地址：已收到�???0：没有收到为1�???
+static uint8_t is_transmitting = 0;
+uint16_t bq40z50_address = 0x0b;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 
-static void MX_GPIO_Init(void);
-
-static void MX_TIM2_Init(void);
-
-static void MX_I2C1_Init(void);
-
 /* USER CODE BEGIN PFP */
+void sys_enter_standby_mode(void);
+
+void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc);
+
+void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c);
+
+void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c);
+
+void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode);
+
+void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c);
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
+
+void ManufacturerBlockAccess_write(uint16_t command);
 
 /* USER CODE END PFP */
 
@@ -94,9 +113,11 @@ int main(void) {
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_TIM2_Init();
-    MX_I2C1_Init();
+    MX_I2C1_SMBUS_Init();
+    MX_RTC_Init();
     /* USER CODE BEGIN 2 */
     chalie_leds_init();
+    HAL_SMBUS_EnableListen_IT(&hsmbus1);
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -119,19 +140,22 @@ int main(void) {
         BUTTON_STATE_L
     };
     // 启动DSG，CHG，PCHG
+    ManufacturerBlockAccess_write(DSG_address);
+    ManufacturerBlockAccess_write(CHG_address);
+    ManufacturerBlockAccess_write(PCHG_address);
     while (1) {
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
-        // SMBUS 读取0x0D寄存器 State of Charge，格式WORD
+        // SMBUS 读取0x0D寄存�??????? State of Charge，格式WORD
         if (HAL_GetTick() % 1000 > 500 && !read) {
-            HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &soc_address, 1, 100);
-            HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &soc, 1, 100);
-            HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &current_address, 1, 100);
-            HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &current, 2, 100);
+            HAL_I2C_Master_Transmit(&hsmbus1, address, (uint8_t *) &soc_address, 1, 100);
+            HAL_I2C_Master_Receive(&hsmbus1, address, (uint8_t *) &soc, 1, 100);
+            HAL_I2C_Master_Transmit(&hsmbus1, address, (uint8_t *) &current_address, 1, 100);
+            HAL_I2C_Master_Receive(&hsmbus1, address, (uint8_t *) &current, 2, 100);
 
             read = 1;
-            // 将SOC0～100转换到0-7的范围
+            // 将SOC0�???????100转换�???????0-7的范�???????
             code = soc / 12.5 + 1;
         } else if (HAL_GetTick() % 1000 < 500) {
             read = 0;
@@ -195,10 +219,16 @@ void SystemClock_Config(void) {
     */
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
+    /** Configure LSE Drive Capability
+    */
+    HAL_PWR_EnableBkUpAccess();
+    __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+
     /** Initializes the RCC Oscillators according to the specified parameters
     * in the RCC_OscInitTypeDef structure.
     */
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_MSI;
+    RCC_OscInitStruct.LSEState = RCC_LSE_ON;
     RCC_OscInitStruct.MSIState = RCC_MSI_ON;
     RCC_OscInitStruct.MSICalibrationValue = 0;
     RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_4;
@@ -219,124 +249,184 @@ void SystemClock_Config(void) {
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
         Error_Handler();
     }
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1 | RCC_PERIPHCLK_RTC;
     PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+    PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
         Error_Handler();
     }
 }
 
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void) {
-    /* USER CODE BEGIN I2C1_Init 0 */
-
-    /* USER CODE END I2C1_Init 0 */
-
-    /* USER CODE BEGIN I2C1_Init 1 */
-
-    /* USER CODE END I2C1_Init 1 */
-    hi2c1.Instance = I2C1;
-    hi2c1.Init.Timing = 0x00000000;
-    hi2c1.Init.OwnAddress1 = 0;
-    hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-    hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-    hi2c1.Init.OwnAddress2 = 0;
-    hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-    hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-    if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
-        Error_Handler();
-    }
-
-    /** Configure Analogue filter
-    */
-    if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK) {
-        Error_Handler();
-    }
-
-    /** Configure Digital filter
-    */
-    if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 7) != HAL_OK) {
-        Error_Handler();
-    }
-    /* USER CODE BEGIN I2C1_Init 2 */
-
-    /* USER CODE END I2C1_Init 2 */
-}
-
-/**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void) {
-    /* USER CODE BEGIN TIM2_Init 0 */
-
-    /* USER CODE END TIM2_Init 0 */
-
-    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-    TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-    /* USER CODE BEGIN TIM2_Init 1 */
-
-    /* USER CODE END TIM2_Init 1 */
-    htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 0;
-    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 2620;
-    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV4;
-    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
-        Error_Handler();
-    }
-    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK) {
-        Error_Handler();
-    }
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK) {
-        Error_Handler();
-    }
-    /* USER CODE BEGIN TIM2_Init 2 */
-
-    /* USER CODE END TIM2_Init 2 */
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void) {
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    /* USER CODE BEGIN MX_GPIO_Init_1 */
-    /* USER CODE END MX_GPIO_Init_1 */
-
-    /* GPIO Ports Clock Enable */
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-
-    /*Configure GPIO pin : PA0 */
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /* USER CODE BEGIN MX_GPIO_Init_2 */
-    /* USER CODE END MX_GPIO_Init_2 */
-}
-
 /* USER CODE BEGIN 4 */
+void RTC_LoadFromBKUP(void) {
+    // �??????查是否有时间保存
+    if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1)) {
+        RTC_TimeTypeDef sTime;
+        sTime.Hours = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
+        sTime.Minutes = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR3);
+        sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR4);
+
+        // 禁用 RTC 写保�??????
+        __HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+
+        // 设置 RTC 时间
+        if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) == HAL_OK) {
+        } else {
+        }
+
+        // 启用 RTC 写保�??????
+        __HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+    } else {
+    }
+}
+
+void sys_enter_standby_mode(void) {
+    __HAL_RCC_PWR_CLK_ENABLE(); // 使能PWR时钟
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU); // 清除唤醒标记
+    HAL_PWR_EnterSTANDBYMode(); //进入待机模式
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim == &htim2)
         chalie_led_timer_update(0);
 }
 
+void HAL_SMBUS_ListenCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
+    // 完成�??????次�?�信，清除状�??????
+    first_byte_state = 1;
+    Periph = 0;
+    offset_rx = 0;
+    offset_tx = 0;
+    is_transmitting = 0;
+    HAL_SMBUS_EnableListen_IT(&hsmbus1); // slave is ready again
+}
+
+// I2C设备地址回调函数（地�???匹配上以后会进入该函数）
+void HAL_SMBUS_AddrCallback(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode) {
+    if (TransferDirection == I2C_DIRECTION_TRANSMIT) {
+        // 主机发�?�，从机接收
+        if (first_byte_state) {
+            // 准备接收�???1个字节数�???
+            HAL_SMBUS_Slave_Receive_IT(&hsmbus1, &Periph, 1, SMBUS_NEXT_FRAME); // 每次第个数据均为外设逻辑地址
+        }
+    } else {
+        // 主机接收，从机发�???
+        // 匹配外设逻辑地址
+        is_transmitting = 1;
+        switch (Periph) {
+            // 如果外设逻辑地址指向RTC
+            case 1: {
+                // 打开I2C中断发�??,将DateAndTime[]中的数据依次发�??
+                RTC_DateTypeDef sDate;
+                RTC_TimeTypeDef sTime;
+
+                HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+                HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+                DateAndTime[0] = sDate.Year;
+                DateAndTime[1] = sDate.Month;
+                DateAndTime[2] = sDate.Date;
+                DateAndTime[3] = sDate.WeekDay;
+                DateAndTime[4] = sTime.Hours;
+                DateAndTime[5] = sTime.Minutes;
+                DateAndTime[6] = sTime.Seconds;
+
+                HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &DateAndTime[offset_tx], 1, SMBUS_NEXT_FRAME);
+                // 打开中断并把DateAndTime[]里面对应的数据发送给主机
+                break;
+            }
+            default:
+                // 全都不匹配，发�?�错误码
+                HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
+            // 打开中断并把Error[]里面对应的数据发送给主机
+        }
+    }
+}
+
+// I2C数据接收回调函数（在I2C完成�???后一次次接收时会关闭中断并调用该函数，因此在处理完成后需要手动重新打�???中断接收
+void HAL_SMBUS_SlaveRxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
+    if (first_byte_state) {
+        // 收到的第1个字节数据（外设地址�???
+        first_byte_state = 0;
+    } else {
+        // 收到的第N个字节数�???
+        offset_rx++;
+    }
+
+    if (is_transmitting == 0) {
+        // 匹配外设逻辑地址
+        switch (Periph) {
+            // 如果外设逻辑地址指向RTC
+            case 1:
+                // 打开I2C中断接收,下一个收到的数据将存放到DateAndTime[offset_rx]
+                if (offset_rx <= 6) {
+                    HAL_SMBUS_Slave_Receive_IT(&hsmbus1, &DateAndTime[offset_rx], 1, SMBUS_NEXT_FRAME);
+                    // 接收数据存到DateAndTime[]里面对应的位�??????
+                } else if (offset_rx >= 7) {
+                    RTC_TimeTypeDef sTime;
+                    sTime.Hours = DateAndTime[4];
+                    sTime.Minutes = DateAndTime[5];
+                    sTime.Seconds = DateAndTime[6];
+
+                    RTC_DateTypeDef sDate;
+                    sDate.Year = DateAndTime[0];
+                    sDate.Month = DateAndTime[1];
+                    sDate.Date = DateAndTime[2];
+                    sDate.WeekDay = DateAndTime[3];
+
+
+                    __disable_irq();
+                    // 更新RTC时钟的设�???
+                    if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
+                        Error_Handler();
+                    }
+                    if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
+                        Error_Handler();
+                    }
+
+                    __enable_irq();
+                }
+                break;
+            default:
+                // 全都不匹配，发�?�错误码
+                HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
+        }
+    }
+}
+
+// I2C数据发�?�回调函数（在I2C完成�???后一次发送后会关闭中断并调用该函数，因此在处理完成后�???要手动重新打�???中断发�??
+void HAL_SMBUS_SlaveTxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
+    offset_tx++; // 每发送一个数据，偏移+1
+    // 匹配外设逻辑地址
+    switch (Periph) {
+        // 如果外设逻辑地址指向RTC
+        case 1:
+            // 打开I2C中断发�??,将DateAndTime[]中的数据依次发送
+            HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &DateAndTime[offset_tx], 1, SMBUS_NEXT_FRAME);
+
+        // 打开中断并把DateAndTime[]里面对应的数据发送给主机
+            break;
+        default:
+            // 全都不匹配，发�?�错误码
+            HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
+        // 打开中断并把Error[]里面对应的数据发送给主机
+    }
+}
+
+void ManufacturerBlockAccess_write(uint16_t command) {
+    uint8_t Txdata[4];
+
+    Txdata[0] = 0x44;
+    Txdata[1] = 2;
+    Txdata[2] = command & 0xff;
+    Txdata[3] = (command >> 8) & 0xff;
+    for (int i = 0; i < 4; i++) {
+        HAL_SMBUS_Master_Transmit_IT(&hsmbus1, bq40z50_address, &Txdata[i], 4, SMBUS_NEXT_FRAME);
+    }
+    // for (int i = 0; i < 4; i++) {
+    //     HAL_SMBUS_Master_Receive_IT(&hsmbus1, bq40z50_address, &Rxdata[i], 4, SMBUS_NEXT_FRAME);
+    // }
+}
 /* USER CODE END 4 */
 
 /**
