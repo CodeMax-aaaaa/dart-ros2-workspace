@@ -56,6 +56,7 @@ uint8_t Error[6] = {0x11, 0x45, 0x14};
 static uint8_t first_byte_state = 1; // 是否收到�???1个字�???,也就逻辑地址：已收到�???0：没有收到为1�???
 static uint8_t is_transmitting = 0;
 uint16_t bq40z50_address = 0x0b;
+static uint8_t Rxdata[16] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -76,7 +77,9 @@ void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c);
 
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
 
-void ManufacturerBlockAccess_write(uint16_t command);
+void ManufacturerBlockAccess_write(uint16_t write_command);
+
+void ManufacturerBlockAccess_read(uint16_t read_command);
 
 /* USER CODE END PFP */
 
@@ -130,9 +133,12 @@ int main(void) {
     uint8_t current_address = 0x0a;
     int16_t current = 0;
     uint8_t last_timer_it_state = 0;
-    uint8_t DSG_address = 0x0020;
-    uint8_t CHG_address = 0x001F;
-    uint8_t PCHG_address = 0x001E;
+    uint16_t DSG_Toggle = 0x0020;
+    uint16_t CHG_Toggle = 0x001f;
+    uint16_t PCHG_Toggle = 0x001e;
+    uint16_t Status = 0x0057;
+    uint16_t FET_Control = 0x0022;
+
     uint8_t button_state_machine = 0;
     enum {
         BUTTON_STATE_IDLE = 0,
@@ -140,9 +146,11 @@ int main(void) {
         BUTTON_STATE_L
     };
     // 启动DSG，CHG，PCHG
-    ManufacturerBlockAccess_write(DSG_address);
-    ManufacturerBlockAccess_write(CHG_address);
-    ManufacturerBlockAccess_write(PCHG_address);
+    // ManufacturerBlockAccess_write(FET_Control);
+    // ManufacturerBlockAccess_write(DSG_Toggle);
+    // ManufacturerBlockAccess_write(CHG_Toggle);
+    ManufacturerBlockAccess_write(PCHG_Toggle);
+    // ManufacturerBlockAccess_read(Status);
     while (1) {
         /* USER CODE END WHILE */
 
@@ -413,19 +421,36 @@ void HAL_SMBUS_SlaveTxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
     }
 }
 
-void ManufacturerBlockAccess_write(uint16_t command) {
-    uint8_t Txdata[4];
+void ManufacturerBlockAccess_write(uint16_t write_command) {
 
+    uint8_t Txdata[4] = {};
+    Txdata[0] = 0x44;
+    Txdata[1] = 0x02;
+    Txdata[2] = write_command & 0xff;
+    Txdata[3] = (write_command >> 8) & 0xff;
+    HAL_StatusTypeDef status = HAL_SMBUS_Master_Transmit_IT(&hsmbus1, bq40z50_address, (uint8_t*) &Txdata, 4, SMBUS_NEXT_FRAME);
+    ;
+
+    if (status != HAL_OK) {
+        // 处理错误情况
+        Error_Handler();
+    }
+}
+
+void ManufacturerBlockAccess_read(uint16_t read_command) {
+    uint8_t Txdata[4] = {};
     Txdata[0] = 0x44;
     Txdata[1] = 2;
-    Txdata[2] = command & 0xff;
-    Txdata[3] = (command >> 8) & 0xff;
-    for (int i = 0; i < 4; i++) {
-        HAL_SMBUS_Master_Transmit_IT(&hsmbus1, bq40z50_address, &Txdata[i], 4, SMBUS_NEXT_FRAME);
-    }
-    // for (int i = 0; i < 4; i++) {
-    //     HAL_SMBUS_Master_Receive_IT(&hsmbus1, bq40z50_address, &Rxdata[i], 4, SMBUS_NEXT_FRAME);
-    // }
+    Txdata[2] = read_command & 0xff;
+    Txdata[3] = (read_command >> 8) & 0xff;
+    HAL_SMBUS_Master_Transmit_IT(&hsmbus1, bq40z50_address,(uint8_t*) &Txdata, 4, SMBUS_NEXT_FRAME);
+
+    HAL_SMBUS_Master_Transmit_IT(&hsmbus1, bq40z50_address, Txdata, 1, SMBUS_NEXT_FRAME);
+    HAL_SMBUS_Master_Receive_IT(&hsmbus1, bq40z50_address, (uint8_t*) &Rxdata, sizeof(Rxdata), SMBUS_NEXT_FRAME);
+}
+
+void HAL_SMBUS_MasterTxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
+    hsmbus->State = HAL_SMBUS_STATE_READY;
 }
 /* USER CODE END 4 */
 
