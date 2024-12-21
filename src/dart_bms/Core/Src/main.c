@@ -57,6 +57,7 @@ static uint8_t first_byte_state = 1; // 是否收到�???1个字�???,也就�
 static uint8_t is_transmitting = 0;
 uint16_t bq40z50_address = 0x0b;
 static uint8_t Rxdata[16] = {0};
+HAL_StatusTypeDef condition;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -422,20 +423,18 @@ void HAL_SMBUS_SlaveTxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
 }
 
 void ManufacturerBlockAccess_write(uint16_t write_command) {
-
     uint8_t Txdata[4] = {};
     Txdata[0] = 0x44;
     Txdata[1] = 0x02;
     Txdata[2] = write_command & 0xff;
     Txdata[3] = (write_command >> 8) & 0xff;
-    HAL_StatusTypeDef status = HAL_SMBUS_Master_Transmit_IT(&hsmbus1, bq40z50_address, (uint8_t*) &Txdata, 4, SMBUS_NEXT_FRAME);
-    ;
 
-    if (status != HAL_OK) {
-        // 处理错误情况
-        Error_Handler();
+    // 确保总线空闲
+    if (hsmbus1.State == HAL_SMBUS_STATE_READY) {
+        condition = HAL_SMBUS_Master_Transmit_IT(&hsmbus1, bq40z50_address, Txdata, 4, SMBUS_NEXT_FRAME);
     }
 }
+
 
 void ManufacturerBlockAccess_read(uint16_t read_command) {
     uint8_t Txdata[4] = {};
