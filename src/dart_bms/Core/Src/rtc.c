@@ -21,6 +21,8 @@
 #include "rtc.h"
 
 /* USER CODE BEGIN 0 */
+#include <stdio.h>
+#include "chalie_leds.h"
 uint16_t triggerCntA = 0;
 uint16_t triggerCntB = 0;
 /* USER CODE END 0 */
@@ -64,8 +66,8 @@ void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = 0x21;
-  sTime.Minutes = 0x30;
+  sTime.Hours = 0x20;
+  sTime.Minutes = 0x59;
   sTime.Seconds = 0x15;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
@@ -74,8 +76,8 @@ void MX_RTC_Init(void)
     Error_Handler();
   }
   sDate.WeekDay = RTC_WEEKDAY_WEDNESDAY;
-  sDate.Month = RTC_MONTH_NOVEMBER;
-  sDate.Date = 0x27;
+  sDate.Month = RTC_MONTH_DECEMBER;
+  sDate.Date = 0x29;
   sDate.Year = 0x24;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
@@ -91,10 +93,10 @@ void MX_RTC_Init(void)
   sAlarm.AlarmTime.SubSeconds = 0x0;
   sAlarm.AlarmTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sAlarm.AlarmTime.StoreOperation = RTC_STOREOPERATION_RESET;
-  sAlarm.AlarmMask = RTC_ALARMMASK_ALL;
+  sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY;
   sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
   sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
-  sAlarm.AlarmDateWeekDay = 0x1;
+  sAlarm.AlarmDateWeekDay = 0x29;
   sAlarm.Alarm = RTC_ALARM_A;
   if (HAL_RTC_SetAlarm(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK)
   {
@@ -103,9 +105,10 @@ void MX_RTC_Init(void)
 
   /** Enable the Alarm B
   */
-  sAlarm.AlarmTime.Hours = 0x22;
   sAlarm.AlarmTime.Minutes = 0x0;
-  sAlarm.AlarmTime.Seconds = 0x15;
+  sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY|RTC_ALARMMASK_HOURS
+                              |RTC_ALARMMASK_MINUTES;
+  sAlarm.AlarmDateWeekDay = 0x1;
   sAlarm.Alarm = RTC_ALARM_B;
   if (HAL_RTC_SetAlarm(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK)
   {
@@ -114,7 +117,7 @@ void MX_RTC_Init(void)
 
   /** Enable the WakeUp
   */
-  if (HAL_RTCEx_SetWakeUpTimer(&hrtc, 0, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK)
+  if (HAL_RTCEx_SetWakeUpTimer(&hrtc, 10, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK)
   {
     Error_Handler();
   }

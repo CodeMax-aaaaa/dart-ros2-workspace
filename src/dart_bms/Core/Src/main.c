@@ -50,10 +50,10 @@
 /* USER CODE BEGIN PV */
 uint8_t DateAndTime[7] = {};
 uint8_t Periph; // 当前进行I2C通信的外设的逻辑地址
-static uint8_t offset_rx; // 从机被写寄存器当前偏移地�?????
-static uint8_t offset_tx; // 从机被读寄存器当前偏移地�?????
+static uint8_t offset_rx; // 从机被写寄存器当前偏移地�???????
+static uint8_t offset_tx; // 从机被读寄存器当前偏移地�???????
 uint8_t Error[6] = {0x11, 0x45, 0x14};
-static uint8_t first_byte_state = 1; // 是否收到�?????1个字�?????,也就逻辑地址：已收到�?????0：没有收到为1�?????
+static uint8_t first_byte_state = 1; // 是否收到�???????1个字�???????,也就逻辑地址：已收到�???????0：没有收到为1�???????
 static uint8_t is_transmitting = 0;
 uint16_t bq40z50_address = 0x0b;
 static uint8_t Rxdata[16] = {0};
@@ -126,14 +126,16 @@ int main(void)
   MX_I2C1_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
+
+    // HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
     chalie_leds_init();
     HAL_I2C_EnableListen_IT(&hi2c1);
 
-    // �?查是否由RTC唤醒
+    // �???查是否由RTC唤醒
     if (__HAL_PWR_GET_FLAG(PWR_FLAG_WU) != RESET)
     {
         __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU); // 清除唤醒标志
-        HAL_RTCEx_DeactivateWakeUpTimer(&hrtc); // 停止唤醒计时�?
+        HAL_RTCEx_DeactivateWakeUpTimer(&hrtc); // 停止唤醒计时�???
     }
   /* USER CODE END 2 */
 
@@ -170,7 +172,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-        // SMBUS 读取0x0D寄存�????????? State of Charge，格式WORD
+        // SMBUS 读取0x0D寄存�??????????? State of Charge，格式WORD
         if (HAL_GetTick() % 1000 > 500 && !read) {
             HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &soc_address, 1, 100);
             HAL_StatusTypeDef condition = HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &soc, 1, 100);
@@ -178,7 +180,7 @@ int main(void)
             HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &current, 2, 100);
 
             read = 1;
-            // 将SOC0�?????????100转换�?????????0-7的范�?????????
+            // 将SOC0�???????????100转换�???????????0-7的范�???????????
             code = soc / 12.5 + 1;
         } else if (HAL_GetTick() % 1000 < 500) {
             read = 0;
@@ -226,12 +228,12 @@ int main(void)
             HAL_Delay(10);
         }
 
-        // 按钮状�?�机
+        // 按钮状�?�机
         GPIO_PinState button_state_read = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
         uint32_t button_press_time = 0;               // 按钮按下的时间戳
         switch (button_state) {
             case BUTTON_STATE_IDLE:
-                if (button_state_read == GPIO_PIN_RESET) { // 按钮被按�?
+                if (button_state_read == GPIO_PIN_RESET) { // 按钮被按�???
                     button_press_time = HAL_GetTick(); // 记录按下的时间戳
                     button_state = BUTTON_STATE_SHORT_PRESS;
                 }
@@ -250,8 +252,8 @@ int main(void)
                         chalie_led_code(code);
                     }
                     button_state = BUTTON_STATE_IDLE;
-                } else if ((HAL_GetTick() - button_press_time) >= 1000) {
-                    button_state = BUTTON_STATE_LONG_PRESS; // 切换到长按状�?
+                } else if ((HAL_GetTick() - button_press_time) >= 500) {
+                    button_state = BUTTON_STATE_LONG_PRESS; // 切换到长按状�???
                 }
             break;
 
@@ -330,14 +332,14 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void RTC_LoadFromBKUP(void) {
-    // �????????查是否有时间保存
+    // �??????????查是否有时间保存
     if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1)) {
         RTC_TimeTypeDef sTime;
         sTime.Hours = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
         sTime.Minutes = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR3);
         sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR4);
 
-        // 禁用 RTC 写保�????????
+        // 禁用 RTC 写保�??????????
         __HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
 
         // 设置 RTC 时间
@@ -345,18 +347,23 @@ void RTC_LoadFromBKUP(void) {
         } else {
         }
 
-        // 启用 RTC 写保�????????
+        // 启用 RTC 写保�??????????
         __HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
     } else {
     }
 }
 
 void sys_enter_standby_mode(void) {
-    __HAL_RCC_PWR_CLK_ENABLE(); // 使能PWR时钟
-    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU); // 清除唤醒标记
-    HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+    __HAL_RCC_PWR_CLK_ENABLE(); // 使能 PWR 时钟
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU); // 清除唤醒标志
 
-    HAL_PWR_EnterSTANDBYMode(); //进入待机模式
+    // 配置 RTC 唤醒定时器，实现 10 秒钟唤醒
+    if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 9, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK) {
+        Error_Handler();
+    }
+
+    // 进入待机模式
+    HAL_PWR_EnterSTANDBYMode();
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
@@ -365,7 +372,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 }
 
 // void HAL_SMBUS_ListenCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
-//     // 完成�????????次�?�信，清除状�????????
+//     // 完成�??????????次�?�信，清除状�??????????
 //     first_byte_state = 1;
 //     Periph = 0;
 //     offset_rx = 0;
@@ -374,16 +381,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //     HAL_SMBUS_EnableListen_IT(&hsmbus1); // slave is ready again
 // }
 //
-// // I2C设备地址回调函数（地�?????匹配上以后会进入该函数）
+// // I2C设备地址回调函数（地�???????匹配上以后会进入该函数）
 // void HAL_SMBUS_AddrCallback(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode) {
 //     if (TransferDirection == I2C_DIRECTION_TRANSMIT) {
 //         // 主机发�?�，从机接收
 //         if (first_byte_state) {
-//             // 准备接收�?????1个字节数�?????
+//             // 准备接收�???????1个字节数�???????
 //             HAL_SMBUS_Slave_Receive_IT(&hsmbus1, &Periph, 1, SMBUS_NEXT_FRAME); // 每次第个数据均为外设逻辑地址
 //         }
 //     } else {
-//         // 主机接收，从机发�?????
+//         // 主机接收，从机发�???????
 //         // 匹配外设逻辑地址
 //         is_transmitting = 1;
 //         switch (Periph) {
@@ -416,13 +423,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //     }
 // }
 //
-// // I2C数据接收回调函数（在I2C完成�?????后一次次接收时会关闭中断并调用该函数，因此在处理完成后需要手动重新打�?????中断接收
+// // I2C数据接收回调函数（在I2C完成�???????后一次次接收时会关闭中断并调用该函数，因此在处理完成后需要手动重新打�???????中断接收
 // void HAL_SMBUS_SlaveRxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
 //     if (first_byte_state) {
-//         // 收到的第1个字节数据（外设地址�?????
+//         // 收到的第1个字节数据（外设地址�???????
 //         first_byte_state = 0;
 //     } else {
-//         // 收到的第N个字节数�?????
+//         // 收到的第N个字节数�???????
 //         offset_rx++;
 //     }
 //
@@ -434,7 +441,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //                 // 打开I2C中断接收,下一个收到的数据将存放到DateAndTime[offset_rx]
 //                 if (offset_rx <= 6) {
 //                     HAL_SMBUS_Slave_Receive_IT(&hsmbus1, &DateAndTime[offset_rx], 1, SMBUS_NEXT_FRAME);
-//                     // 接收数据存到DateAndTime[]里面对应的位�????????
+//                     // 接收数据存到DateAndTime[]里面对应的位�??????????
 //                 } else if (offset_rx >= 7) {
 //                     RTC_TimeTypeDef sTime;
 //                     sTime.Hours = DateAndTime[4];
@@ -449,7 +456,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //
 //
 //                     __disable_irq();
-//                     // 更新RTC时钟的设�?????
+//                     // 更新RTC时钟的设�???????
 //                     if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
 //                         Error_Handler();
 //                     }
@@ -467,7 +474,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //     }
 // }
 //
-// // I2C数据发�?�回调函数（在I2C完成�?????后一次发送后会关闭中断并调用该函数，因此在处理完成后�?????要手动重新打�?????中断发�??
+// // I2C数据发�?�回调函数（在I2C完成�???????后一次发送后会关闭中断并调用该函数，因此在处理完成后�???????要手动重新打�???????中断发�??
 // void HAL_SMBUS_SlaveTxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
 //     offset_tx++; // 每发送一个数据，偏移+1
 //     // 匹配外设逻辑地址
