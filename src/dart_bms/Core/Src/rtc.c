@@ -21,9 +21,6 @@
 #include "rtc.h"
 
 /* USER CODE BEGIN 0 */
-#include <stdio.h>
-
-#include "main.h"
 uint16_t triggerCntA = 0;
 uint16_t triggerCntB = 0;
 /* USER CODE END 0 */
@@ -164,7 +161,7 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
 {
   RTC_TimeTypeDef sTime;
   RTC_DateTypeDef sDate;
-  char str[200] = {0};
+  // char str[200] = {0};
 
   // 获取时间
   if (HAL_RTC_GetTime(hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
@@ -178,24 +175,28 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
     return;
   }
 
-  // 显示日期
-  int len = sprintf(str, "%4d-%02d-%02d", sDate.Year, sDate.Month, sDate.Date);
-  if (len > 0 && len < sizeof(str))
-  {
-
-  }
-
-  // 显示时间
-  len = sprintf(str, "  %02d:%02d:%02d", sTime.Hours, sTime.Minutes, sTime.Seconds);
-  if (len > 0 && len < sizeof(str))
-  {
-
-  }
+  // // 显示日期
+  // int len = sprintf(str, "%4d-%02d-%02d", sDate.Year, sDate.Month, sDate.Date);
+  // if (len > 0 && len < sizeof(str))
+  // {
+  //
+  // }
+  //
+  // // 显示时间
+  // len = sprintf(str, "  %02d:%02d:%02d", sTime.Hours, sTime.Minutes, sTime.Seconds);
+  // if (len > 0 && len < sizeof(str))
+  // {
+  //
+  // }
 
   HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR1, 0x01);
   HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR2, sTime.Hours);
   HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR3, sTime.Minutes);
   HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR4, sTime.Seconds);
+
+  chalie_leds_set(1, GPIO_PIN_SET); // 打开LED，指示设备被唤醒
+  HAL_Delay(1000); // 延迟1秒后关闭LED
+  chalie_leds_set(1, GPIO_PIN_RESET);
 }
 
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
