@@ -178,12 +178,16 @@ namespace motor_controller {
                 tx_header.StdId = 0x1fe;
                 // Update Controller
                 update_controller_current(motor::MotorPitchLS, MotorPitchLSController);
-                motor::update_can_array(can_array, 0, motor::MotorPitchLS.updateCurrent());
-
-                update_controller_current(motor::MotorYawLS, MotorYawLSController);
-                motor::update_can_array(can_array, 1, motor::MotorYawLS.updateCurrent());
+                motor::update_can_array(can_array, 2, motor::MotorPitchLS.updateCurrent());
 
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header, can_array, &tx_mailbox);
+
+                memset(can_array, 0, 8);
+                tx_header.StdId = 0x2fe;
+                update_controller_current(motor::MotorYawLS, MotorYawLSController);
+                motor::update_can_array(can_array, 0, motor::MotorYawLS.updateCurrent());
+                HAL_CAN_AddTxMessage(&hcan2, &tx_header, can_array, &tx_mailbox);
+
             }
             {
                 // 更新同步控制器

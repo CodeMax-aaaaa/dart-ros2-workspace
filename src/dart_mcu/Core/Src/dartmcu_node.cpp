@@ -261,8 +261,10 @@ void subscription_servo_callback(const void *msgin) {
         } else if (angle > 180) {
             angle = 180;
         }
-        for (servo &s: trigger_servo) {
-            s.setAngle(angle);
-        }
+//        for (servo &s: trigger_servo) {
+//            s.setAngle(angle);
+//        }
+
+        trigger_servo[0].setAngle(angle);
     }
 }

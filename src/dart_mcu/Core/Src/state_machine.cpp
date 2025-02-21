@@ -246,6 +246,7 @@ namespace state_machine {
             motor::MotorTriggerLS.setNextState(motor::E_MotorState::RUNNING);
             fsm.custom<Dart_FSM>()->ActionResetMotors_Load_0_Success = false;
             fsm.custom<Dart_FSM>()->ActionResetMotors_Load_1_Success = false;
+            fsm.custom<Dart_FSM>()->ActionResetMotors_TriggerLS_Success = false;
             enableTriggerServotoReload();
         }
 
@@ -259,9 +260,11 @@ namespace state_machine {
                                             pitch_switch_state,
                                             CONFIG_TARGET_RESET_VELOCITY_PITCHLS) ==
                 E_ResetActionReturnState::Finished &&
-                actionResetLSUntilTrigger<>(motor_controller::MotorTriggerLSController,
-                                            trigger_switch_state,
-                                            CONFIG_TARGET_RESET_VELOCITY_TRIGGERLS) ==
+                actionResetMotorUntilBlocked<>(motor_controller::MotorTriggerLSController,
+                                               CONFIG_TARGET_RESET_VELOCITY_TRIGGERLS,
+                                               CONFIG_GATE_VELOCITY_TRIGGERLS,
+                                               pdMS_TO_TICKS(CONFIG_TIMEOUT_RESET_LOAD),
+                                               fsm.custom<Dart_FSM>()->ActionResetMotors_TriggerLS_Success, false) ==
                 E_ResetActionReturnState::Finished &&
                 actionResetMotorUntilBlocked<>(motor_controller::MotorLoadController[0],
                                                CONFIG_TARGET_RESET_VELOCITY_LOAD,

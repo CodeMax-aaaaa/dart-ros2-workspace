@@ -54,6 +54,7 @@ namespace state_machine {
         // ActionResetMotors
         bool ActionResetMotors_Load_0_Success = false;
         bool ActionResetMotors_Load_1_Success = false;
+        bool ActionResetMotors_TriggerLS_Success = false;
 
         // ActionRemote
         uint8_t ActionRemote_MotorLoad_State = 0;
