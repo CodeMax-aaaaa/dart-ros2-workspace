@@ -41,6 +41,15 @@ extern SMBUS_HandleTypeDef hsmbus1;
 void MX_I2C1_SMBUS_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+HAL_StatusTypeDef HAL_SMBUS_Master_Transmit(SMBUS_HandleTypeDef *hsmbus, uint16_t DevAddress, uint8_t *pData,
+                                            uint16_t Size, uint32_t XferOptions, uint32_t Timeout);
+
+HAL_StatusTypeDef HAL_SMBUS_Master_Receive(SMBUS_HandleTypeDef *hsmbus, uint16_t DevAddress, uint8_t *pData,
+                                           uint16_t Size, uint32_t XferOptions, uint32_t Timeout);
+
+HAL_StatusTypeDef wait_for_smbus(uint32_t Timeout);
+
+HAL_StatusTypeDef ManufacturerBlockAccess_write(uint16_t Data);
 
 /* USER CODE END Prototypes */
 
