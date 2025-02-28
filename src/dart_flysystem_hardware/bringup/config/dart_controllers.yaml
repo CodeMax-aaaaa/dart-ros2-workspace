@@ -1,11 +1,16 @@
 # 制导飞镖硬件控制器绑定配置
 controller_manager:
   ros__parameters:
-   update_rate: 500  # Hz
+    update_rate: 500 # Hz
 
-   joint_state_broadcaster:
-     type: joint_state_broadcaster/JointStateBroadcaster
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
 
+    hardware_components_initial_state:
+      unconfigured:
+        - "DartActuator"
+        - "DartIMU"
+        - "DartEncoder"
 forward_position_controller:
   ros__parameters:
     type: forward_command_controller/ForwardCommandController
@@ -15,10 +20,17 @@ forward_position_controller:
       - dart_base_link_to_servoLD_joint
       - dart_base_link_to_servoRD_joint
     interface_name: position
+    
+forward_velocity_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - dart_base_link_to_throttle_joint
+    interface_name: velocity
 
 imu_sensor_broadcaster:
   ros__parameters:
     type: imu_sensor_broadcaster/IMUSensorBroadcaster
     sensor_name: "dart_imu"
     frame_id: "imu_sensor_frame"
-    publish_rate: 200  # Hz
+    publish_rate: 200 # Hz

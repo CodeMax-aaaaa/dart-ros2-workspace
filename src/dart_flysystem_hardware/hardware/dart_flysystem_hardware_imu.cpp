@@ -204,8 +204,6 @@ namespace dart_flysystem_hardware
             tcflush(serial_fd_, TCOFLUSH);
             tcflush(serial_fd_, TCIOFLUSH);
 
-            
-
             for (size_t i = 0; i < 3; i++)
             {
                 WitReadReg(AX, 3); // 读取加速度Ax
@@ -216,7 +214,6 @@ namespace dart_flysystem_hardware
                 if (len > 0)
                     for (size_t i = 0; i < len; i++)
                         WitSerialDataIn(serial_buffer_[i]);
-                    
 
                 if (new_data_)
                 {
@@ -328,10 +325,14 @@ namespace dart_flysystem_hardware
 
     hardware_interface::return_type DartFlySystemHardwareIMU::read(const rclcpp::Time &time, const rclcpp::Duration &period)
     {
-        RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "IMU Data: Acc: %f %f %f, Gyro: %f %f %f, Ori: %f %f %f %f",
-                             imu_data_raw_linear_acceleration_[0], imu_data_raw_linear_acceleration_[1], imu_data_raw_linear_acceleration_[2],
-                             imu_data_raw_angular_velocity_[0], imu_data_raw_angular_velocity_[1], imu_data_raw_angular_velocity_[2],
-                             imu_data_raw_orientation_[0], imu_data_raw_orientation_[1], imu_data_raw_orientation_[2], imu_data_raw_orientation_[3]);
+        // 如果active输出角度和速度信息
+        if (this->get_lifecycle_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+        {
+            RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "IMU Data: Acc: %f %f %f, Gyro: %f %f %f, Ori: %f %f %f %f",
+                                 imu_data_raw_linear_acceleration_[0], imu_data_raw_linear_acceleration_[1], imu_data_raw_linear_acceleration_[2],
+                                 imu_data_raw_angular_velocity_[0], imu_data_raw_angular_velocity_[1], imu_data_raw_angular_velocity_[2],
+                                 imu_data_raw_orientation_[0], imu_data_raw_orientation_[1], imu_data_raw_orientation_[2], imu_data_raw_orientation_[3]);
+        }
         return hardware_interface::return_type::OK;
     }
 

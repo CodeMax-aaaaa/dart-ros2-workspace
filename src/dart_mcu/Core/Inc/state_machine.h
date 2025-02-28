@@ -6,11 +6,11 @@
 #define DART_MCU_DART_STATEMACHINE_H
 
 #include "openfsm.h"
+#include "stdint.h"
 
 using namespace openfsm;
 
 namespace state_machine {
-
     [[noreturn]] void fsm_thread(void *parameters);
 
     // 状态机:
@@ -52,18 +52,18 @@ namespace state_machine {
         bool boot_success = false;
 
         // ActionResetMotors
-        bool ActionResetMotors_Load_0_Success = false;
-        bool ActionResetMotors_Load_1_Success = false;
-        bool ActionResetMotors_TriggerLS_Success = false;
+        uint8_t ActionResetMotors_Load_0_Reset_State = 0;
+        uint8_t ActionResetMotors_Load_1_Reset_State = 0;
+        uint8_t ActionResetMotors_TriggerLS_Reset_State = 0;
 
         // ActionRemote
         uint8_t ActionRemote_MotorLoad_State = 0;
+
     public:
         void start();
     };
 
     extern Dart_FSM dart_fsm;
-
 } // state_machine
 
 #endif //DART_MCU_DART_STATEMACHINE_H

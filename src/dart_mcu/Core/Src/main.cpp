@@ -159,8 +159,7 @@ int main(void)
   * @brief System Clock Configuration
   * @retval None
   */
-void
-SystemClock_Config(void)
+void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
@@ -218,7 +217,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
             ) {
         // 双缓�?
         static uint8_t decode_memory_ = MEMORY0;
-        
+
         HAL_UARTEx_ReceiveToIdle_DMA(&huart3, judge_rx_buffer[(decode_memory_ + 1) % 2],
                                      UART6_MAX_RECEIVE_BUFFER_LENGTH);
         RefereeReceive(Size, judge_rx_buffer[decode_memory_]
@@ -266,11 +265,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
     if (hcan == &hcan2) {
         HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, aData);
         switch (RxHeader.StdId) {
-            case 0x205: {
+            case 0x208: {
                 motor::MotorYawLS.decodeCanMsg(&RxHeader, aData);
                 break;
             }
-            case 0x201: {
+            case 0x209: {
                 motor::MotorPitchLS.decodeCanMsg(&RxHeader, aData);
                 break;
             }

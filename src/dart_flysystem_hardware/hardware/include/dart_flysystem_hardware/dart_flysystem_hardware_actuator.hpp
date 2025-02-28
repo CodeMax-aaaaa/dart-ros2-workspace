@@ -3,8 +3,8 @@
  * @brief 飞镖飞行系统硬件控制库
  */
 
-#ifndef DART_FLYSYSTEM_HARDWARE_SERVO_HPP
-#define DART_FLYSYSTEM_HARDWARE_SERVO_HPP
+#ifndef DART_FLYSYSTEM_HARDWARE_ACTUATOR_HPP
+#define DART_FLYSYSTEM_HARDWARE_ACTUATOR_HPP
 
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
@@ -19,9 +19,9 @@
 
 namespace dart_flysystem_hardware
 {
-    class DartFlySystemHardwareServo : public hardware_interface::SystemInterface
+    class DartFlySystemHardwareActuator : public hardware_interface::SystemInterface
     {
-        RCLCPP_SHARED_PTR_DEFINITIONS(DartFlySystemHardwareServo)
+        RCLCPP_SHARED_PTR_DEFINITIONS(DartFlySystemHardwareActuator)
 
     private:
         // PWM类
@@ -32,8 +32,14 @@ namespace dart_flysystem_hardware
         bool debug_;
         double offset_angle_;
 
+        // Throttle相关参数（归一化velocity以及PWM占空比百分比的上下限）
+        double throttle_velocity_;
+        double throttle_min_percentage_;
+        double throttle_max_percentage_;
+        int throttle_pwm_period_ns = 2000000; // 2ms周期，即500H
+
     public:
-        DartFlySystemHardwareServo() = default;
+        DartFlySystemHardwareActuator() = default;
         hardware_interface::CallbackReturn on_init(const hardware_interface::HardwareInfo &info) override;
         hardware_interface::CallbackReturn on_configure(const rclcpp_lifecycle::State &previous_state) override;
         hardware_interface::CallbackReturn on_activate(const rclcpp_lifecycle::State &previous_state) override;
@@ -45,4 +51,4 @@ namespace dart_flysystem_hardware
     };
 } // namespace dart_flysystem
 
-#endif // DART_FLYSYSTEM_HARDWARE_SERVO_HPP
+#endif // DART_FLYSYSTEM_HARDWARE_ACTUATOR_HPP

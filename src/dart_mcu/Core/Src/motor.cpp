@@ -5,11 +5,10 @@
 #include "motor.h"
 
 namespace motor {
-
-    motor_rm MotorTriggerLS;  // 扳机丝杆电机
-    motor_rm MotorYawLS;      // 偏航丝杆电机
-    motor_rm MotorPitchLS;    // 俯仰丝杆电机
-    motor_rm MotorLoad[2];    // 装填电机
+    motor_rm MotorTriggerLS; // 扳机丝杆电机
+    motor_rm MotorYawLS; // 偏航丝杆电机
+    motor_rm MotorPitchLS; // 俯仰丝杆电机
+    motor_rm MotorLoad[2]; // 装填电机
 
     void update_can_array(uint8_t *aData, uint8_t id, int16_t output) {
         aData[id * 2] = (uint8_t) (output >> 8);
@@ -55,6 +54,9 @@ namespace motor {
 
             current_velocity_ = (rxData[2] << 8) | rxData[3];
 
+            if (angle_reverse_)
+                current_velocity_ = -current_velocity_;
+
             last_update_time_ = xTaskGetTickCount();
             if (motor_state_ == DISCONNECTED && xTaskGetTickCount() - last_update_time_ < 1000) {
                 motor_state_ = (IDLE);
@@ -98,6 +100,6 @@ namespace motor {
             target_current_ = 0;
         }
 
-        return target_current_;
+        return angle_reverse_ ? -target_current_ : target_current_;
     }
 }

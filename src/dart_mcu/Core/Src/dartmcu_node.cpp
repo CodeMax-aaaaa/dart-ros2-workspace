@@ -11,10 +11,13 @@
 #include <rcutils/time.h>
 #include <uxr/client/transport.h>
 #include <rmw_microros/rmw_microros.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <std_msgs/msg/int32.h>
 #include <std_msgs/msg/int64.h>
 #include <std_msgs/msg/float64.h>
+#include <std_msgs/msg/int32_multi_array.h>
 #include <buzzer.h>
 #include "buzzer_examples.h"
 #include "dartmcu_node.h"
@@ -41,10 +44,11 @@ rcl_allocator_t allocator;
 rcl_subscription_t subscriber_buzzer = rcl_get_zero_initialized_subscription();
 rcl_subscription_t subscriber_servo = rcl_get_zero_initialized_subscription();
 rcl_publisher_t publisher;
+rcl_publisher_t publisher_can;
 rcl_publisher_t publisher_dart_velocity_meter;
 rcl_node_t node;
 rclc_support_t support;
-rcl_timer_t timer;
+rcl_timer_t timer, timer2;
 
 rclc_executor_t executor;
 std_msgs__msg__Int64 msg;
@@ -73,8 +77,8 @@ void microros_node_task(void) {
     LED::led_flow.begin();
     trigger_servo[0].begin(&htim4, TIM_CHANNEL_1, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
     trigger_servo[1].begin(&htim4, TIM_CHANNEL_3, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
-//    trigger_servo[3].begin(&htim4, TIM_CHANNEL_3, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
-//    trigger_servo[4].begin(&htim4, TIM_CHANNEL_4, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
+    //    trigger_servo[3].begin(&htim4, TIM_CHANNEL_3, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
+    //    trigger_servo[4].begin(&htim4, TIM_CHANNEL_4, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
 
 
     meter::velocity_meter.begin(&htim8, TIM_CHANNEL_1, &htim8, TIM_CHANNEL_2, 65536, [=](float velocity) {
@@ -96,7 +100,7 @@ void microros_node_task(void) {
         switch (state) {
             case WAITING_AGENT:
                 EXECUTE_EVERY_N_MS(1000, state = (RMW_RET_OK == rmw_uros_ping_agent(50, 1)) ? AGENT_AVAILABLE
-                                                                                            : WAITING_AGENT;);
+                                   : WAITING_AGENT;);
                 break;
             case AGENT_AVAILABLE:
                 state = (true == create_entities()) ? AGENT_CONNECTED : WAITING_AGENT;
@@ -110,7 +114,7 @@ void microros_node_task(void) {
                 break;
             case AGENT_CONNECTED:
                 EXECUTE_EVERY_N_MS(3000, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 5)) ? AGENT_CONNECTED
-                                                                                             : AGENT_DISCONNECTED;);
+                                   : AGENT_DISCONNECTED;);
                 if (state == AGENT_CONNECTED) {
                     rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1000));
                 } else if (state == AGENT_DISCONNECTED) {
@@ -140,6 +144,32 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time) {
     }
 }
 
+std_msgs__msg__Int32MultiArray can_controller_data_msg;
+
+void timer2_callback(rcl_timer_t *timer, int64_t last_call_time) {
+    (void) last_call_time;
+    if (timer != nullptr) {
+        // 先发送Pitch电机的数据，1.电机角度 2.电机速度 3.控制器输入 4.控制器输出
+        int32_t *data = can_controller_data_msg.data.data;
+        data[0] = motor::MotorPitchLS.current_angle_;
+        data[1] = motor::MotorPitchLS.current_velocity_;
+        data[2] = motor_controller::MotorPitchLSController.target_angle_with_rounds_;
+        data[3] = motor::MotorPitchLS.target_current_;
+        // 再发送Yaw电机的数据，1.电机角度 2.电机速度 3.控制器输入 4.控制器输出
+        data[4] = motor::MotorYawLS.current_angle_;
+        data[5] = motor::MotorYawLS.current_velocity_;
+        data[6] = motor_controller::MotorYawLSController.target_angle_with_rounds_;
+        data[7] = motor::MotorYawLS.target_current_;
+        // 最后发送扳机丝杆电机的数据，1.电机角度 2.电机速度 3.控制器输入 4.控制器输出
+        data[8] = motor::MotorTriggerLS.current_angle_;
+        data[9] = motor::MotorTriggerLS.current_velocity_;
+        data[10] = motor_controller::MotorTriggerLSController.target_velocity_;
+        data[11] = motor::MotorTriggerLS.target_current_;
+
+        rcl_publish(&publisher_can, &can_controller_data_msg, nullptr);
+    }
+}
+
 bool create_entities() {
     allocator = rcl_get_default_allocator();
 
@@ -151,49 +181,86 @@ bool create_entities() {
 
     // create publisher
     rclc_publisher_init_default(
-            &publisher,
-            &node,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64),
-            "controller/time_since_epoch");
+        &publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64),
+        "controller/time_since_epoch");
 
     rclc_publisher_init_default(
-            &publisher_dart_velocity_meter,
-            &node,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
-            "controller/dart_velocity_meter");
+        &publisher_dart_velocity_meter,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
+        "controller/dart_velocity_meter");
+
+    rclc_publisher_init_default(
+        &publisher_can,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
+        "controller/can_controller_data");
 
     // subscribe to /buzzer/cmd_note and /buzzer/cmd_sound_effect
     // create subscriber
     RCSOFTCHECK(rclc_subscription_init_best_effort(
-            &subscriber_buzzer,
-            &node,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-            "buzzer/cmd_sound_effect"));
+        &subscriber_buzzer,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+        "buzzer/cmd_sound_effect"));
 
     RCSOFTCHECK(rclc_subscription_init_best_effort(
-            &subscriber_servo,
-            &node,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-            "controller/cmd_servo_test"));
+        &subscriber_servo,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+        "controller/cmd_servo_test"));
 
     // create timer,
-    const unsigned int timer_timeout = 10000;
+    const unsigned int timer1_timeout = 10000;
     RCCHECK(rclc_timer_init_default2(
-            &timer,
-            &support,
-            RCL_MS_TO_NS(timer_timeout),
-            timer_callback, true));
+        &timer,
+        &support,
+        RCL_MS_TO_NS(timer1_timeout),
+        timer_callback, true));
+
+    const unsigned int timer2_timeout = 10;
+    RCCHECK(rclc_timer_init_default2(
+        &timer2,
+        &support,
+        RCL_MS_TO_NS(timer2_timeout),
+        timer2_callback, true));
+
+    // 初始化消息
+    can_controller_data_msg.data.capacity = 12;
+    can_controller_data_msg.data.size = 12;
+
+    // 分配内存给 data 数组
+    can_controller_data_msg.data.data = (int32_t *)malloc(can_controller_data_msg.data.capacity * sizeof(int32_t));
+
+    // 初始化 layout.dim 数组
+    can_controller_data_msg.layout.dim.capacity = 1;
+    can_controller_data_msg.layout.dim.size = 1;
+
+    // 为 dim 分配内存
+    can_controller_data_msg.layout.dim.data = (std_msgs__msg__MultiArrayDimension *)malloc(sizeof(std_msgs__msg__MultiArrayDimension));
+
+    // 初始化维度信息
+    static char label[] = "motor_data";
+    can_controller_data_msg.layout.dim.data[0].label.data = label;
+    can_controller_data_msg.layout.dim.data[0].label.size = strlen(label);
+    can_controller_data_msg.layout.dim.data[0].label.capacity = strlen(label);
+    can_controller_data_msg.layout.dim.data[0].size = 4;   // 长度为4
+    can_controller_data_msg.layout.dim.data[0].stride = 1;  // 步长设置为1
 
     // create executor
     executor = rclc_executor_get_zero_initialized_executor();
-    RCCHECK(rclc_executor_init(&executor, &support.context, 4, &allocator));
+    RCCHECK(rclc_executor_init(&executor, &support.context, 6, &allocator));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
+    RCCHECK(rclc_executor_add_timer(&executor, &timer2));
+
     RCSOFTCHECK(rclc_executor_add_subscription(&executor, &subscriber_buzzer, &msg,
-                                               &subscription_buzzer_callback,
-                                               ON_NEW_DATA));
+        &subscription_buzzer_callback,
+        ON_NEW_DATA));
     RCSOFTCHECK(rclc_executor_add_subscription(&executor, &subscriber_servo, &msg,
-                                               &subscription_servo_callback,
-                                               ON_NEW_DATA));
+        &subscription_servo_callback,
+        ON_NEW_DATA));
 
     return true;
 }
@@ -203,6 +270,7 @@ void destroy_entities() {
     (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
 
     rcl_publisher_fini(&publisher, &node);
+    rcl_publisher_fini(&publisher_can, &node);
     rcl_publisher_fini(&publisher_dart_velocity_meter, &node);
     rcl_timer_fini(&timer);
     rcl_subscription_fini(&subscriber_buzzer, &node);
@@ -261,9 +329,9 @@ void subscription_servo_callback(const void *msgin) {
         } else if (angle > 180) {
             angle = 180;
         }
-//        for (servo &s: trigger_servo) {
-//            s.setAngle(angle);
-//        }
+        //        for (servo &s: trigger_servo) {
+        //            s.setAngle(angle);
+        //        }
 
         trigger_servo[0].setAngle(angle);
     }
