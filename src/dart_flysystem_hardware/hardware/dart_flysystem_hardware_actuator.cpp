@@ -9,6 +9,15 @@
 // PWM硬件控制库
 #include "dart_flysystem_hardware/linux_pwm.hpp"
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <sys/time.h>
+#include <linux/input.h>
+#include "buzzer_songs.h"
+
 #include <vector>
 
 namespace dart_flysystem_hardware
@@ -346,7 +355,6 @@ namespace dart_flysystem_hardware
 
         return hardware_interface::return_type::OK;
     }
-
     hardware_interface::CallbackReturn DartFlySystemHardwareActuator::on_deactivate(const rclcpp_lifecycle::State &previous_state)
     {
         // 依次关闭所有PWM
@@ -361,6 +369,13 @@ namespace dart_flysystem_hardware
                 return hardware_interface::CallbackReturn::ERROR;
             }
         }
+
+        // 在线程中播放声音
+        buzzer_thread = std::thread([]()
+                                         { play_songs(buzzer_autopilot_disconnect); });
+
+        buzzer_thread.detach();
+
         return hardware_interface::CallbackReturn::SUCCESS;
     }
 

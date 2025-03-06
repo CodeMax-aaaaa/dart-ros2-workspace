@@ -349,6 +349,15 @@ trigger_servo[1].disable(); \
                 upside = !upside;
                 last_upsidedown_tick = HAL_GetTick();
             }
+
+            // 退出该状态的判定条件：
+            // MotorYawLS、MotorPitchLS、MotorTriggerLS到达目标位置
+            if (abs(motor_controller::MotorTriggerLSController.current_angle_with_rounds_ - 400000) < 10000 &&
+                abs(motor_controller::MotorPitchLSController.current_angle_with_rounds_ - 40000) < 1000 &&
+                abs(motor_controller::MotorYawLSController.current_angle_with_rounds_ - 40000) < 1000) {
+                // TODO: PID和舵机定位完成之后可从状态机放行
+                // fsm.nextAction();
+            }
         }
     };
 

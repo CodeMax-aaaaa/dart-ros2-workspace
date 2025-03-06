@@ -38,6 +38,9 @@ namespace dart_flysystem_hardware
         double throttle_max_percentage_;
         int throttle_pwm_period_ns = 2000000; // 2ms周期，即500H
 
+        // 线程播放声音
+        std::thread buzzer_thread;
+
     public:
         DartFlySystemHardwareActuator() = default;
         hardware_interface::CallbackReturn on_init(const hardware_interface::HardwareInfo &info) override;

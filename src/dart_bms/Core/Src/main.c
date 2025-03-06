@@ -18,10 +18,16 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
+#include "tim.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <sys/types.h>
+
 #include "chalie_leds.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,21 +46,20 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-SMBUS_HandleTypeDef hsmbus1;
-
-TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
+static uint8_t is_zerocurrent = 0;
+static uint8_t is_current_detecting = 0;
 
+uint8_t bq40z50_address = 0x0b;
+uint8_t Command = 0x44;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_TIM2_Init(void);
-static void MX_I2C1_SMBUS_Init(void);
 /* USER CODE BEGIN PFP */
-
+void sys_enter_standby_mode(void);
+// void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -93,48 +98,160 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM2_Init();
   MX_I2C1_SMBUS_Init();
+  MX_TIM21_Init();
   /* USER CODE BEGIN 2 */
+
+    // HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
     chalie_leds_init();
-    HAL_SMBUS_EnableListen_IT(&hsmbus1);
+    // HAL_SMBUS_EnableListen_IT(&hsmbus1);
+    // 检查是否由RTC唤醒
+    if (__HAL_PWR_GET_FLAG(PWR_FLAG_WU) != RESET) {
+        __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU); // 清除唤醒标志
+        // HAL_RTCEx_DeactivateWakeUpTimer(&hrtc); // 停止唤醒计时器
+    }
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-    int code = 0;
     uint8_t soc = 0;
+    int code = 0;
+    uint32_t first_time_zero_current = 0;
+
     uint8_t address = 0x17;
     uint8_t soc_address = 0x0d;
     uint8_t read = 0;
     uint8_t current_address = 0x0a;
     int16_t current = 0;
+    uint8_t voltage_address = 0x09;
+    uint16_t voltage = 0;
     uint8_t last_timer_it_state = 0;
-    uint8_t DSG_address = 0x0020;
-    uint8_t CHG_address = 0x001F;
-    uint8_t PCHG_address = 0x001E;
-    uint8_t button_state_machine = 0;
-    enum {
-        BUTTON_STATE_IDLE = 0,
-        BUTTON_STATE_SHORT_PRESS = 1,
-        BUTTON_STATE_L
-    };
+    uint16_t FET_Control = 0x0022;
+    uint16_t DSG_FET_Toggle = 0x0020;
+    uint16_t CHG_FET_Toggle = 0x001f;
+    uint16_t PCHG_FET_Toggle = 0x001e;
+    uint16_t Safety_Alert = 0x0050;
+    uint16_t Operation_Status = 0x0054;
+    uint16_t Manufacturing_Status = 0x0057;
 
-//    将SMBus引脚拉高
+    static uint8_t Manufacturing_Status_HEX[5] = {0};
+    static uint8_t Manufacturing_Status_BIN[16] = {0};
+    static uint8_t Safety_Alert_HEX[7] = {0};
+    static uint8_t Safety_Alert_BIN[32] = {0};
+    static uint8_t Operation_Status_HEX[7] = {0};
+    static uint8_t Operation_Status_BIN[32] = {0};
 
+    typedef enum {
+        BUTTON_STATE_IDLE = 0, // 按钮空闲
+        BUTTON_STATE_SHORT_PRESS, // 短按
+        BUTTON_STATE_LONG_PRESS // 长按
+    } ButtonState;
+    ButtonState button_state = BUTTON_STATE_IDLE;
 
-    // 启动DSG，CHG，PCHG
+    // 获取Manufacturing Status
+    ManufacturerBlockAccess_write(Manufacturing_Status);
+    HAL_Delay(500);
+    HAL_SMBUS_Master_Transmit(&hsmbus1, bq40z50_address << 1, &Command, 1, SMBUS_LAST_FRAME_NO_PEC, 100);
+    HAL_SMBUS_Master_Receive(&hsmbus1, bq40z50_address << 1, Manufacturing_Status_HEX, 5, SMBUS_LAST_FRAME_NO_PEC, 100);
+    uint16_t value_1 = (Manufacturing_Status_HEX[4] << 8) | Manufacturing_Status_HEX[3];
+
+    // 解包到Manufacturing_Status_BIT数组
+    for (int i = 0; i < 16; i++) {
+        uint16_t mask = 1 << 15 - i; // 从第16位到第1位的掩码
+        if (value_1 & mask) {
+            Manufacturing_Status_BIN[i] = 1;
+        } else {
+            Manufacturing_Status_BIN[i] = 0;
+        }
+    }
+
+    // 尝试打开PCHG、CHG、DSG FET
+    if (Manufacturing_Status_BIN[11] == 1) {
+        // 检查FET_EN
+        ManufacturerBlockAccess_write(FET_Control);
+        HAL_Delay(100); // 等待FET_EN响应
+    }
+    if (Manufacturing_Status_BIN[13] == 0) {
+        // 检查DSG
+        ManufacturerBlockAccess_write(DSG_FET_Toggle);
+    }
+    if (Manufacturing_Status_BIN[14] == 0) {
+        // 检查CHG
+        ManufacturerBlockAccess_write(CHG_FET_Toggle);
+    }
+    if (Manufacturing_Status_BIN[15] == 0) {
+        // 检查PCHG
+        ManufacturerBlockAccess_write(PCHG_FET_Toggle);
+    }
     while (1) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
         // SMBUS 读取0x0D寄存器 State of Charge，格式WORD
         if (HAL_GetTick() % 1000 > 500 && !read) {
-            // HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &soc_address, 1, 100);
-            // HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &soc, 1, 100);
-            // HAL_I2C_Master_Transmit(&hi2c1, address, (uint8_t *) &current_address, 1, 100);
-            // HAL_I2C_Master_Receive(&hi2c1, address, (uint8_t *) &current, 2, 100);
+        // 实时更新Manufacturing Status
+        ManufacturerBlockAccess_write(Manufacturing_Status);
+        HAL_SMBUS_Master_Transmit(&hsmbus1, bq40z50_address << 1, &Command, 1, SMBUS_LAST_FRAME_NO_PEC, 100);
+        HAL_SMBUS_Master_Receive(&hsmbus1, bq40z50_address << 1, Manufacturing_Status_HEX, 5,
+                                 SMBUS_LAST_FRAME_NO_PEC,
+                                 100);
+        value_1 = Manufacturing_Status_HEX[4] << 8 | Manufacturing_Status_HEX[3];
 
+        // 解包到Manufacturing_Status_BIT数组
+        for (int i = 0; i < 16; i++) {
+            uint16_t mask = 1 << 15 - i; // 从第16位到第1位的掩码
+            if (value_1 & mask) {
+                Manufacturing_Status_BIN[i] = 1;
+            } else {
+                Manufacturing_Status_BIN[i] = 0;
+            }
+        }
+
+        // 实时更新Safety Alert(C+D)
+        ManufacturerBlockAccess_write(Safety_Alert);
+        HAL_SMBUS_Master_Transmit(&hsmbus1, bq40z50_address << 1, &Command, 1, SMBUS_LAST_FRAME_NO_PEC, 100);
+        HAL_SMBUS_Master_Receive(&hsmbus1, bq40z50_address << 1, Safety_Alert_HEX, 7, SMBUS_LAST_FRAME_NO_PEC,
+                                 100);
+        uint32_t value_2 = Safety_Alert_HEX[6] << 24 | Safety_Alert_HEX[5] << 16 | Safety_Alert_HEX[4] << 8 |
+                           Safety_Alert_HEX[3];
+
+        // 解包到Safety_Alert_BIN数组
+        for (int i = 0; i < 32; i++) {
+            uint32_t mask = 1 << 31 - i; // 从第32位到第1位的掩码
+            if (value_2 & mask) {
+                Safety_Alert_BIN[i] = 1;
+            } else {
+                Safety_Alert_BIN[i] = 0;
+            }
+        }
+
+        // 实时更新Operation Status
+        ManufacturerBlockAccess_write(Operation_Status);
+        HAL_SMBUS_Master_Transmit(&hsmbus1, bq40z50_address << 1, &Command, 1, SMBUS_LAST_FRAME_NO_PEC, 100);
+        HAL_SMBUS_Master_Receive(&hsmbus1, bq40z50_address << 1, Operation_Status_HEX, 6, SMBUS_LAST_FRAME_NO_PEC,
+                                 100);
+        uint32_t value_3 = Operation_Status_HEX[6] << 24 | Operation_Status_HEX[5] << 16 | Operation_Status_HEX[4]
+                           << 8 | Operation_Status_HEX[3];
+
+        // 解包到Operation_Status_BIN数组
+        for (int i = 0; i < 32; i++) {
+            uint32_t mask = 1 << 31 - i; // 从第24位到第1位的掩码
+            if (value_3 & mask) {
+                Operation_Status_BIN[i] = 1;
+            } else {
+                Operation_Status_BIN[i] = 0;
+            }
+        }
+
+
+            //实时更新soc、current、voltage
+            HAL_SMBUS_Master_Transmit(&hsmbus1, address, (uint8_t *) &soc_address, 1, SMBUS_FIRST_FRAME, 100);
+            HAL_SMBUS_Master_Receive(&hsmbus1, address, (uint8_t *) &soc, 1, SMBUS_LAST_FRAME_NO_PEC, 100);
+            HAL_SMBUS_Master_Transmit(&hsmbus1, address, (uint8_t *) &current_address, 1, SMBUS_FIRST_FRAME, 100);
+            HAL_SMBUS_Master_Receive(&hsmbus1, address, (uint8_t *) &current, 2, SMBUS_LAST_FRAME_NO_PEC, 100);
+            HAL_SMBUS_Master_Transmit(&hsmbus1, address, (uint8_t *) &voltage_address, 1, SMBUS_FIRST_FRAME, 100);
+            HAL_SMBUS_Master_Receive(&hsmbus1, address, (uint8_t *) &voltage, 2, SMBUS_LAST_FRAME_NO_PEC, 100);
             read = 1;
-            // 将SOC0～100转换到0-7的范围
+            // 将SOC从0~100转换为0-7的范围
             code = soc / 12.5 + 1;
         } else if (HAL_GetTick() % 1000 < 500) {
             read = 0;
@@ -178,8 +295,108 @@ int main(void)
                 chalie_led_timer_update(1);
                 chalie_leds_set(1, GPIO_PIN_RESET);
             }
-
             HAL_Delay(10);
+        }
+
+        // 系统FET电源状态机：开启电源逻辑
+        // 按键逻辑
+        GPIO_PinState button_state_read = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+        uint32_t button_press_time = 0; // 按钮按下的时间戳
+        switch (button_state) {
+            case BUTTON_STATE_IDLE:
+                if (button_state_read == GPIO_PIN_RESET) {
+                    // 按钮被按下
+                    // button_press_time = HAL_GetTick(); // 记录按下的时间戳
+                    button_state = BUTTON_STATE_SHORT_PRESS;
+                }
+                break;
+
+            case BUTTON_STATE_SHORT_PRESS:
+                if (button_state_read == GPIO_PIN_SET) {
+                    // 按钮释放
+                    if (HAL_GetTick() - button_press_time < 1000) {
+                        // 短按逻辑
+                        chalie_leds_set(1, GPIO_PIN_RESET);
+                        for (int i = 1; i < code; i += 2) {
+                            chalie_led_code(i);
+                            HAL_Delay(100);
+                        }
+                        chalie_led_code(code);
+                    }
+                    button_state = BUTTON_STATE_IDLE;
+                } else if (HAL_GetTick() - button_press_time >= 1000) {
+                    button_state = BUTTON_STATE_LONG_PRESS; // 切换到长按状态
+                }
+                break;
+
+            case BUTTON_STATE_LONG_PRESS:
+                if (button_state_read == GPIO_PIN_SET) {
+                    // 按钮释放
+                    if (Manufacturing_Status_BIN[11] == 1) {
+                        // 检查FET_EN
+                        ManufacturerBlockAccess_write(FET_Control);
+                        HAL_Delay(100);
+                    }
+                    if (Manufacturing_Status_BIN[13] == 0) {
+                        // 检查DSG
+                        ManufacturerBlockAccess_write(DSG_FET_Toggle);
+                    }
+                    if (Manufacturing_Status_BIN[14] == 0) {
+                        // 检查CHG
+                        ManufacturerBlockAccess_write(CHG_FET_Toggle);
+                    }
+                    button_state = BUTTON_STATE_IDLE;
+                }
+                break;
+
+            default:
+                button_state = BUTTON_STATE_IDLE;
+                break;
+        }
+        // 电压逻辑
+        if (voltage > 4000) {
+            // 电源打开条件
+            // 尝试打开PCHG、CHG、DSG FET
+            if (Manufacturing_Status_BIN[11] == 1) {
+                // 检查FET_EN
+                ManufacturerBlockAccess_write(FET_Control);
+                HAL_Delay(100); // 等待FET_EN响应
+            }
+            if (Manufacturing_Status_BIN[13] == 0) {
+                // 检查DSG
+                ManufacturerBlockAccess_write(DSG_FET_Toggle);
+            }
+            if (Manufacturing_Status_BIN[14] == 0) {
+                // 检查CHG
+                ManufacturerBlockAccess_write(CHG_FET_Toggle);
+            }
+        }
+
+        // 系统FET电源状态机：关闭电源逻辑
+        // 检测过载为0的时间是否超过阈值
+        if ((Manufacturing_Status_BIN[13] == 1 || Manufacturing_Status_BIN[14] == 1) && current == 0 &&
+            is_current_detecting == 0) {
+            is_current_detecting = 1;
+            first_time_zero_current = HAL_GetTick();
+        } else if ((Manufacturing_Status_BIN[13] == 1 || Manufacturing_Status_BIN[14] == 1) && current == 0 &&
+                   is_current_detecting == 1 && HAL_GetTick() - first_time_zero_current >= 10000) {
+            is_zerocurrent = 1;
+            is_current_detecting = 0;
+        } else if (current != 0) {
+            is_zerocurrent = 0;
+            is_current_detecting = 0;
+        }
+        // 关闭的所有逻辑
+        if (Operation_Status_BIN[29] == 0 || is_zerocurrent == 1 || soc < 10 || Safety_Alert_BIN[9] == 1) {
+            // 电源关闭条件
+            if (Manufacturing_Status_BIN[13] == 1) {
+                // 检查DSG
+                ManufacturerBlockAccess_write(DSG_FET_Toggle);
+            }
+            if (Manufacturing_Status_BIN[14] == 1) {
+                // 检查CHG
+                ManufacturerBlockAccess_write(CHG_FET_Toggle);
+            }
         }
     }
   /* USER CODE END 3 */
@@ -233,122 +450,7 @@ void SystemClock_Config(void)
   }
 }
 
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_SMBUS_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hsmbus1.Instance = I2C1;
-  hsmbus1.Init.Timing = 0x00000000;
-  hsmbus1.Init.AnalogFilter = SMBUS_ANALOGFILTER_ENABLE;
-  hsmbus1.Init.OwnAddress1 = 24;
-  hsmbus1.Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
-  hsmbus1.Init.DualAddressMode = SMBUS_DUALADDRESS_DISABLE;
-  hsmbus1.Init.OwnAddress2 = 0;
-  hsmbus1.Init.OwnAddress2Masks = SMBUS_OA2_NOMASK;
-  hsmbus1.Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
-  hsmbus1.Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
-  hsmbus1.Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
-  hsmbus1.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;
-  hsmbus1.Init.SMBusTimeout = 0x0000800C;
-  if (HAL_SMBUS_Init(&hsmbus1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 2620;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV4;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin : PA0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
-}
-
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim == &htim2)
-        chalie_led_timer_update(0);
-}
-
-void HAL_SMBUS_AddrCallback(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode) {
-
-}
 
 /* USER CODE END 4 */
 
