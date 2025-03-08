@@ -168,6 +168,9 @@ HAL_StatusTypeDef wait_for_smbus(uint32_t Timeout) {
 }
 
 HAL_StatusTypeDef ManufacturerBlockAccess_write(uint16_t Data) {
+    uint16_t Safety_Alert = 0x0050;
+    uint16_t Operation_Status = 0x0054;
+    uint16_t Manufacturing_Status = 0x0057;
     uint8_t Txdata[4] = {0};
     Txdata[0] = 0x44;
     Txdata[1] = 0x02;
