@@ -28,7 +28,7 @@ void setNextStateByRemote(bool enterProtectIfDisconnected = true) {
     if (RC_Data.Switch_Right == RC_SW_UP) {
       next_state = E_Dart_State::Protect;
     } else if (RC_Data.Switch_Right == RC_SW_DOWN) {
-      next_state = E_Dart_State::Match;
+//      next_state = E_Dart_State::Match;
     } else if (RC_Data.Switch_Right == RC_SW_MID) {
       next_state = E_Dart_State::Remote;
     }
