@@ -132,6 +132,9 @@ int main(void)
     HAL_CAN_ConfigFilter(&hcan2, &sFilterConfig);
     HAL_CAN_Start(&hcan2);
     HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, uart1RecBuffer, UART1_MAX_RECEIVE_BUFFER_LENGTH);
   /* USER CODE END 2 */
 
   /* Init scheduler */

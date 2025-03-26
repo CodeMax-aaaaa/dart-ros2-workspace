@@ -295,7 +295,6 @@ public:
   }
 };
 
-
 class ActionReleaseMotors : public OpenFSMAction {
 public:
   void update(OpenFSM &fsm) const override {
@@ -315,7 +314,7 @@ public:
         motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL);
     motor_controller::MotorLoadController[1].set_state(
         motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL);
-    motor_controller::MotorTriggerLSController.target_angle_with_rounds_ = 12000000;
+    motor_controller::MotorTriggerLSController.target_angle_with_rounds_ = 6000000;
     motor_controller::MotorPitchLSController.target_angle_with_rounds_ = 40000;
     motor_controller::MotorYawLSController.target_angle_with_rounds_ = 40000;
 
@@ -361,18 +360,18 @@ public:
         }
         break;
 
-      case UpsideState::Idle:
-        motor_controller::MotorLoadController[0].target_velocity_ = 0;
+      case UpsideState::Idle:motor_controller::MotorLoadController[0].target_velocity_ = 0;
         motor_controller::MotorLoadController[1].target_velocity_ = 0;
         break;
     }
     // 退出该状态的判定条件：
+    fsm.nextAction();
     // MotorYawLS、MotorPitchLS、MotorTriggerLS到达目标位置
-    if (abs(motor_controller::MotorTriggerLSController.current_angle_with_rounds_ - 12000000) < 10000 &&
+    if (abs(motor_controller::MotorTriggerLSController.current_angle_with_rounds_ - 6000000) < 10000 &&
         abs(motor_controller::MotorPitchLSController.current_angle_with_rounds_ - 40000) < 1000 &&
         abs(motor_controller::MotorYawLSController.current_angle_with_rounds_ - 40000) < 1000) {
       // TODO: PID和舵机定位完成之后可从状态机放行
-       fsm.nextAction();
+      fsm.nextAction();
     }
   }
 };
@@ -395,6 +394,11 @@ public:
     motor::MotorTriggerLS.setNextState(motor::E_MotorState::IDLE);
     disableTriggerServo();
     setNextStateByRemote();
+  }
+  void exit(OpenFSM &fsm) const override {
+    // 保护状态
+    soundEffectManager.clearSoundEffects();
+    enableLaser();
   }
 };
 
@@ -425,6 +429,8 @@ public:
   }
 
   void update(OpenFSM &fsm) const override {
+    static bool launch_operating_ = false;
+    setNextStateByRemote();
     // 遥控状态
     motor::MotorLoad[0].setNextState(motor::E_MotorState::RUNNING);
     motor::MotorLoad[1].setNextState(motor::E_MotorState::RUNNING);
@@ -434,6 +440,7 @@ public:
 
     // 响应遥控器指令
     if (RC_Data.Switch_Left == RC_SW_UP || RC_Data.Switch_Left == RC_SW_MID) {
+      launch_operating_ = false;
       // 扳机锁定在初始位置，不可触发操作，可以操作Yaw、Pitch、Load电机和扳机丝杆
       // Yaw轴控制
       // <--- 700 --- 900 --- 中点 --- 1100 --- 1310 --->
@@ -456,13 +463,13 @@ public:
           motor_controller::MotorYawLSController.set_state(
               motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL);
         if (RC_Data.ch0 <= 700)
-          motor_controller::MotorYawLSController.target_velocity_ = -200;
+          motor_controller::MotorYawLSController.target_velocity_ = -100;
         else if (RC_Data.ch0 > 700 && RC_Data.ch0 <= 900)
-          motor_controller::MotorYawLSController.target_velocity_ = -10;
+          motor_controller::MotorYawLSController.target_velocity_ = -20;
         else if (RC_Data.ch0 >= 1100 && RC_Data.ch0 < 1310)
-          motor_controller::MotorYawLSController.target_velocity_ = 10;
+          motor_controller::MotorYawLSController.target_velocity_ = 20;
         else if (RC_Data.ch0 >= 1310)
-          motor_controller::MotorYawLSController.target_velocity_ = 200;
+          motor_controller::MotorYawLSController.target_velocity_ = 100;
       }
 
       // Pitch轴控制
@@ -484,13 +491,13 @@ public:
           motor_controller::MotorPitchLSController.set_state(
               motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL);
         if (RC_Data.ch1 <= 700)
-          motor_controller::MotorPitchLSController.target_velocity_ = -200;
+          motor_controller::MotorPitchLSController.target_velocity_ = -100;
         else if (RC_Data.ch1 > 700 && RC_Data.ch1 <= 900)
-          motor_controller::MotorPitchLSController.target_velocity_ = -10;
+          motor_controller::MotorPitchLSController.target_velocity_ = -20;
         else if (RC_Data.ch1 >= 1100 && RC_Data.ch1 < 1310)
-          motor_controller::MotorPitchLSController.target_velocity_ = 10;
+          motor_controller::MotorPitchLSController.target_velocity_ = 20;
         else if (RC_Data.ch1 >= 1310)
-          motor_controller::MotorPitchLSController.target_velocity_ = 200;
+          motor_controller::MotorPitchLSController.target_velocity_ = 100;
       }
 
       // Trigger扳机丝杆控制
@@ -512,34 +519,33 @@ public:
           motor_controller::MotorTriggerLSController.set_state(
               motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL);
         if (RC_Data.ch2 <= 700)
-          motor_controller::MotorTriggerLSController.target_velocity_ = -200;
+          motor_controller::MotorTriggerLSController.target_velocity_ = -4000;
         else if (RC_Data.ch2 > 700 && RC_Data.ch2 <= 900)
-          motor_controller::MotorTriggerLSController.target_velocity_ = -10;
+          motor_controller::MotorTriggerLSController.target_velocity_ = -1000;
         else if (RC_Data.ch2 >= 1100 && RC_Data.ch2 < 1310)
-          motor_controller::MotorTriggerLSController.target_velocity_ = 10;
+          motor_controller::MotorTriggerLSController.target_velocity_ = 1000;
         else if (RC_Data.ch2 >= 1310)
-          motor_controller::MotorTriggerLSController.target_velocity_ = 200;
+          motor_controller::MotorTriggerLSController.target_velocity_ = 4000;
       }
 
       // Load电机控制
       // < --- 950 --- 中点 --- 1400 --- >
       // Load导轨状态机
       // 0. Lock状态：Load电机不动，均角度闭环在当前位置
-      // 1. Operating to Reload状态：Load电机运动到装填位置
-      // 2. Operating to Launch状态：Load电机运动到发射位置
+      // 1. Operating to Reload状态：Load电机向下运动到装填位置
+      // 2. Operating to Launch状态：Load电机向上运动到发射位置
       // 3. Operating状态：遥控器控制Load电机运动
       int16_t base_velocity = 0;
       switch (fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State) {
         case 0:base_velocity = 0;
-
           // 状态转移
           if (RC_Data.ch3 >= 1600) {
-            fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 1;
+            fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 2;
           } else if ((RC_Data.ch3 > 1400 && RC_Data.ch3 < 1600) |
               (RC_Data.ch3 >= 366 && RC_Data.ch3 < 950)) {
             fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 3;
           } else if (RC_Data.ch3 < 366) {
-            fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 2;
+            fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 1;
           }
           break;
         case 1:base_velocity = CONFIG_MOTOR_LOAD_OPERATION_VELOCITY;
@@ -550,11 +556,11 @@ public:
                   motor_controller::MotorLoadController[1].current_angle_with_rounds_ >=
                       CONFIG_MOTOR_LOAD_ANGLE_RELOAD)) {
             fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 0;
+            base_velocity = 0;
           }
           break;
 
         case 2:base_velocity = -CONFIG_MOTOR_LOAD_OPERATION_VELOCITY;
-
           // 状态转移
           if ((RC_Data.ch3 < 950) | (
               motor_controller::MotorLoadController[0].current_angle_with_rounds_ <=
@@ -562,21 +568,32 @@ public:
                   motor_controller::MotorLoadController[1].current_angle_with_rounds_ <=
                       CONFIG_MOTOR_LOAD_ANGLE_LAUNCH)) {
             fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 0;
+            base_velocity = 0;
           }
           break;
 
         case 3:
-          if (RC_Data.ch3 <= 950) {
+          // 下
+          if (RC_Data.ch3 <= 950 && !(motor_controller::MotorLoadController[0].current_angle_with_rounds_ >=
+              CONFIG_MOTOR_LOAD_ANGLE_RELOAD |
+              motor_controller::MotorLoadController[1].current_angle_with_rounds_ >=
+                  CONFIG_MOTOR_LOAD_ANGLE_RELOAD)) {
             base_velocity = CONFIG_MOTOR_LOAD_OPERATION_VELOCITY;
-          } else if (RC_Data.ch3 >= 1400) {
+          }
+            // 上
+          else if (RC_Data.ch3 >= 1400 && !((
+              motor_controller::MotorLoadController[0].current_angle_with_rounds_ <=
+                  CONFIG_MOTOR_LOAD_ANGLE_LAUNCH |
+                  motor_controller::MotorLoadController[1].current_angle_with_rounds_ <=
+                      CONFIG_MOTOR_LOAD_ANGLE_LAUNCH))) {
             base_velocity = -CONFIG_MOTOR_LOAD_OPERATION_VELOCITY;
           }
 
           // 状态转移
           if (RC_Data.ch3 < 366) {
-            fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 2;
-          } else if (RC_Data.ch3 >= 1600) {
             fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 1;
+          } else if (RC_Data.ch3 >= 1600) {
+            fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 2;
           } else if (RC_Data.ch3 >= 950 && RC_Data.ch3 < 1400) {
             fsm.custom<Dart_FSM>()->ActionRemote_MotorLoad_State = 0;
           }
@@ -587,9 +604,8 @@ public:
       motor_controller::MotorLoadController[0].target_velocity_ =
           base_velocity + motor_controller::MotorLoadSyncController.output;
       motor_controller::MotorLoadController[1].target_velocity_ =
-          -base_velocity + motor_controller::MotorLoadSyncController.output;
-    } else if (RC_Data.Switch_Left == RC_SW_DOWN) {
-      static bool launch_operating_ = false;
+          base_velocity - motor_controller::MotorLoadSyncController.output;
+    } else if (RC_Data.Switch_Left == RC_SW_DOWN){
       int16_t base_velocity = 0;
       if (!launch_operating_) {
         // 解锁扳机，内八触发一次发射，Load电机带动同步带到顶端，扳机解锁
@@ -606,10 +622,10 @@ public:
 
         if (!launch_complete_) {
           base_velocity = -CONFIG_MOTOR_LOAD_OPERATION_VELOCITY;
-          if (abs(motor_controller::MotorLoadController[0].current_angle_with_rounds_ -
-              CONFIG_MOTOR_LOAD_ANGLE_LAUNCH) < 100 &&
-              abs(motor_controller::MotorLoadController[1].current_angle_with_rounds_ -
-                  CONFIG_MOTOR_LOAD_ANGLE_LAUNCH) < 100) {
+          if (motor_controller::MotorLoadController[0].current_angle_with_rounds_ <=
+              CONFIG_MOTOR_LOAD_ANGLE_LAUNCH |
+              motor_controller::MotorLoadController[1].current_angle_with_rounds_ <=
+                  CONFIG_MOTOR_LOAD_ANGLE_LAUNCH) {
             launch_complete_ = true;
             launch_complete_time_ = xTaskGetTickCount();
             base_velocity = 0;
@@ -623,13 +639,12 @@ public:
           }
         }
       }
+
       // 设置base_velocity
       motor_controller::MotorLoadController[0].target_velocity_ =
           base_velocity + motor_controller::MotorLoadSyncController.output;
       motor_controller::MotorLoadController[1].target_velocity_ =
-          -base_velocity + motor_controller::MotorLoadSyncController.output;
-
-      setNextStateByRemote();
+          base_velocity - motor_controller::MotorLoadSyncController.output;
     }
   }
 };
