@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
+#include "rtc.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -70,11 +71,13 @@ enum Light_State {
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
 /* USER CODE BEGIN PV */
 uint8_t display_active = 0; // 是否正在显示电量
 uint8_t last_timer_it_state = 0;
 uint8_t is_pressing = 0;
 uint8_t is_status_new = 1;
+HAL_StatusTypeDef smbus_status;
 
 enum BMS_State current_bms_state = BMS_STATE_INITIALIZING;
 enum FET_State current_fet_state = FET_STATE_OFF;
@@ -104,7 +107,6 @@ static uint8_t Operation_Status_BIN[32] = {0};
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-
 /* USER CODE BEGIN PFP */
 void BMS_StateMachine(void);
 
@@ -132,75 +134,100 @@ void Enter_Standby_Mode(void);
   * @brief  The application entry point.
   * @retval int
   */
-int main(void) {
-    /* USER CODE BEGIN 1 */
-    /* USER CODE END 1 */
+int main(void)
+{
 
-    /* MCU Configuration--------------------------------------------------------*/
-    HAL_Init();
+  /* USER CODE BEGIN 1 */
+  /* USER CODE END 1 */
 
-    /* USER CODE BEGIN Init */
-    /* USER CODE END Init */
+  /* MCU Configuration--------------------------------------------------------*/
 
-    /* Configure the system clock */
-    SystemClock_Config();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-    /* USER CODE BEGIN SysInit */
-    /* USER CODE END SysInit */
+  /* USER CODE BEGIN Init */
+  /* USER CODE END Init */
 
-    /* Initialize all configured peripherals */
-    MX_GPIO_Init();
-    MX_TIM2_Init();
-    MX_I2C1_SMBUS_Init();
-    MX_TIM21_Init();
-    /* USER CODE BEGIN 2 */
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_TIM2_Init();
+  MX_I2C1_SMBUS_Init();
+  MX_TIM21_Init();
+  MX_RTC_Init();
+  /* USER CODE BEGIN 2 */
     chalie_leds_init();
-    /* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-    /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
     while (1) {
-        /* USER CODE END WHILE */
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
         BMS_StateMachine();
-        /* USER CODE END 3 */
-    }
+  }
+  /* USER CODE END 3 */
 }
 
 /**
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void) {
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-    RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
-    RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-    RCC_OscInitStruct.MSICalibrationValue = 0;
-    RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_4;
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-        Error_Handler();
-    }
+  /** Configure LSE Drive Capability
+  */
+  HAL_PWR_EnableBkUpAccess();
+  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
 
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-                                  | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = 0;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_4;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
-        Error_Handler();
-    }
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
-    PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
-        Error_Handler();
-    }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_RTC;
+  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
@@ -214,11 +241,11 @@ void BMS_StateMachine(void) {
     // 存储一个临时的FET状态，作为后续的对比
     enum FET_State internal_fet_state= current_fet_state;
 
-    // 每3000ms更新一次电池状态
-    if (HAL_GetTick() % 3000 <= 1500 && !read && !key_pressed) {
+    // 每5000ms更新一次电池状态
+    if (HAL_GetTick() % 5000 <= 2500 && !read && !key_pressed) {
         UpdateBatteryStatus();
         read = 1;
-    } else if (HAL_GetTick() % 3000 >= 1500) {
+    } else if (HAL_GetTick() % 5000 >= 2500) {
         read = 0;
     }
 
@@ -238,7 +265,12 @@ void BMS_StateMachine(void) {
             break;
 
         case BMS_STATE_IDLE:
-            if (key_pressed || current_fet_state == FET_STATE_ON) {
+            current_light_state = LIGHT_STATE_OFF;
+            if (current_fet_state == FET_STATE_ON)
+            {
+                current_light_state = LIGHT_STATE_STEADY_DISPLAY;
+            }
+            if (key_pressed) {
                 current_bms_state = BMS_STATE_KEY_FIRST_PRESS;
                 key_press_start_time = HAL_GetTick();
             }
@@ -246,44 +278,58 @@ void BMS_StateMachine(void) {
             if (current_fet_state == FET_STATE_ON &&
                 ((battery_status_BIN[9] && zero_load_state) || // 放电 & 0负载超过10s
                  (battery_status_BIN[9] && soc <= SOC_THRESHOLD_LOW) || // 放电下电量低
-                 (!battery_status_BIN[9] && Safety_Alert_BIN[9] == 1)) // 充电下过充保护激活
+                 (!battery_status_BIN[9] && Safety_Alert_BIN[9])) // 充电下过充保护激活
             ) {
                 current_fet_state = FET_STATE_OFF;
+            }
+            if (current_fet_state == FET_STATE_ON && zero_load_state) //
+            {
+                current_bms_state = BMS_STATE_SLEEP;
             }
             break;
 
         case BMS_STATE_KEY_FIRST_PRESS:
             if (!key_pressed) {
                 current_bms_state = BMS_STATE_KEY_SHORT_PRESSED_ONCE;
-                current_light_state = LIGHT_STATE_BRIEF_DISPLAY;
                 key_press_start_time = HAL_GetTick();
             }
             break;
 
         case BMS_STATE_KEY_SHORT_PRESSED_ONCE:
+            current_light_state = LIGHT_STATE_BRIEF_DISPLAY;
             if (key_pressed && (HAL_GetTick() - key_press_start_time < 2000)) {
                 key_press_start_time = HAL_GetTick();
                 current_bms_state = BMS_STATE_KEY_SHORT_LONG_PRESS;
-                current_light_state = LIGHT_STATE_SHORT_LONG_PRESS;
             } else if (!key_pressed && HAL_GetTick() - key_press_start_time >= 2000) {
                 current_bms_state = BMS_STATE_IDLE;
-                current_light_state = LIGHT_STATE_OFF;
             }
             break;
 
         case BMS_STATE_KEY_SHORT_LONG_PRESS:
-            if (!key_pressed) {
-                current_bms_state = BMS_STATE_KEY_SHORT_PRESSED_ONCE;
-                current_light_state = LIGHT_STATE_BRIEF_DISPLAY;
-                key_press_start_time = HAL_GetTick();
-            } else if (HAL_GetTick() - key_press_start_time >= KEY_LONG_PRESS_TIME) {
+            current_light_state = LIGHT_STATE_SHORT_LONG_PRESS;
+            if (HAL_GetTick() - key_press_start_time >= KEY_LONG_PRESS_TIME && !key_pressed) {
                 current_bms_state = BMS_STATE_KEY_LONG_PRESS;
-                if (current_fet_state == FET_STATE_ON) {
+            }else if (!key_pressed) {
+                current_bms_state = BMS_STATE_KEY_SHORT_PRESSED_ONCE;
+                key_press_start_time = HAL_GetTick();
+            }
+            break;
+
+        case BMS_STATE_KEY_LONG_PRESS:
+            if (!key_pressed) {
+                current_bms_state = BMS_STATE_IDLE;
+                if (current_fet_state == FET_STATE_ON)
+                {
+                    // 若FET原本为开
                     current_fet_state = FET_STATE_OFF; // 长按关闭FET
                     current_light_state = LIGHT_STATE_OFF;
-                } else {
+                }
+                else
+                {
                     // 系统电源开启条件
-                    if (voltage >= VOLTAGE_THRESHOLD) {
+                    if (voltage >= VOLTAGE_THRESHOLD)
+                    {
+                        // 如果电压大于阈值
                         current_fet_state = FET_STATE_ON;
                         current_light_state = LIGHT_STATE_STEADY_DISPLAY;
                     }
@@ -291,15 +337,10 @@ void BMS_StateMachine(void) {
             }
             break;
 
-        case BMS_STATE_KEY_LONG_PRESS:
-            if (!key_pressed) {
-                current_bms_state = BMS_STATE_IDLE;
-            }
-            break;
-
         case BMS_STATE_SLEEP:
             current_bms_state = BMS_STATE_IDLE;
-            // Enter_Standby_Mode();
+            current_fet_state = FET_STATE_OFF;
+            Enter_Standby_Mode();
             break;
 
         default:
@@ -322,16 +363,21 @@ void BMS_StateMachine(void) {
   */
 void UpdateBatteryStatus(void) {
     uint8_t Command = 0x44;
-    uint16_t Safety_Alert = 0x0050;
+    uint16_t Safety_Alert = 0x0051;
     uint16_t Operation_Status = 0x0054;
     uint16_t Manufacturing_Status = 0x0057;
-    uint8_t soc_address = 0x0e;
+    uint8_t soc_address = 0x0d  ;
     uint8_t current_address = 0x0a;
     uint8_t voltage_address = 0x09;
     uint8_t battery_status_address = 0x16;
 
     // 更新soc,current,voltage的值
-    HAL_SMBUS_Master_Transmit(&hsmbus1, bq40z50_address << 1, &soc_address, 1, SMBUS_FIRST_FRAME, I2C_TIMEOUT);
+    smbus_status =  HAL_SMBUS_Master_Transmit(&hsmbus1, bq40z50_address << 1, &soc_address, 1, SMBUS_FIRST_FRAME, I2C_TIMEOUT);
+    if (smbus_status == HAL_TIMEOUT)
+    {
+        MX_I2C1_SMBUS_Init();
+        HAL_SMBUS_Master_Transmit(&hsmbus1, bq40z50_address << 1, &soc_address, 1, SMBUS_FIRST_FRAME, I2C_TIMEOUT);
+    }
     HAL_SMBUS_Master_Receive(&hsmbus1, bq40z50_address << 1, (uint8_t *) &soc, 1, SMBUS_LAST_FRAME_NO_PEC, I2C_TIMEOUT);
     HAL_SMBUS_Master_Transmit(&hsmbus1, bq40z50_address << 1, &current_address, 1, SMBUS_FIRST_FRAME, I2C_TIMEOUT);
     HAL_SMBUS_Master_Receive(&hsmbus1, bq40z50_address << 1, (uint8_t *) &current, 2, SMBUS_LAST_FRAME_NO_PEC,
@@ -503,28 +549,84 @@ void CheckFet(void) {
 }
 
 /**
+  * @brief 在RTC中断唤醒后恢复时间
+  */
+void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
+{
+    RTC_TimeTypeDef sTime;
+    RTC_DateTypeDef sDate;
+    // char str[200] = {0};
+
+    // 获取时间
+    if (HAL_RTC_GetTime(hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
+    {
+        return;
+    }
+
+    // 获取日期
+    if (HAL_RTC_GetDate(hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
+    {
+        return;
+    }
+
+    HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR1, 0x01);
+    HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR2, sTime.Hours);
+    HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR3, sTime.Minutes);
+    HAL_RTCEx_BKUPWrite(hrtc, RTC_BKP_DR4, sTime.Seconds);
+
+    chalie_leds_set(1, GPIO_PIN_SET); // 打开LED，指示设备被唤醒
+    HAL_Delay(1000); // 延迟1秒后关闭LED
+    chalie_leds_set(1, GPIO_PIN_RESET);
+    current_bms_state = BMS_STATE_INITIALIZING;
+}
+
+/**
   * @brief 进入待机模式
   */
 void Enter_Standby_Mode(void) {
-    __HAL_RCC_PWR_CLK_ENABLE();
-    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+    __HAL_RCC_PWR_CLK_ENABLE(); // 使能 PWR 时钟
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU); // 清除唤醒标志
+
+    // 配置 RTC 唤醒定时器，实现 10 秒钟唤醒
+    if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 9, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK) {
+        Error_Handler();
+    }
+
+    // 进入待机模式
     HAL_PWR_EnterSTANDBYMode();
 }
+
 
 /* USER CODE END 4 */
 
 /**
-  * @brief 错误处理
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
   */
-void Error_Handler(void) {
-    __disable_irq();
-    while (1) {
-    }
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
+#ifdef  USE_FULL_ASSERT
 /**
-  * @brief 报告断言错误
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
   */
-void assert_failed(uint8_t *file, uint32_t line) {}
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
 #endif /* USE_FULL_ASSERT */

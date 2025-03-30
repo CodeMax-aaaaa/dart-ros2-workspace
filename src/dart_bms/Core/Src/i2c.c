@@ -137,6 +137,7 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Transmit(SMBUS_HandleTypeDef *hsmbus, uint16_
     uint32_t smbus_start_time = HAL_GetTick();
     while (HAL_SMBUS_GetState(&hsmbus1) != HAL_SMBUS_STATE_READY) {
         if (HAL_GetTick() - smbus_start_time > Timeout) {
+            // MX_I2C1_SMBUS_Init();
             return HAL_TIMEOUT;
         }
     }
@@ -149,6 +150,7 @@ HAL_StatusTypeDef HAL_SMBUS_Master_Receive(SMBUS_HandleTypeDef *hsmbus, uint16_t
     uint32_t smbus_start_time = HAL_GetTick();
     while (HAL_SMBUS_GetState(&hsmbus1) != HAL_SMBUS_STATE_READY) {
         if (HAL_GetTick() - smbus_start_time > Timeout) {
+            // MX_I2C1_SMBUS_Init();
             return HAL_TIMEOUT;
         }
     }
