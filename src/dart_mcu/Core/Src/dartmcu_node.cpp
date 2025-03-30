@@ -43,6 +43,7 @@ enum states {
 rcl_allocator_t allocator;
 rcl_subscription_t subscriber_buzzer = rcl_get_zero_initialized_subscription();
 rcl_subscription_t subscriber_servo = rcl_get_zero_initialized_subscription();
+rcl_subscription_t subscriber_parameter = rcl_get_zero_initialized_subscription();
 rcl_publisher_t publisher;
 rcl_publisher_t publisher_can;
 rcl_publisher_t publisher_dart_velocity_meter;
@@ -142,6 +143,8 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time) {
 
 std_msgs__msg__Int32MultiArray can_controller_data_msg;
 
+std_msgs__msg__Int32MultiArray controller_parameter_setting_msg;
+
 void timer2_callback(rcl_timer_t *timer, int64_t last_call_time) {
   (void) last_call_time;
   if (timer != nullptr) {
@@ -208,6 +211,12 @@ bool create_entities() {
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
       "controller/cmd_servo_test"));
 
+  RCSOFTCHECK(rclc_subscription_init_best_effort(
+      &subscriber_parameter,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
+      "controller/cmd"));
+
   // create timer,
   const unsigned int timer1_timeout = 10000;
   RCCHECK(rclc_timer_init_default2(
@@ -246,6 +255,25 @@ bool create_entities() {
   can_controller_data_msg.layout.dim.data[0].size = 4;   // 长度为4
   can_controller_data_msg.layout.dim.data[0].stride = 1;  // 步长设置为1
 
+  controller_parameter_setting_msg.data.capacity = 3;
+  controller_parameter_setting_msg.data.size = 3;
+
+  controller_parameter_setting_msg.data.data =
+      (int32_t *) malloc(controller_parameter_setting_msg.data.capacity * sizeof(int32_t));
+
+  controller_parameter_setting_msg.layout.dim.capacity = 1;
+  controller_parameter_setting_msg.layout.dim.size = 1;
+  controller_parameter_setting_msg.layout.dim.data =
+      (std_msgs__msg__MultiArrayDimension *) malloc(sizeof(std_msgs__msg__MultiArrayDimension));
+
+  static char label2[] = "controller_parameter";
+  controller_parameter_setting_msg.layout.dim.data[0].label.data = label2;
+  controller_parameter_setting_msg.layout.dim.data[0].label.size = strlen(label2);
+  controller_parameter_setting_msg.layout.dim.data[0].label.capacity = strlen(label2);
+  controller_parameter_setting_msg.layout.dim.data[0].size = 3;   // 长度为3
+  controller_parameter_setting_msg.layout.dim.data[0].stride = 1;  // 步长设置为1
+
+
   // create executor
   executor = rclc_executor_get_zero_initialized_executor();
   RCCHECK(rclc_executor_init(&executor, &support.context, 6, &allocator));
@@ -257,6 +285,9 @@ bool create_entities() {
                                              ON_NEW_DATA));
   RCSOFTCHECK(rclc_executor_add_subscription(&executor, &subscriber_servo, &msg,
                                              &subscription_servo_callback,
+                                             ON_NEW_DATA));
+  RCSOFTCHECK(rclc_executor_add_subscription(&executor, &subscriber_parameter, &controller_parameter_setting_msg,
+                                             &subscription_parameter_setting_callback,
                                              ON_NEW_DATA));
 
   return true;
@@ -328,11 +359,23 @@ void subscription_servo_callback(const void *msgin) {
       state_machine::upside_state = state_machine::UpsideState::MovingDown;
     } else if (angle == 3) {
       state_machine::upside_state = state_machine::UpsideState::MovingUp;
+    } else if (angle == 4) {
+
     }
 
     trigger_servo[0].enable();
     trigger_servo[1].enable();
 //    trigger_servo[0].setAngle(angle);
 //    trigger_servo[1].setAngle(angle);
+  }
+}
+
+void subscription_parameter_setting_callback(const void *msgin) {
+  const auto *msg = (const std_msgs__msg__Int32MultiArray *) msgin;
+  if (msgin != NULL) {
+    int32_t *data = msg->data.data;
+    motor_controller::MotorYawLSController.target_angle_with_rounds_ = data[0];
+    motor_controller::MotorPitchLSController.target_angle_with_rounds_ = data[1];
+    motor_controller::MotorTriggerLSController.target_angle_with_rounds_ = data[2];
   }
 }

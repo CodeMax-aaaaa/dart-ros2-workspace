@@ -40,6 +40,8 @@ void subscription_buzzer_callback(const void *msgin);
 
 void subscription_servo_callback(const void *msgin);
 
+void subscription_parameter_setting_callback(const void *msgin);
+
 extern rcl_allocator_t allocator;
 extern rcl_publisher_t publisher;
 extern rcl_node_t node;

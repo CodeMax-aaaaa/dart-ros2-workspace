@@ -116,7 +116,7 @@ Dart_FSM dart_fsm;
 class ActionWaitForAllMotorOnline : public OpenFSMAction {
 public:
   void enter(OpenFSM &fsm) const override {
-//    soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_laoda));
+    soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_approach));
   }
 
   void update(OpenFSM &fsm) const override {
@@ -380,7 +380,7 @@ class ActionProtect : public OpenFSMAction {
 public:
   void enter(OpenFSM &fsm) const override {
     // 保护状态
-    soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_protect));
+    soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_autopilot_disconnect));
     // 关闭激光器
     disableLaser();
   }
@@ -519,13 +519,13 @@ public:
           motor_controller::MotorTriggerLSController.set_state(
               motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL);
         if (RC_Data.ch2 <= 700)
-          motor_controller::MotorTriggerLSController.target_velocity_ = -4000;
+          motor_controller::MotorTriggerLSController.target_velocity_ = -8000;
         else if (RC_Data.ch2 > 700 && RC_Data.ch2 <= 900)
           motor_controller::MotorTriggerLSController.target_velocity_ = -1000;
         else if (RC_Data.ch2 >= 1100 && RC_Data.ch2 < 1310)
           motor_controller::MotorTriggerLSController.target_velocity_ = 1000;
         else if (RC_Data.ch2 >= 1310)
-          motor_controller::MotorTriggerLSController.target_velocity_ = 4000;
+          motor_controller::MotorTriggerLSController.target_velocity_ = 8000;
       }
 
       // Load电机控制
@@ -605,7 +605,7 @@ public:
           base_velocity + motor_controller::MotorLoadSyncController.output;
       motor_controller::MotorLoadController[1].target_velocity_ =
           base_velocity - motor_controller::MotorLoadSyncController.output;
-    } else if (RC_Data.Switch_Left == RC_SW_DOWN){
+    } else if (RC_Data.Switch_Left == RC_SW_DOWN) {
       int16_t base_velocity = 0;
       if (!launch_operating_) {
         // 解锁扳机，内八触发一次发射，Load电机带动同步带到顶端，扳机解锁
@@ -615,6 +615,7 @@ public:
 
         if (launch_grant_) {
           launch_operating_ = true;
+          soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_launch));
         }
       } else {
         static bool launch_complete_ = false;
