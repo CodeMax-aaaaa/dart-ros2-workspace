@@ -21,6 +21,8 @@
 #include "i2c.h"
 
 /* USER CODE BEGIN 0 */
+#include "rtc.h"
+
 extern uint8_t bq40z50_address;
 static uint8_t offset_rx; // 从机被写寄存器当前偏移地址
 static uint8_t offset_tx; // 从机被读寄存器当前偏移地址
@@ -183,40 +185,40 @@ HAL_StatusTypeDef ManufacturerBlockAccess_write(uint16_t Data) {
 }
 
 
-// void RTC_LoadFromBKUP(void) {
-//     // 检查是否有时间保存
-//     if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1)) {
-//         RTC_TimeTypeDef sTime;
-//         sTime.Hours = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
-//         sTime.Minutes = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR3);
-//         sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR4);
-//
-//         // 禁用 RTC 写保护
-//         __HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
-//
-//         // 设置 RTC 时间
-//         if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) == HAL_OK) {
-//         } else {
-//         }
-//
-//         // 启用 RTC 写保 ??????????
-//         __HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
-//     } else {
-//     }
-// }
-//
-// void sys_enter_standby_mode(void) {
-//     __HAL_RCC_PWR_CLK_ENABLE(); // 使能 PWR 时钟
-//     __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU); // 清除唤醒标志
-//
-//     // 配置 RTC 唤醒定时器，实现 10 秒钟唤醒
-//     if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 9, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK) {
-//         Error_Handler();
-//     }
-//
-//     // 进入待机模式
-//     HAL_PWR_EnterSTANDBYMode();
-// }
+void RTC_LoadFromBKUP(void) {
+    // 检查是否有时间保存
+    if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1)) {
+        RTC_TimeTypeDef sTime;
+        sTime.Hours = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
+        sTime.Minutes = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR3);
+        sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR4);
+
+        // 禁用 RTC 写保护
+        __HAL_RTC_WRITEPROTECTION_DISABLE(&hrtc);
+
+        // 设置 RTC 时间
+        if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) == HAL_OK) {
+        } else {
+        }
+
+        // 启用 RTC 写保 ??????????
+        __HAL_RTC_WRITEPROTECTION_ENABLE(&hrtc);
+    } else {
+    }
+}
+
+void sys_enter_standby_mode(void) {
+    __HAL_RCC_PWR_CLK_ENABLE(); // 使能 PWR 时钟
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU); // 清除唤醒标志
+
+    // 配置 RTC 唤醒定时器，实现 10 秒钟唤醒
+    if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 9, RTC_WAKEUPCLOCK_CK_SPRE_16BITS) != HAL_OK) {
+        Error_Handler();
+    }
+
+    // 进入待机模式
+    HAL_PWR_EnterSTANDBYMode();
+}
 
 
 void HAL_SMBUS_ErrorCallback(SMBUS_HandleTypeDef *hsmbus) {
@@ -235,115 +237,115 @@ void HAL_SMBUS_ListenCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
     HAL_SMBUS_EnableListen_IT(&hsmbus1); // slave is ready again
 }
 
-// // I2C设备地址回调函数（地址匹配上以后会进入该函数）
-// void HAL_SMBUS_AddrCallback(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode) {
-//     if (TransferDirection == I2C_DIRECTION_TRANSMIT) {
-//         // 主机发送，从机接收
-//         if (first_byte_state) {
-//             // 准备接收1个字节数据
-//             HAL_SMBUS_Slave_Receive_IT(&hsmbus1, &Periph, 1, SMBUS_NEXT_FRAME); // 每次第个数据均为外设逻辑地址
-//         }
-//     } else {
-//         // 主机接收，从机发送
-//         // 匹配外设逻辑地址
-//         is_transmitting = 1;
-//         switch (Periph) {
-//             // 如果外设逻辑地址指向RTC
-//             case 1: {
-//                 // 打开I2C中断发送,将DateAndTime[]中的数据依次发送
-//                 RTC_DateTypeDef sDate;
-//                 RTC_TimeTypeDef sTime;
-//
-//                 HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-//                 HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-//
-//                 DateAndTime[0] = sDate.Year;
-//                 DateAndTime[1] = sDate.Month;
-//                 DateAndTime[2] = sDate.Date;
-//                 DateAndTime[3] = sDate.WeekDay;
-//                 DateAndTime[4] = sTime.Hours;
-//                 DateAndTime[5] = sTime.Minutes;
-//                 DateAndTime[6] = sTime.Seconds;
-//
-//                 HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &DateAndTime[offset_tx], 1, SMBUS_NEXT_FRAME);
-//                 // 打开中断并把DateAndTime[]里面对应的数据发送给主机
-//                 break;
-//             }
-//             default:
-//                 // 全都不匹配，发送错误码
-//                 HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
-//             // 打开中断并把Error[]里面对应的数据发送给主机
-//         }
-//     }
-// }
-//
-// // I2C数据接收回调函数（在I2C完成 ???????后一次次接收时会关闭中断并调用该函数，因此在处理完成后需要手动重新打开中断接收
-// void HAL_SMBUS_SlaveRxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
-//     if (first_byte_state) {
-//         // 收到的第1个字节数据（外设地址）
-//         first_byte_state = 0;
-//     } else {
-//         // 收到的第N个字节数据
-//         offset_rx++;
-//     }
-//
-//     if (is_transmitting == 0) {
-//         // 匹配外设逻辑地址
-//         switch (Periph) {
-//             // 如果外设逻辑地址指向RTC
-//             case 1:
-//                 // 打开I2C中断接收,下一个收到的数据将存放到DateAndTime[offset_rx]
-//                 if (offset_rx <= 6) {
-//                     HAL_SMBUS_Slave_Receive_IT(&hsmbus1, &DateAndTime[offset_rx], 1, SMBUS_NEXT_FRAME);
-//                     // 接收数据存到DateAndTime[]里面对应的位移
-//                 } else if (offset_rx >= 7) {
-//                     RTC_TimeTypeDef sTime;
-//                     sTime.Hours = DateAndTime[4];
-//                     sTime.Minutes = DateAndTime[5];
-//                     sTime.Seconds = DateAndTime[6];
-//
-//                     RTC_DateTypeDef sDate;
-//                     sDate.Year = DateAndTime[0];
-//                     sDate.Month = DateAndTime[1];
-//                     sDate.Date = DateAndTime[2];
-//                     sDate.WeekDay = DateAndTime[3];
-//
-//
-//                     __disable_irq();
-//                     // 更新RTC时钟的设置
-//                     if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
-//                         Error_Handler();
-//                     }
-//                     if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
-//                         Error_Handler();
-//                     }
-//
-//                     __enable_irq();
-//                 }
-//                 break;
-//             default:
-//                 // 全都不匹配，发送错误码
-//                 HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
-//         }
-//     }
-// }
-//
-// // I2C数据发送回调函数（在I2C完成一次发送后会关闭中断并调用该函数，因此在处理完成后要手动重新打开中断发送
-// void HAL_SMBUS_SlaveTxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
-//     offset_tx++; // 每发送一个数据，偏移+1
-//     // 匹配外设逻辑地址
-//     switch (Periph) {
-//         // 如果外设逻辑地址指向RTC
-//         case 1:
-//             // 打开I2C中断发送,将DateAndTime[]中的数据依次发送
-//             HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &DateAndTime[offset_tx], 1, SMBUS_NEXT_FRAME);
-//
-//         // 打开中断并把DateAndTime[]里面对应的数据发送给主机
-//             break;
-//         default:
-//             // 全都不匹配，发送错误码
-//             HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
-//         // 打开中断并把Error[]里面对应的数据发送给主机
-//     }
-// }
+// I2C设备地址回调函数（地址匹配上以后会进入该函数）
+void HAL_SMBUS_AddrCallback(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode) {
+    if (TransferDirection == I2C_DIRECTION_TRANSMIT) {
+        // 主机发送，从机接收
+        if (first_byte_state) {
+            // 准备接收1个字节数据
+            HAL_SMBUS_Slave_Receive_IT(&hsmbus1, &Periph, 1, SMBUS_NEXT_FRAME); // 每次第个数据均为外设逻辑地址
+        }
+    } else {
+        // 主机接收，从机发送
+        // 匹配外设逻辑地址
+        is_transmitting = 1;
+        switch (Periph) {
+            // 如果外设逻辑地址指向RTC
+            case 1: {
+                // 打开I2C中断发送,将DateAndTime[]中的数据依次发送
+                RTC_DateTypeDef sDate;
+                RTC_TimeTypeDef sTime;
+
+                HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+                HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+                DateAndTime[0] = sDate.Year;
+                DateAndTime[1] = sDate.Month;
+                DateAndTime[2] = sDate.Date;
+                DateAndTime[3] = sDate.WeekDay;
+                DateAndTime[4] = sTime.Hours;
+                DateAndTime[5] = sTime.Minutes;
+                DateAndTime[6] = sTime.Seconds;
+
+                HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &DateAndTime[offset_tx], 1, SMBUS_NEXT_FRAME);
+                // 打开中断并把DateAndTime[]里面对应的数据发送给主机
+                break;
+            }
+            default:
+                // 全都不匹配，发送错误码
+                HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
+            // 打开中断并把Error[]里面对应的数据发送给主机
+        }
+    }
+}
+
+// I2C数据接收回调函数（在I2C完成 ???????后一次次接收时会关闭中断并调用该函数，因此在处理完成后需要手动重新打开中断接收
+void HAL_SMBUS_SlaveRxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
+    if (first_byte_state) {
+        // 收到的第1个字节数据（外设地址）
+        first_byte_state = 0;
+    } else {
+        // 收到的第N个字节数据
+        offset_rx++;
+    }
+
+    if (is_transmitting == 0) {
+        // 匹配外设逻辑地址
+        switch (Periph) {
+            // 如果外设逻辑地址指向RTC
+            case 1:
+                // 打开I2C中断接收,下一个收到的数据将存放到DateAndTime[offset_rx]
+                if (offset_rx <= 6) {
+                    HAL_SMBUS_Slave_Receive_IT(&hsmbus1, &DateAndTime[offset_rx], 1, SMBUS_NEXT_FRAME);
+                    // 接收数据存到DateAndTime[]里面对应的位移
+                } else if (offset_rx >= 7) {
+                    RTC_TimeTypeDef sTime;
+                    sTime.Hours = DateAndTime[4];
+                    sTime.Minutes = DateAndTime[5];
+                    sTime.Seconds = DateAndTime[6];
+
+                    RTC_DateTypeDef sDate;
+                    sDate.Year = DateAndTime[0];
+                    sDate.Month = DateAndTime[1];
+                    sDate.Date = DateAndTime[2];
+                    sDate.WeekDay = DateAndTime[3];
+
+
+                    __disable_irq();
+                    // 更新RTC时钟的设置
+                    if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
+                        Error_Handler();
+                    }
+                    if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
+                        Error_Handler();
+                    }
+
+                    __enable_irq();
+                }
+                break;
+            default:
+                // 全都不匹配，发送错误码
+                HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
+        }
+    }
+}
+
+// I2C数据发送回调函数（在I2C完成一次发送后会关闭中断并调用该函数，因此在处理完成后要手动重新打开中断发送
+void HAL_SMBUS_SlaveTxCpltCallback(SMBUS_HandleTypeDef *hsmbus) {
+    offset_tx++; // 每发送一个数据，偏移+1
+    // 匹配外设逻辑地址
+    switch (Periph) {
+        // 如果外设逻辑地址指向RTC
+        case 1:
+            // 打开I2C中断发送,将DateAndTime[]中的数据依次发送
+            HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &DateAndTime[offset_tx], 1, SMBUS_NEXT_FRAME);
+
+        // 打开中断并把DateAndTime[]里面对应的数据发送给主机
+            break;
+        default:
+            // 全都不匹配，发送错误码
+            HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
+        // 打开中断并把Error[]里面对应的数据发送给主机
+    }
+}
 /* USER CODE END 1 */
