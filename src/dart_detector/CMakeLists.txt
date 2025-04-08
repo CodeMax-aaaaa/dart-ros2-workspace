@@ -107,13 +107,13 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
 endif()
 
 
-add_executable(parameter_node src/parameter_tuner.cpp)
-target_include_directories(parameter_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(parameter_node ${OpenCV_LIBRARIES})
-target_sources(parameter_node PRIVATE src/detect.cpp)
-ament_target_dependencies(parameter_node)
+# add_executable(parameter_node src/parameter_tuner.cpp)
+# target_include_directories(parameter_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# target_link_libraries(parameter_node ${OpenCV_LIBRARIES})
+# target_sources(parameter_node PRIVATE src/detect.cpp)
+# ament_target_dependencies(parameter_node)
 
-install(TARGETS dart_detector_node camera_node parameter_node
+install(TARGETS dart_detector_node camera_node# parameter_node
         DESTINATION lib/${PROJECT_NAME})
 
 # 导出需要的共享库

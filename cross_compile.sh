@@ -31,6 +31,13 @@ if [ -d $SYSROOT/$ROS_WS_INSTALL_PATH ]; then
 fi
 ln -s $(pwd)/install $SYSROOT/$ROS_WS_INSTALL_PATH
 
+# 因为有些恶心的包里面的cmake直接用的绝对路径，没有用CMAKE_SYSROOT_PATH.
+# 很傻逼，所以这里也做一些很傻逼的操作。蹩脚程序员去死吧。
+
+echo -e "\033[1;32mDoing some stupid operations\033[0m"
+sudo mv /opt/ros/jazzy /opt/ros/zzajy
+sudo ln -s $SYSROOT/opt/ros/jazzy /opt/ros/jazzy
+
 colcon build --merge-install \
     --cmake-force-configure \
     --cmake-args \
@@ -39,12 +46,24 @@ colcon build --merge-install \
     -G Ninja \
     --event-handlers console_direct+ \
     --packages-select \
-        cv_bridge dart_msgs dart_flysystem_description dart_flysystem_hardware dart_detector
+        cv_bridge \
+        dart_msgs \
+        dart_detector \
+        dart_flysystem_description \
+        dart_flysystem_hardware
 
 if [ $? -ne 0 ]; then
     echo -e "\033[1;31mFailed to build ROS2 packages\033[0m"
+    # 把很傻逼的操作改回来
+    sudo rm /opt/ros/jazzy
+    sudo mv /opt/ros/zzajy /opt/ros/jazzy
     exit 1
 fi
+
+# 把很傻逼的操作改回来
+sudo rm /opt/ros/jazzy
+sudo mv /opt/ros/zzajy /opt/ros/jazzy
+
 
 # Modify the setup.bash to normal path for the target device
 sed -i "s|$SYSROOT||g" $(pwd)/install/setup.bash
