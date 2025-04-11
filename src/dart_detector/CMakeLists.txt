@@ -17,7 +17,19 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 
-set(SOURCES src/node_detector.cpp src/detect.cpp)
+# 环境变量 DART_DEVICE_TYPE 为 dart_launcher 时：
+if (DEFINED ENV{DART_DEVICE_TYPE})
+        message(STATUS "DART_DEVICE_TYPE: $ENV{DART_DEVICE_TYPE}")
+        if($ENV{DART_DEVICE_TYPE} STREQUAL "dart_launcher")
+                message(STATUS "dart_launcher")
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDART_LAUNCHER")
+        elseif($ENV{DART_DEVICE_TYPE} STREQUAL "guided_dart")
+                message(STATUS "guided_dart")
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGUIDED_DART")
+        endif()
+endif()
+
+set(SOURCES src/node_detector.cpp src/greenlight_detect.cpp)
 
 # dart_detector node executable
 add_executable(dart_detector_node ${SOURCES})

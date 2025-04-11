@@ -31,15 +31,15 @@ if [ -d $SYSROOT/$ROS_WS_INSTALL_PATH ]; then
 fi
 ln -s $(pwd)/install $SYSROOT/$ROS_WS_INSTALL_PATH
 
-colcon build --merge-install \
-    --cmake-force-configure \
-    --cmake-args \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
-    -G Ninja \
-    --event-handlers console_direct+ \
-    --packages-select \
-        cv_bridge dart_msgs dart_flysystem_description dart_flysystem_hardware dart_detector
+# 根据命令行参数选择编译脚本
+
+if [ "$2" == "gdart" ]; then
+    echo -e "\033[1;32mBuilding guidedart packages\033[0m"
+    ./scripts/favours/cross_compile_guided_dart.sh
+else [ "$2" == "launcher" ]
+    echo -e "\033[1;32mBuilding launcher packages\033[0m"
+    ./scripts/favours/cross_compile_launcher.sh
+fi
 
 if [ $? -ne 0 ]; then
     echo -e "\033[1;31mFailed to build ROS2 packages\033[0m"
@@ -55,10 +55,10 @@ echo -e "\033[1;32mROS2 packages built successfully.\033[0m"
 if [ "$1" == "dest" ]; then
     echo -e "\033[1;32mParsing target device information\033[0m"
 
-    # 解析 $3 参数
-    USER=$(echo $3 | cut -d'@' -f1)
-    HOST=$(echo $3 | cut -d'@' -f2 | cut -d':' -f1)
-    REMOTE_PATH=$(echo $3 | cut -d':' -f2)
+    # 解析 $4 参数
+    USER=$(echo $4 | cut -d'@' -f1)
+    HOST=$(echo $4 | cut -d'@' -f2 | cut -d':' -f1)
+    REMOTE_PATH=$(echo $4 | cut -d':' -f2)
 
     if [ -z "$USER" ] || [ -z "$HOST" ] || [ -z "$REMOTE_PATH" ]; then
         echo -e "\033[1;31mInvalid target device format: $3\033[0m"
@@ -74,7 +74,7 @@ if [ "$1" == "dest" ]; then
     fi
 
     echo -e "\033[1;32mCopying the compressed file to the target device\033[0m"
-    scp -P $2 install.tar.gz $USER@$HOST:$REMOTE_PATH > /dev/null
+    scp -P $3 install.tar.gz $USER@$HOST:$REMOTE_PATH > /dev/null
     if [ $? -ne 0 ]; then
         echo -e "\033[1;31mFailed to copy the compressed file to the target device\033[0m"
         rm -f install.tar.gz
@@ -82,7 +82,7 @@ if [ "$1" == "dest" ]; then
     fi
 
     echo -e "\033[1;32mExtracting the compressed file on the target device\033[0m"
-    ssh -p $2 $USER@$HOST "cd $REMOTE_PATH && tar -xzf install.tar.gz && rm -f install.tar.gz"
+    ssh -p $3 $USER@$HOST "cd $REMOTE_PATH && tar -xzf install.tar.gz && rm -f install.tar.gz"
     if [ $? -ne 0 ]; then
         echo -e "\033[1;31mFailed to extract the compressed file on the target device\033[0m"
         rm -f install.tar.gz
