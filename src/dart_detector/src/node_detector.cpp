@@ -6,7 +6,7 @@
 #include "dart_msgs/msg/green_light.hpp"
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rclcpp_lifecycle/lifecycle_publisher.hpp>
-#include "detect.h"
+#include "detector/greenlight_detect.h"
 #include <chrono>
 
 class DetectPublisher : public rclcpp_lifecycle::LifecycleNode

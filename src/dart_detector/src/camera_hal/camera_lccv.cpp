@@ -4,7 +4,6 @@
  */
 #include <camera_hal/camera_lccv.hpp>
 #include <opencv2/opencv.hpp>
-#include <lccv.hpp>
 #include <iostream>
 
 namespace CameraHAL

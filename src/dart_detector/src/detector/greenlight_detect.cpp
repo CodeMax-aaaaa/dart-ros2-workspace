@@ -1,4 +1,4 @@
-#include "detect.h"
+#include "detector/greenlight_detect.h"
 
 /**
  * @brief 构造函数，从paramFile读取参数

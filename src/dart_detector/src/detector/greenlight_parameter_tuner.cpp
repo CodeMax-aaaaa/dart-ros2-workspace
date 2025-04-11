@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include "detect.h"
+#include "detector/greenlight_detect.h"
 
 using namespace cv;
 using namespace std;

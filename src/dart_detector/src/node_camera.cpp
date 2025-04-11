@@ -12,9 +12,17 @@
 #include <unordered_map>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
 #include "camera_hal/camera_driver.hpp"
+
+#ifdef DART_LAUNCHER
 #include "camera_hal/camera_dh.hpp"
+#include "camera_hal/camera_lccv.hpp"
+#endif
+
+#ifdef GUIDED_DART
 #include "camera_hal/camera_v4l2.hpp"
+#endif
 
 using namespace std::chrono_literals;
 using namespace CameraHAL;
@@ -125,10 +133,14 @@ public:
         std::string camera_type = params.as_string();
 
         // 根据camera_type选择相机驱动，注意是智能指针
-        if (camera_type == "v4l2")
-            camera_ = std::make_shared<CameraDriver_V4L2>();
+#ifdef DART_LAUNCHER
+        if (camera_type == "lccv")
+            camera_ = std::make_shared<CameraDriver_LCCV>();
         else if (camera_type == "dh")
             camera_ = std::make_shared<CameraDriver_DH>();
+#endif
+        else if (camera_type == "v4l2")
+            camera_ = std::make_shared<CameraDriver_V4L2>();
         else
         {
             RCLCPP_ERROR(this->get_logger(), "Unknown camera type: %s", camera_type.c_str());
@@ -136,7 +148,6 @@ public:
         }
 
         RCLCPP_INFO(this->get_logger(), "Camera type: %s", camera_type.c_str());
-
         // 读取相机参数
         auto params_map = this->get_parameter("camera_params").as_string_array();
         std::unordered_map<std::string, std::string> camera_params;

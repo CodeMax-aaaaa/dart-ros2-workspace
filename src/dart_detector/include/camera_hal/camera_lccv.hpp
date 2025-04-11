@@ -17,14 +17,14 @@ namespace CameraHAL
      * @brief lccv相机驱动
      */
 
-    class CameraDriver_lccv : public CameraDriver
+    class CameraDriver_LCCV : public CameraDriver
     {
     private:
         lccv::PiCamera camera; ///< LCCV 相机对象
         bool isOpened;         ///< 相机是否已打开
     public:
-        CameraDriver_lccv();
-        ~CameraDriver_lccv();
+        CameraDriver_LCCV();
+        ~CameraDriver_LCCV();
 
         bool open(std::unordered_map<std::string, std::string> &params) override;
         bool write(std::string para_name, std::string para_value) override;

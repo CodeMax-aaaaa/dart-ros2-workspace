@@ -9,7 +9,7 @@
 class TopArmorDetect
 {
 public:
-    TopArmorDetect(const std::string &paramFile = "./src/dart_detector/config/config.csv");
+    TopArmorDetect(const std::string &paramFile = "./src/dart_detector/config/config_greenlight.csv");
     TopArmorDetect(int HMIN, int HMAX, int SMIN, int SMAX, int VMIN, int VMAX, double minDIST, double rmin, double rmax, double PARAM1, double PARAM2);
 
     void loadParameters(const std::string &paramFile);
