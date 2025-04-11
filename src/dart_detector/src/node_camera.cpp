@@ -25,7 +25,7 @@ private:
     rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::Image>::SharedPtr publisher_test_;
     rclcpp::TimerBase::SharedPtr timer_;
 
-    CameraDriver *camera_;
+    std::shared_ptr<CameraDriver> camera_;
     int exposure_time;
 
     std::shared_ptr<std::thread> capture_thread_; // 采集线程
@@ -124,11 +124,11 @@ public:
         auto params = this->get_parameter("camera_type");
         std::string camera_type = params.as_string();
 
-        // 根据camera_type选择相机驱动
+        // 根据camera_type选择相机驱动，注意是智能指针
         if (camera_type == "v4l2")
-            camera_ = new CameraDriver_V4L2;
+            camera_ = std::make_shared<CameraDriver_V4L2>();
         else if (camera_type == "dh")
-            camera_ = new CameraDriver_DH;
+            camera_ = std::make_shared<CameraDriver_DH>();
         else
         {
             RCLCPP_ERROR(this->get_logger(), "Unknown camera type: %s", camera_type.c_str());
