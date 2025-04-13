@@ -77,7 +77,7 @@ if($ENV{DART_DEVICE_TYPE} STREQUAL "dart_launcher")
         # LCCV
         pkg_check_modules(LIBCAMERA REQUIRED libcamera)
         target_include_directories(
-                camera_node
+                launcher_detector_node
                 PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/LCCV/include
                 ${LIBCAMERA_INCLUDE_DIRS}
@@ -88,14 +88,14 @@ if($ENV{DART_DEVICE_TYPE} STREQUAL "dart_launcher")
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
                 message(STATUS "aarch64")
                 target_include_directories(
-                        camera_node
+                        launcher_detector_node
                         PRIVATE
                         ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/DHCameraDriver/DHCamera_arm64 # here
                         ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/
                         ${OpenCV_INCLUDE_DIRS})
 
                 target_link_directories(
-                        camera_node PRIVATE
+                        launcher_detector_node PRIVATE
                         ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/DHCameraDriver/DHCamera_arm64/lib
                 )
                 set(MVSDK_LIBS
@@ -109,18 +109,18 @@ if($ENV{DART_DEVICE_TYPE} STREQUAL "dart_launcher")
                         NodeMapData_gcc485_v3_0
                         ImageConvert
                 )
-                target_link_libraries(camera_node ${OpenCV_LIBS} MVSDK ${MVSDK_LIBS} pthread ${LIBCAMERA_LINK_LIBRARIES})
+                target_link_libraries(launcher_detector_node ${OpenCV_LIBS} MVSDK ${MVSDK_LIBS} pthread ${LIBCAMERA_LINK_LIBRARIES})
         elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
                 message(STATUS "x86_64")
                 target_include_directories(
-                        camera_node
+                        launcher_detector_node
                         PRIVATE
                         ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/DHCameraDriver/DHCamera # here
                         ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/
                         ${OpenCV_INCLUDE_DIRS})
 
                 target_link_directories(
-                        camera_node PRIVATE
+                        launcher_detector_node PRIVATE
                         ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/DHCameraDriver/DHCamera/lib
                         ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/DHCameraDriver/DHCamera
                         ${CMAKE_CURRENT_SOURCE_DIR}/camera_driver/DHCameraDriver/DHCamera/lib/GenICam/bin/Linux64_x64
@@ -134,7 +134,7 @@ if($ENV{DART_DEVICE_TYPE} STREQUAL "dart_launcher")
                         XmlParser_gcc421_v3_0
                         NodeMapData_gcc421_v3_0
                 )
-                target_link_libraries(camera_node ${OpenCV_LIBS} MVSDK ${MVSDK_LIBS} pthread ${LIBCAMERA_LINK_LIBRARIES})
+                target_link_libraries(launcher_detector_node ${OpenCV_LIBS} MVSDK ${MVSDK_LIBS} pthread ${LIBCAMERA_LINK_LIBRARIES})
         endif()
 endif()
 # ===== 相机节点 根据不同设备类型编译不同的相机驱动 结束 =====
@@ -147,7 +147,7 @@ endif()
 # ament_target_dependencies(parameter_node)
 # ===== 参数调节节点 结束 =====
 
-install(TARGETS dart_detector_node camera_node # parameter_node
+install(TARGETS dart_detector_node launcher_detector_node # parameter_node
         DESTINATION lib/${PROJECT_NAME})
 
 # 根据设备类型决定导出需要的共享库
