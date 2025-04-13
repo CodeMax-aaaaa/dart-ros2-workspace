@@ -14,46 +14,49 @@ motor_controller_.reset(); \
 
 namespace motor_controller {
     pid_angle_velocity_controller<double> MotorTriggerLSController(
-            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-            &motor::MotorTriggerLS,
-            VELOCITY_CONTROL
+        pid_controller<double>(10, 0.2, 0.01, 10000, 5000, 5000, 6000),
+        pid_controller<double>(0.1, 0.01, 0.01, 100, 10000, 10000, 5000),
+        &motor::MotorTriggerLS,
+        VELOCITY_CONTROL
     );
 
     pid_angle_velocity_controller<double> MotorYawLSController(
-            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-            &motor::MotorYawLS,
-            VELOCITY_CONTROL
+        pid_controller<double>(13, 0.3, 0.1, 360000, 4300, 13000, 16386),
+        pid_controller<double>(0.4, 0, 0.01, 200000, 10000, 200, 100),
+        &motor::MotorYawLS,
+        VELOCITY_CONTROL
     );
 
     pid_angle_velocity_controller<double> MotorPitchLSController(
-            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-            &motor::MotorPitchLS,
-            VELOCITY_CONTROL
+        pid_controller<double>(13, 0.3, 0.1, 360000, 4300, 13000, 16384),
+        pid_controller<double>(0.4, 0, 0.01, 200000, 10000, 200, 200),
+        &motor::MotorPitchLS,
+        VELOCITY_CONTROL
     );
 
     pid_angle_velocity_controller<double> MotorLoadController[2] = {
-            pid_angle_velocity_controller<double>(
-                    pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-                    pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-                    &motor::MotorLoad[0],
-                    VELOCITY_CONTROL
-            ),
-            pid_angle_velocity_controller<double>(
-                    pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-                    pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
-                    &motor::MotorLoad[1],
-                    VELOCITY_CONTROL
-            )
+        pid_angle_velocity_controller<double>(
+            pid_controller<double>(25, 0.1, 0.01, 100000, 10000, 6000, 16384),
+            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+            &motor::MotorLoad[0],
+            VELOCITY_CONTROL
+        ),
+        pid_angle_velocity_controller<double>(
+            pid_controller<double>(25, 0.1, 0.01, 100000, 10000, 6000, 16384),
+            pid_controller<double>(0.1, 0.01, 0.01, 100, 100, 100, 1000),
+            &motor::MotorLoad[1],
+            VELOCITY_CONTROL
+        )
     };
+
+    double motor_load_sync_offset = 0;
+    pid_controller<double> MotorLoadSyncController = pid_controller<double>(0.05, 0.07, 0.1, 1000.0, 500.0, 300.0,
+                                                                            30.0);
 
     template<typename T>
     pid_controller<T>::pid_controller(T kp, T ki, T kd, T sum_error_max, T p_max, T i_max, T output_max)
-            :
-            kp(kp), ki(ki), kd(kd), sum_error_max(sum_error_max), p_max(p_max), i_max(i_max),
-            output_max(output_max) {
+        : kp(kp), ki(ki), kd(kd), sum_error_max(sum_error_max), p_max(p_max), i_max(i_max),
+          output_max(output_max) {
         cur_error = 0;
         last_error = 0;
         sum_error = 0;
@@ -90,7 +93,7 @@ namespace motor_controller {
                                                                     pid_controller<T> pid_angle,
                                                                     motor::motor_rm *motor,
                                                                     E_PID_Velocity_Angle_Controller_State state
-    )  : pid_velocity_(pid_velocity), pid_angle_(pid_angle), motor_(motor), state_(state), target_velocity_(0) {
+    ) : pid_velocity_(pid_velocity), pid_angle_(pid_angle), motor_(motor), state_(state), target_velocity_(0) {
         target_angle_with_rounds_ = 0;
         current_angle_with_rounds_ = motor_->current_round_ * 8192 + motor_->current_angle_;
     }
@@ -108,7 +111,7 @@ namespace motor_controller {
             current_angle_with_rounds_ = motor_->current_round_ * 8192 + motor_->current_angle_;
             current_velocity_ = motor_->current_velocity_ * 0.6 + current_velocity_ * 0.4;
             pid_angle_.target = target_angle_with_rounds_;
-            pid_velocity_.target = -pid_angle_.update(current_angle_with_rounds_);
+            pid_velocity_.target = pid_angle_.update(current_angle_with_rounds_);
             return pid_velocity_.update(current_velocity_);
         } else {
             return target_openloop_;
@@ -136,6 +139,14 @@ namespace motor_controller {
 
         uint8_t can_array[8];
 
+
+        // Create Motors
+        motor::MotorTriggerLS.create(10000, motor::E_MotorType::M2006, 1, true); // 扳机丝杆电机
+        motor::MotorYawLS.create(16384, motor::E_MotorType::GM6020, 4); // 偏航丝杆电机
+        motor::MotorPitchLS.create(16384, motor::E_MotorType::GM6020, 5, true); // 俯仰丝杆电机
+        motor::MotorLoad[0].create(16384, motor::E_MotorType::M3508, 2); // 装填电机1
+        motor::MotorLoad[1].create(16384, motor::E_MotorType::M3508, 3, true); // 装填电机2
+
         // Wait for Motor to Connect
         while (motor::MotorYawLS.motor_state_ == motor::E_MotorState::DISCONNECTED ||
                motor::MotorLoad[0].motor_state_ == motor::E_MotorState::DISCONNECTED ||
@@ -158,21 +169,25 @@ namespace motor_controller {
                 motor::update_can_array(can_array, 2, motor::MotorLoad[1].updateCurrent());
 
                 HAL_CAN_AddTxMessage(&hcan1, &tx_header, can_array, &tx_mailbox);
-            }
-
-            {
+            } {
                 // CAN2
                 // Will detect Motor Next State Automatically
                 memset(can_array, 0, 8);
-                tx_header.StdId = 0x1fe;
+                tx_header.StdId = 0x2fe;
                 // Update Controller
                 update_controller_current(motor::MotorPitchLS, MotorPitchLSController);
                 motor::update_can_array(can_array, 0, motor::MotorPitchLS.updateCurrent());
-
-                update_controller_current(motor::MotorYawLS, MotorYawLSController);
-                motor::update_can_array(can_array, 1, motor::MotorYawLS.updateCurrent());
-
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header, can_array, &tx_mailbox);
+
+                memset(can_array, 0, 8);
+                tx_header.StdId = 0x1fe;
+                update_controller_current(motor::MotorYawLS, MotorYawLSController);
+                motor::update_can_array(can_array, 3, motor::MotorYawLS.updateCurrent());
+                HAL_CAN_AddTxMessage(&hcan2, &tx_header, can_array, &tx_mailbox);
+            } {
+                // 更新同步控制器
+                MotorLoadSyncController.update(motor_controller::MotorLoadController[0].current_angle_with_rounds_ -
+                                               motor_controller::MotorLoadController[1].current_angle_with_rounds_);
             }
             vTaskDelayUntil(&xLastWakeTime, 1);
         }

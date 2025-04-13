@@ -31,17 +31,39 @@ if [ -d $SYSROOT/$ROS_WS_INSTALL_PATH ]; then
 fi
 ln -s $(pwd)/install $SYSROOT/$ROS_WS_INSTALL_PATH
 
+# 因为有些恶心的包里面的cmake直接用的绝对路径，没有用CMAKE_SYSROOT_PATH.
+# 很傻逼，所以这里也做一些很傻逼的操作。蹩脚程序员去死吧。
+
+echo -e "\033[1;32mDoing some stupid operations\033[0m"
+sudo mv /opt/ros/jazzy /opt/ros/zzajy
+sudo ln -s $SYSROOT/opt/ros/jazzy /opt/ros/jazzy
+
 colcon build --merge-install \
     --cmake-force-configure \
     --cmake-args \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
-    -G Ninja
+    -G Ninja \
+    --event-handlers console_direct+ \
+    --packages-select \
+        cv_bridge \
+        dart_msgs \
+        dart_detector \
+        dart_flysystem_description \
+        dart_flysystem_hardware
 
 if [ $? -ne 0 ]; then
     echo -e "\033[1;31mFailed to build ROS2 packages\033[0m"
+    # 把很傻逼的操作改回来
+    sudo rm /opt/ros/jazzy
+    sudo mv /opt/ros/zzajy /opt/ros/jazzy
     exit 1
 fi
+
+# 把很傻逼的操作改回来
+sudo rm /opt/ros/jazzy
+sudo mv /opt/ros/zzajy /opt/ros/jazzy
+
 
 # Modify the setup.bash to normal path for the target device
 sed -i "s|$SYSROOT||g" $(pwd)/install/setup.bash
@@ -50,12 +72,46 @@ sed -i "s|$SYSROOT||g" $(pwd)/install/setup.zsh
 echo -e "\033[1;32mROS2 packages built successfully.\033[0m"
 
 if [ "$1" == "dest" ]; then
-    echo -e "\033[1;32mCopying the install folder to the target device\033[0m"
-    scp -rP $2 $(pwd)/install $3 > /dev/null
-    if [ $? -ne 0 ]; then
-        echo -e "\033[1;31mFailed to copy the install folder to the target device\033[0m"
+    echo -e "\033[1;32mParsing target device information\033[0m"
+
+    # 解析 $4 参数
+    USER=$(echo $4 | cut -d'@' -f1)
+    HOST=$(echo $4 | cut -d'@' -f2 | cut -d':' -f1)
+    REMOTE_PATH=$(echo $4 | cut -d':' -f2)
+
+    if [ -z "$USER" ] || [ -z "$HOST" ] || [ -z "$REMOTE_PATH" ]; then
+        echo -e "\033[1;31mInvalid target device format: $3\033[0m"
+        echo -e "\033[1;33mExpected format: username@host:/path/to/target\033[0m"
         exit 1
     fi
+
+    echo -e "\033[1;32mCompressing the install folder\033[0m"
+    tar -czf install.tar.gz -C $(pwd) install
+    if [ $? -ne 0 ]; then
+        echo -e "\033[1;31mFailed to compress the install folder\033[0m"
+        exit 1
+    fi
+
+    echo -e "\033[1;32mCopying the compressed file to the target device\033[0m"
+    scp -P $3 install.tar.gz $USER@$HOST:$REMOTE_PATH > /dev/null
+    if [ $? -ne 0 ]; then
+        echo -e "\033[1;31mFailed to copy the compressed file to the target device\033[0m"
+        rm -f install.tar.gz
+        exit 1
+    fi
+
+    echo -e "\033[1;32mExtracting the compressed file on the target device\033[0m"
+    ssh -p $3 $USER@$HOST "cd $REMOTE_PATH && tar -xzf install.tar.gz && rm -f install.tar.gz"
+    if [ $? -ne 0 ]; then
+        echo -e "\033[1;31mFailed to extract the compressed file on the target device\033[0m"
+        rm -f install.tar.gz
+        exit 1
+    fi
+
+    echo -e "\033[1;32mCleaning up local temporary files\033[0m"
+    rm -f install.tar.gz
+
+    echo -e "\033[1;32mOperation completed successfully\033[0m"
 else
     echo -e "\033[1;33mSkip copying the install folder to the target device\033[0m"
     exit 0

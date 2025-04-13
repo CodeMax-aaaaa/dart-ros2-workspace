@@ -5,11 +5,10 @@
 #include "motor.h"
 
 namespace motor {
-
-    motor_rm MotorTriggerLS;  // 扳机丝杆电机
-    motor_rm MotorYawLS;      // 偏航丝杆电机
-    motor_rm MotorPitchLS;    // 俯仰丝杆电机
-    motor_rm MotorLoad[2];    // 装填电机
+    motor_rm MotorTriggerLS; // 扳机丝杆电机
+    motor_rm MotorYawLS; // 偏航丝杆电机
+    motor_rm MotorPitchLS; // 俯仰丝杆电机
+    motor_rm MotorLoad[2]; // 装填电机
 
     void update_can_array(uint8_t *aData, uint8_t id, int16_t output) {
         aData[id * 2] = (uint8_t) (output >> 8);
@@ -40,7 +39,6 @@ namespace motor {
 
     void motor_rm::resetRound() {
         current_round_ = 0;
-        current_round_last_ = 0;
     }
 
     void motor_rm::decodeCanMsg(CAN_RxHeaderTypeDef *rxHeader, const uint8_t *rxData) {
@@ -48,7 +46,6 @@ namespace motor {
         if (rxHeader->IDE == CAN_ID_STD) {
             // 更新last
             current_angle_last_ = current_angle_;
-            current_round_last_ = current_round_;
 
             if (angle_reverse_)
                 current_angle_ = 8191 - ((rxData[0] << 8) | rxData[1]);
@@ -56,6 +53,9 @@ namespace motor {
                 current_angle_ = (rxData[0] << 8) | rxData[1];
 
             current_velocity_ = (rxData[2] << 8) | rxData[3];
+
+            if (angle_reverse_)
+                current_velocity_ = -current_velocity_;
 
             last_update_time_ = xTaskGetTickCount();
             if (motor_state_ == DISCONNECTED && xTaskGetTickCount() - last_update_time_ < 1000) {
@@ -100,6 +100,6 @@ namespace motor {
             target_current_ = 0;
         }
 
-        return target_current_;
+        return angle_reverse_ ? -target_current_ : target_current_;
     }
 }

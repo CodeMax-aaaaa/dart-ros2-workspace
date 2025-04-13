@@ -7,7 +7,9 @@
 
     <xacro:dart prefix="dart_" parent="base_link"/>
 
-    <xacro:dart_servo_ros2_control name="DartServo" prefix="dart_" />
+    <xacro:dart_servo_ros2_control name="DartActuator" prefix="dart_" />
 
-    <xacro:dart_sensors_ros2_control name="DartSensors" prefix="dart_" />
+    <xacro:dart_imu_ros2_control name="DartIMU" prefix="dart_" />
+
+    <xacro:dart_encoder_ros2_control name="DartEncoder" prefix="dart_" />
 </robot>

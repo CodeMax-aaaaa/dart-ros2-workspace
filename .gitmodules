@@ -1,0 +1,9 @@
+[submodule "src/dart_launcher/libsockcanpp"]
+	path = src/dart_launcher/libsockcanpp
+	url = git@github.com:ChenYuWuAi/libsockcanpp.git
+[submodule "src/vision_opencv"]
+	path = src/vision_opencv
+	url = git@github.com:ros-perception/vision_opencv.git
+[submodule "src/dart_detector/camera_driver/LCCV"]
+	path = src/dart_detector/camera_driver/LCCV
+	url = git@github.com:kbarni/LCCV.git

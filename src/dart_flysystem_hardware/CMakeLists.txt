@@ -35,8 +35,9 @@ endforeach()
 add_library(
   dart_flysystem_hardware
   SHARED
-  hardware/dart_flysystem_hardware_servo.cpp
+  hardware/dart_flysystem_hardware_actuator.cpp
   hardware/dart_flysystem_hardware_imu.cpp
+  hardware/dart_flysystem_hardware_encoder.cpp
   hardware/linux_pwm.cpp
   hardware/wit_c_sdk.c
 )

@@ -65,11 +65,15 @@ namespace motor_controller {
         void reset();
     };
 
+    extern double motor_load_sync_offset;
+
     extern pid_angle_velocity_controller<double> MotorTriggerLSController;
     extern pid_angle_velocity_controller<double> MotorYawLSController;
     extern pid_angle_velocity_controller<double> MotorPitchLSController;
     extern pid_angle_velocity_controller<double> MotorLoadController[2];
 
-    [[noreturn]] void pid_control_task(void * pvParameter);
+    extern pid_controller<double> MotorLoadSyncController;
+
+    [[noreturn]] void pid_control_task(void *pvParameter);
 }
 #endif //DART_25_CONTROLLER_H
