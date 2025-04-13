@@ -139,8 +139,10 @@ public:
         else if (camera_type == "dh")
             camera_ = std::make_shared<CameraDriver_DH>();
 #endif
-        else if (camera_type == "v4l2")
+#ifdef GUIDED_DART
+        if (camera_type == "v4l2")
             camera_ = std::make_shared<CameraDriver_V4L2>();
+#endif
         else
         {
             RCLCPP_ERROR(this->get_logger(), "Unknown camera type: %s", camera_type.c_str());

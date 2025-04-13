@@ -61,15 +61,19 @@ namespace CameraHAL
             return false;
         }
 
-        // 设置相机参数
-        if (para_name == "Exposure")
+        if (para_name == "Width")
         {
-            camera.options->exposure = std::stoi(para_value);
+            camera.options->video_width = std::stoi(para_value);
         }
-        else if (para_name == "Gain")
+        else if (para_name == "Height")
         {
-            camera.options->gain = std::stoi(para_value);
+            camera.options->video_height = std::stoi(para_value);
         }
+        else if (para_name == "Framerate")
+        {
+            camera.options->framerate = std::stoi(para_value);
+        }
+        
         else
         {
             std::cerr << "Unsupported parameter: " << para_name << std::endl;

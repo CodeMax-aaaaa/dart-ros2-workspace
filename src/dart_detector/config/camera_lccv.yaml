@@ -1,0 +1,6 @@
+/camera:
+  ros__parameters:
+    camera_type: ["lccv"]
+    camera_params: []
+    image_width: 1640
+    image_height: 1232

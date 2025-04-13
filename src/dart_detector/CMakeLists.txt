@@ -30,7 +30,7 @@ if(DEFINED ENV{DART_DEVICE_TYPE})
 endif()
 
 # ===== 视觉检测 OpenCV相关 开始 =====
-set(SOURCES src/node_detector.cpp src/detector/greenlight_detect.cpp)
+set(SOURCES src/node_detector.cpp src/detector/greenlight_detect.cpp src/detector/zbar_detect.cpp)
 
 add_executable(dart_detector_node ${SOURCES})
 
@@ -49,23 +49,30 @@ target_include_directories(
         dart_detector_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/
         ${OpenCV_INCLUDE_DIRS})
 
-target_link_libraries(dart_detector_node ${OpenCV_LIBRARIES})
+target_link_libraries(dart_detector_node ${OpenCV_LIBRARIES} zbar)
 
 # ===== 视觉检测 OpenCV相关 结束 =====
 
 # ===== 相机节点 根据不同设备类型编译不同的相机驱动 开始 =====
-ament_target_dependencies(camera_node rclcpp sensor_msgs
-        cv_bridge rclcpp_lifecycle)
-
-target_include_directories(
-        camera_node
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/
-        ${OpenCV_INCLUDE_DIRS})
-
 if($ENV{DART_DEVICE_TYPE} STREQUAL "dart_launcher")
         # 添加宏定义
         add_definitions(-DDART_LAUNCHER)
+
+        FILE(GLOB SOURCES_HAL_CAMERA src/camera_hal/camera_dh.cpp
+                src/camera_hal/camera_lccv.cpp
+                camera_driver/LCCV/src/lccv.cpp
+                camera_driver/LCCV/src/libcamera_app_options.cpp camera_driver/LCCV/src/libcamera_app.cpp)
+                
+        add_executable(camera_node src/node_camera.cpp camera_driver/DHCameraDriver/DHVideoCapture.cpp ${SOURCES_HAL_CAMERA})
+
+        target_include_directories(
+                camera_node
+                PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/include/
+                ${OpenCV_INCLUDE_DIRS})
+
+        ament_target_dependencies(camera_node rclcpp sensor_msgs
+                cv_bridge rclcpp_lifecycle)
 
         # LCCV
         pkg_check_modules(LIBCAMERA REQUIRED libcamera)
@@ -76,8 +83,6 @@ if($ENV{DART_DEVICE_TYPE} STREQUAL "dart_launcher")
                 ${LIBCAMERA_INCLUDE_DIRS}
         )
 
-        FILE(GLOB SOURCES_HAL_CAMERA src/camera_hal/camera_dh.cpp src/camera_hal/camera_lccv.cpp camera_driver/LCCV/src/*.cpp)
-        add_executable(camera_node src/node_camera.cpp camera_driver/DHCameraDriver/DHVideoCapture.cpp ${SOURCES_HAL_CAMERA})
 
         # structure judge
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
