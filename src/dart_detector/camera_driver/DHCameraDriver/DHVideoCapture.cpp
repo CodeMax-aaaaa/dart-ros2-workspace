@@ -18,6 +18,20 @@ using namespace cv;
 using namespace Dahua::GenICam;
 using namespace Dahua::Infra;
 
+bool DHVideoCapture::discovery()
+{
+    bool isDiscoverySuccess = _systemObj.discovery(_vCameraPtrList);
+    if (!isDiscoverySuccess)
+    {
+        return false;
+    }
+    if (_vCameraPtrList.size() == 0)
+    {
+        return false;
+    }
+    return true;
+}
+
 DHVideoCapture::DHVideoCapture()
 {
     bool isDiscoverySuccess = _systemObj.discovery(_vCameraPtrList);
@@ -44,10 +58,11 @@ DHVideoCapture::DHVideoCapture()
 
 DHVideoCapture::~DHVideoCapture()
 {
-    if (!_cameraSptr->disConnect())
-    {
-        printf("disConnect camera failed\n");
-    }
+    if (_cameraSptr)
+        if (!_cameraSptr->disConnect())
+        {
+            printf("disConnect camera failed\n");
+        }
     delete[] _resolution;
     delete[] _balance_ratio;
 }
