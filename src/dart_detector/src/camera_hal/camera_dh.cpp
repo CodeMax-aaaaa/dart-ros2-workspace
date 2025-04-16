@@ -66,6 +66,10 @@ bool CameraDriver_DH::write(std::string para_name, std::string para_value)
 
 bool CameraDriver_DH::read(cv::Mat &image)
 {
+    if (!isOpened)
+    {
+        return false;
+    }
     return _videoCapture->read(image);
 }
 

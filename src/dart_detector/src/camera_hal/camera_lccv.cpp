@@ -112,13 +112,14 @@ namespace CameraHAL
         try
         {
             camera.stopVideo();
-            isOpened = false;
         }
         catch (const std::exception &e)
         {
             std::cerr << "Failed to stop LCCV camera: " << e.what() << std::endl;
             return false;
         }
+        
+        isOpened = false;
 
         return true;
     }

@@ -1,19 +1,19 @@
 #include "detector/zbar_detect.h"
 
-QRCodeDetector::QRCodeDetector()
+QRCodeDetectorZB::QRCodeDetectorZB()
 {
     // 初始化zbar扫描器，仅启用二维码识别
     scanner.set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
 }
 
-QRCodeDetector::~QRCodeDetector() {}
+QRCodeDetectorZB::~QRCodeDetectorZB() {}
 
-void QRCodeDetector::setBinaryThreshold(double threshold)
+void QRCodeDetectorZB::setBinaryThreshold(double threshold)
 {
     binary_threshold = threshold;
 }
 
-std::vector<std::string> QRCodeDetector::detect(const cv::Mat &inputImage)
+std::vector<std::string> QRCodeDetectorZB::detect(const cv::Mat &inputImage)
 {
     std::vector<std::string> results;
 
