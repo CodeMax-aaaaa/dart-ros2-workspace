@@ -8,4 +8,5 @@ colcon build --merge-install \
     -G Ninja \
     --event-handlers console_direct+ \
     --packages-select \
-    cv_bridge dart_msgs dart_detector
+    dart_msgs dart_launcher
+    # cv_bridge dart_msgs dart_detector

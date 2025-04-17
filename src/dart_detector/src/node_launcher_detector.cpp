@@ -167,37 +167,6 @@ NodeDartLauncherDetector::NodeDartLauncherDetector(rclcpp::NodeOptions options)
     : rclcpp_lifecycle::LifecycleNode("dart_launcher_detector", options),
       running_(false), lccv_enabled_(true), dh_enabled_(true)
 {
-    callback_set_parameter_handle = this->add_post_set_parameters_callback(
-        [this](const std::vector<rclcpp::Parameter> &params) -> rcl_interfaces::msg::SetParametersResult
-        {
-            for (const auto &param : params)
-            {
-                RCLCPP_INFO(this->get_logger(), "Parameter update: %s", param.get_name().c_str());
-                on_parameter_event(param);
-            }
-            // 如果处于激活状态，则重新配置节点
-            if (this->get_current_state().label() == "active")
-            {
-                RCLCPP_INFO(this->get_logger(), "Reconfiguring node due to parameter change...");
-                this->deactivate();
-                this->cleanup();
-                this->configure();
-                this->activate();
-            }
-            else if (this->get_current_state().label() == "inactive")
-            {
-                RCLCPP_INFO(this->get_logger(), "Node not active, reconfiguring...");
-                this->cleanup();
-                this->configure();
-            }
-            else
-            {
-                RCLCPP_INFO(this->get_logger(), "Node is not active and no reconfiguration needed.");
-            }
-            rcl_interfaces::msg::SetParametersResult result;
-            result.successful = true;
-            return result;
-        });
 }
 
 // 新增一个通用函数，用于加载相机参数并打开相机
@@ -361,7 +330,41 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn NodeDa
     }
     RCLCPP_INFO(this->get_logger(), "Greenlight detector initialized successfully.");
 
-    RCLCPP_INFO(this->get_logger(), "Configuration complete: Cameras and detectors initialized.");
+    RCLCPP_INFO(this->get_logger(), "Adding parameter event callback...");
+
+    callback_set_parameter_handle = this->add_post_set_parameters_callback(
+        [this](const std::vector<rclcpp::Parameter> &params) -> rcl_interfaces::msg::SetParametersResult
+        {
+            for (const auto &param : params)
+            {
+                RCLCPP_INFO(this->get_logger(), "Parameter update: %s", param.get_name().c_str());
+                on_parameter_event(param);
+            }
+            // 如果处于激活状态，则重新配置节点
+            if (this->get_current_state().label() == "active")
+            {
+                RCLCPP_INFO(this->get_logger(), "Reconfiguring node due to parameter change...");
+                this->deactivate();
+                this->cleanup();
+                this->configure();
+                this->activate();
+            }
+            else if (this->get_current_state().label() == "inactive")
+            {
+                RCLCPP_INFO(this->get_logger(), "Node not active, reconfiguring...");
+                this->cleanup();
+                this->configure();
+            }
+            else
+            {
+                RCLCPP_INFO(this->get_logger(), "Node is not active and no reconfiguration needed.");
+            }
+            rcl_interfaces::msg::SetParametersResult result;
+            result.successful = true;
+            return result;
+        });
+
+    RCLCPP_INFO(this->get_logger(), "Configuration complete: Cameras, callbacks, publishers and detectors initialized.");
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 

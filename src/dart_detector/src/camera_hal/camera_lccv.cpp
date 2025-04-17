@@ -13,8 +13,7 @@ namespace CameraHAL
 
     CameraDriver_LCCV::~CameraDriver_LCCV()
     {
-        if (isOpened)
-            close();
+        close();
     }
 
     bool CameraDriver_LCCV::open(std::unordered_map<std::string, std::string> &params)
