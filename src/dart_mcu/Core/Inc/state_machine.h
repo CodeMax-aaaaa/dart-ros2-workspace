@@ -8,6 +8,8 @@
 #include "openfsm.h"
 #include "stdint.h"
 
+extern uint16_t wheel;
+
 using namespace openfsm;
 
 namespace state_machine {
