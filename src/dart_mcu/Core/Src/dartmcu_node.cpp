@@ -77,9 +77,22 @@ void microros_node_task(void) {
   soundEffectManager.begin(&htim12, &htim6, TIM_CHANNEL_1, HAL_RCC_GetPCLK2Freq());
   LED::led_flow.begin();
   trigger_servo[0].begin(&htim4, TIM_CHANNEL_1, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
-  trigger_servo[1].begin(&htim4, TIM_CHANNEL_3, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
-  //    trigger_servo[3].begin(&htim4, TIM_CHANNEL_3, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
-  //    trigger_servo[4].begin(&htim4, TIM_CHANNEL_4, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
+  trigger_servo[1].begin(&htim4, TIM_CHANNEL_2, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 180, 10000, 100, 90);
+  trigger_servo[2].begin(&htim4, TIM_CHANNEL_3, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 270, 10000, 100, 90);
+  trigger_servo[3].begin(&htim4, TIM_CHANNEL_4, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 270, 10000, 100, 90);
+  trigger_servo[4].begin(&htim5, TIM_CHANNEL_1, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 270, 10000, 100, 90);
+  trigger_servo[5].begin(&htim5, TIM_CHANNEL_2, HAL_RCC_GetPCLK2Freq(), 500, 2500, 0, 270, 10000, 100, 90);
+
+  // TODO 测试舵机的最大角度和最小角度
+  trigger_servo[2].setAngle(0); // 顺时针到底
+  trigger_servo[3].setAngle(270); // 逆时针到底
+  trigger_servo[4].setAngle(0); // 逆时针到底
+  trigger_servo[5].setAngle(270); // 逆时针到底
+
+  trigger_servo[2].enable();
+  trigger_servo[3].enable();
+  trigger_servo[4].enable();
+  trigger_servo[5].enable();
 
 
   meter::velocity_meter.begin(&htim8, TIM_CHANNEL_1, &htim8, TIM_CHANNEL_2, 65536, [=](float velocity) {

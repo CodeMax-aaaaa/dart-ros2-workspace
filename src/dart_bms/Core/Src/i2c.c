@@ -22,7 +22,7 @@
 
 /* USER CODE BEGIN 0 */
 #include "rtc.h"
-
+extern enum Shutdown_State shutdown;
 extern uint8_t bq40z50_address;
 static uint8_t offset_rx; // 从机被写寄存器当前偏移地址
 static uint8_t offset_tx; // 从机被读寄存器当前偏移地址
@@ -271,6 +271,12 @@ void HAL_SMBUS_AddrCallback(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirecti
                 // 打开中断并把DateAndTime[]里面对应的数据发送给主机
                 break;
             }
+
+        case 2:
+                {
+                    HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &shutdown, 1, SMBUS_NEXT_FRAME);
+                    break;
+                }
             default:
                 // 全都不匹配，发送错误码
                 HAL_SMBUS_Slave_Transmit_IT(&hsmbus1, &Error[offset_tx], 1, SMBUS_NEXT_FRAME);
