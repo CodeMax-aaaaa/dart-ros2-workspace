@@ -16,6 +16,8 @@
 #include "dbus.h"
 #include "judge_receive.h"
 
+uint16_t wheel = 0;
+
 namespace state_machine {
 bool isRemoteOnline() {
   return (HAL_GetTick() - RC_Data.last_update_time) < 1000;
@@ -24,6 +26,7 @@ bool isRemoteOnline() {
 void setNextStateByRemote(bool enterProtectIfDisconnected = true) {
   // 通过遥控器设置状态机状态
   E_Dart_State next_state = E_Dart_State::Protect;
+
   if (isRemoteOnline()) {
     if (RC_Data.Switch_Right == RC_SW_UP) {
       next_state = E_Dart_State::Protect;
@@ -34,6 +37,10 @@ void setNextStateByRemote(bool enterProtectIfDisconnected = true) {
     }
   } else if (enterProtectIfDisconnected) {
     next_state = E_Dart_State::Protect;
+  }
+  if (wheel == 0)
+  {
+    wheel++;
   }
 
   if (next_state != dart_fsm.openFSM_.focusEState()) {
@@ -94,6 +101,9 @@ void FSM::update() {
   // 状态机更新
   openFSM_.update();
   micro_switch_read();
+
+  uint16_t wheel = RC_Data.ch4_wheel;
+  ::wheel = wheel;
 
   // 遥控看门狗
   static TickType_t last_reset_tick = xTaskGetTickCount();

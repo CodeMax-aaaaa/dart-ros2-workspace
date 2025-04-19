@@ -59,6 +59,12 @@ enum Light_State
     LIGHT_STATE_ERROR_DISPLAY
 };
 
+enum Shutdown_State
+{
+    SHUTDOWN_STATE_OFF = 0,
+    SHUTDOWN_STATE_OK,
+    SHUTDOWN_STATE_WAITING
+};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -66,6 +72,7 @@ enum Light_State
 #define SOC_THRESHOLD_LOW    10    // 5% SOC critical low
 #define VOLTAGE_THRESHOLD    7000 // 8V in mV for power on
 #define KEY_LONG_PRESS_TIME  1000 // 1s for long press
+#define Shutdown_Timeout     2000 // 20s for waiting for the RaspberryPi to power off
 #define NO_LOAD_TIMEOUT      10000 // 10s timeout for 0 load
 #define I2C_TIMEOUT          100  // I2C timeout in ms
 /* USER CODE END PD */
@@ -77,12 +84,14 @@ enum Light_State
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint is_shutdown = 0;
 uint8_t display_active = 0; // 是否正在显示电量
 uint8_t last_timer_it_state = 0;
 uint8_t is_pressing = 0;
 uint8_t is_status_new = 1;
 HAL_StatusTypeDef smbus_status;
 
+enum Shutdown_State shutdown = SHUTDOWN_STATE_OFF;
 enum BMS_State current_bms_state = BMS_STATE_INITIALIZING;
 enum FET_State current_fet_state = FET_STATE_OFF;
 enum Light_State current_light_state = LIGHT_STATE_OFF;
@@ -91,6 +100,7 @@ uint8_t zero_load_state = 0; // 0: normal, 1: zero load
 uint32_t zero_load_time = 0;
 uint8_t first_time_zero_load = 0;
 uint32_t key_press_start_time = 0;
+uint32_t shutdown_start_time = 0;
 
 uint8_t bq40z50_address = 0x0b;
 uint8_t read = 0;
@@ -364,9 +374,19 @@ void BMS_StateMachine(void)
         break;
 
     case BMS_STATE_SLEEP:
-        current_bms_state = BMS_STATE_IDLE;
-        current_fet_state = FET_STATE_OFF;
-        // Enter_Standby_Mode();
+        shutdown_start_time = HAL_GetTick();
+        if (!is_shutdown)
+        {
+            shutdown = SHUTDOWN_STATE_WAITING;
+            is_shutdown = 1;
+        }
+        if (shutdown == SHUTDOWN_STATE_OK || HAL_GetTick() - shutdown_start_time >= Shutdown_Timeout)
+        {
+            is_shutdown = 0;
+            shutdown = SHUTDOWN_STATE_OFF;
+            current_fet_state = FET_STATE_OFF;
+            Enter_Standby_Mode();
+        }
         break;
 
     default:
