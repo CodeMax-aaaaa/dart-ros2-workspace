@@ -35,6 +35,7 @@ add_compile_options(-ffunction-sections -fdata-sections -fno-common -fmessage-le
 include_directories(Middlewares/Third_Party/libmicroros/include)
 include_directories(Middlewares/Third_Party/OpenFSM)
 include_directories(Drivers/stm32-buzzer/src)
+include_directories(../dart_comm_share/include)
 file(GLOB_RECURSE SOURCES Drivers/stm32-buzzer/src/buzzer.cpp)
 file(GLOB_RECURSE SOURCES Middlewares/Third_Party/OpenFSM/openfsm.cpp)
 

@@ -15,6 +15,7 @@
 #include <rmw_microros/rmw_microros.h>
 
 #include <std_msgs/msg/int64.h>
+#include <std_msgs/msg/string.h>
 #include <buzzer.h>
 #include "buzzer_examples.h"
 
@@ -48,7 +49,8 @@ extern rcl_node_t node;
 extern rclc_support_t support;
 extern rcl_timer_t timer;
 extern rclc_executor_t executor;
-extern std_msgs__msg__Int64 msg;
+extern std_msgs__msg__Int64 msgInt64;
+extern std_msgs__msg__String msgString;
 extern bool micro_ros_init_successful;
 
 #endif //DART_MCU_DARTMCU_NODE_H
