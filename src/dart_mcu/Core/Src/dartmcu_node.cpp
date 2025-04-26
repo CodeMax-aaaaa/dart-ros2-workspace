@@ -117,7 +117,10 @@ void microros_node_task(void) {
         velocity_meter_result.is_valid = true;
         dart_launcher_status.last_launch_speed = velocity_meter_result.velocity;
         dart_launcher_status.last_launch_time = rmw_uros_epoch_millis();
-        xTaskNotifyFromISR(velocity_meter_result_task_handle, 0, eNoAction, NULL);
+        static char log[20];
+        sprintf(log, "velocity: %.2f", velocity);
+        dart_mcu_log(log);
+//        xTaskNotifyFromISR(velocity_meter_result_task_handle, 0, eNoAction, NULL);
     }, 0.1, 0.000001);
 
     xTaskCreate(publish_velocity_meter_result, "publish_velocity_meter_result", 64, NULL, 5,
