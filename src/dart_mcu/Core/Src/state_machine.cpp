@@ -15,6 +15,8 @@
 #include "servo.h"
 #include "dbus.h"
 #include "judge_receive.h"
+#include "dartmcu_node.h"
+
 
 namespace state_machine {
 
@@ -27,6 +29,20 @@ motor::MotorLoad[1].motor_state_ == motor::E_MotorState::DISCONNECTED || \
 motor::MotorTriggerLS.motor_state_ == motor::E_MotorState::DISCONNECTED)){ \
 dart_fsm.openFSM_.enterState(E_Dart_State::Protect); \
 return;} \
+} while (0)
+
+#define restartCANIfMotorDisconnected() \
+do {                                    \
+static TickType_t last_reboot_can_time = xTaskGetTickCount();                                        \
+if ((xTaskGetTickCount() - last_reboot_can_time > 1000) && (       \
+motor::MotorYawLS.motor_state_ == motor::E_MotorState::DISCONNECTED || \
+motor::MotorLoad[0].motor_state_ == motor::E_MotorState::DISCONNECTED || \
+motor::MotorLoad[1].motor_state_ == motor::E_MotorState::DISCONNECTED || \
+motor::MotorTriggerLS.motor_state_ == motor::E_MotorState::DISCONNECTED)){ \
+reboot_can(&hcan1); \
+reboot_can(&hcan2);                     \
+last_reboot_can_time = xTaskGetTickCount();                   \
+}                                       \
 } while (0)
 
 #define enableTriggerServo() \
@@ -169,6 +185,33 @@ do{                        \
             last_reset_tick_judge_judge = xTaskGetTickCount();
         }
 
+        // CAN看门狗
+        restartCANIfMotorDisconnected();
+
+        // 系统状态更新 写入dart_launcher_status
+        dart_launcher_status.motor_yaw_online = motor::MotorYawLS.motor_state_ != motor::E_MotorState::DISCONNECTED;
+        dart_launcher_status.motor_loader_online[0] =
+                motor::MotorLoad[0].motor_state_ != motor::E_MotorState::DISCONNECTED;
+        dart_launcher_status.motor_loader_online[1] =
+                motor::MotorLoad[1].motor_state_ != motor::E_MotorState::DISCONNECTED;
+        dart_launcher_status.motor_trigger_online =
+                motor::MotorTriggerLS.motor_state_ != motor::E_MotorState::DISCONNECTED;
+        dart_launcher_status.judge_online = (xTaskGetTickCount() - ext_judge_last_receive_time > pdMS_TO_TICKS(1000));
+        dart_launcher_status.rc_online = isRemoteOnline();
+        dart_launcher_status.dart_launch_process = openFSM_.focusEState();
+        dart_launcher_status.motor_yaw_angle = motor_controller::MotorYawLSController.current_angle_with_rounds_;
+        dart_launcher_status.motor_trigger_angle =
+                motor_controller::MotorTriggerLSController.current_angle_with_rounds_;
+        dart_launcher_status.motor_loader_angle[0] =
+                motor_controller::MotorLoadController[0].current_angle_with_rounds_;
+        dart_launcher_status.motor_loader_angle[1] =
+                motor_controller::MotorLoadController[1].current_angle_with_rounds_;
+        dart_launcher_status.motor_loader_current[0] =
+                motor::MotorLoad[0].target_current_;
+        dart_launcher_status.motor_loader_current[1] =
+                motor::MotorLoad[1].target_current_;
+
+
         // 比赛上场判断
         if (ext_game_status.game_progress != 0)
             match_flag_ = 1;
@@ -179,12 +222,14 @@ do{                        \
     class ActionWaitForAllMotorOnline : public OpenFSMAction {
     public:
         void enter(OpenFSM &fsm) const override {
-            soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_guitar_loneliness_blue_earth));
+//            soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_guitar_loneliness_blue_earth));
             enableLoadServo();
             setLoadServotoUP();
             setTriggerServotoReload();
             enableTriggerServo();
             enableSlidedownServo();
+
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState();
         }
 
         void update(OpenFSM &fsm) const override {
@@ -192,8 +237,8 @@ do{                        \
             if (motor::MotorYawLS.motor_state_ != motor::E_MotorState::DISCONNECTED &&
                 motor::MotorLoad[0].motor_state_ != motor::E_MotorState::DISCONNECTED &&
                 motor::MotorLoad[1].motor_state_ != motor::E_MotorState::DISCONNECTED &&
-                motor::MotorTriggerLS.motor_state_ != motor::E_MotorState::DISCONNECTED &&
-                motor::MotorPitchLS.motor_state_ != motor::E_MotorState::DISCONNECTED) {
+                motor::MotorTriggerLS.motor_state_ != motor::E_MotorState::DISCONNECTED) {
+                dart_mcu_log("All motors online.");
                 fsm.nextAction();
             }
         }
@@ -304,25 +349,25 @@ do{                        \
     }
 
 /**
- * @brief 上电归零操作，将YAW轴丝杆和PITCH轴丝杆移动到限位开关位置，将双扳机舵机移动到初始位置，将装填电机移动到初始位置
+ * @brief 上电归零操作，将YAW轴丝杆移动到限位开关位置，将双扳机舵机移动到初始位置，将装填电机移动到初始位置
  */
     class ActionResetMotors : public OpenFSMAction {
         // Dart_FSM Flags使用
         // 0 for MotorYawLS Reset Success
-        // 1 for MotorPitchLS Reset Success
         // 2 for MotorTriggerLS Reset Success
     public:
         void enter(OpenFSM &fsm) const override {
             motor::MotorLoad[0].setNextState(motor::E_MotorState::IDLE);
             motor::MotorLoad[1].setNextState(motor::E_MotorState::IDLE);
             motor::MotorYawLS.setNextState(motor::E_MotorState::RUNNING);
-            motor::MotorPitchLS.setNextState(motor::E_MotorState::RUNNING);
             motor::MotorTriggerLS.setNextState(motor::E_MotorState::RUNNING);
             fsm.custom<Dart_FSM>()->ActionResetMotors_Load_0_Reset_State = false;
             fsm.custom<Dart_FSM>()->ActionResetMotors_Load_1_Reset_State = false;
             fsm.custom<Dart_FSM>()->ActionResetMotors_TriggerLS_Reset_State = false;
             setTriggerServotoReload();
             enableTriggerServo();
+
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState();
         }
 
         void update(OpenFSM &fsm) const override {
@@ -331,10 +376,6 @@ do{                        \
             success &= actionResetLSUntilTrigger<>(motor_controller::MotorYawLSController,
                                                    yaw_switch_state,
                                                    CONFIG_TARGET_RESET_VELOCITY_YAWLS) ==
-                       E_ResetActionReturnState::Finished;
-            success &= actionResetLSUntilTrigger<>(motor_controller::MotorPitchLSController,
-                                                   pitch_switch_state,
-                                                   CONFIG_TARGET_RESET_VELOCITY_PITCHLS) ==
                        E_ResetActionReturnState::Finished;
             success &= actionResetMotorUntilBlocked<>(motor_controller::MotorTriggerLSController,
                                                       CONFIG_TARGET_RESET_VELOCITY_TRIGGERLS,
@@ -358,6 +399,8 @@ do{                        \
             //                                fsm.custom<Dart_FSM>()->ActionResetMotors_Load_1_Reset_State, false) ==
             // E_ResetActionReturnState::Finished) {
             if (success) {
+                motor::MotorLoad[0].resetRound();
+                motor::MotorLoad[1].resetRound();
                 motor_controller::motor_load_sync_offset =
                         motor::MotorLoad[0].current_angle_ - motor::MotorLoad[1].current_angle_;
 
@@ -369,16 +412,17 @@ do{                        \
 
     class ActionReleaseMotors : public OpenFSMAction {
     public:
+        void enter(OpenFSM &fsm) const override {
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState();
+        }
+
         void update(OpenFSM &fsm) const override {
             // 将TriggerLS电机移动到初始位置
             motor::MotorLoad[0].setNextState(motor::E_MotorState::RUNNING);
             motor::MotorLoad[1].setNextState(motor::E_MotorState::RUNNING);
             motor::MotorYawLS.setNextState(motor::E_MotorState::RUNNING);
-            motor::MotorPitchLS.setNextState(motor::E_MotorState::RUNNING);
             motor::MotorTriggerLS.setNextState(motor::E_MotorState::RUNNING);
             motor_controller::MotorTriggerLSController.set_state(
-                    motor_controller::E_PID_Velocity_Angle_Controller_State::ANGLE_CONTROL);
-            motor_controller::MotorPitchLSController.set_state(
                     motor_controller::E_PID_Velocity_Angle_Controller_State::ANGLE_CONTROL);
             motor_controller::MotorYawLSController.set_state(
                     motor_controller::E_PID_Velocity_Angle_Controller_State::ANGLE_CONTROL);
@@ -387,7 +431,6 @@ do{                        \
             motor_controller::MotorLoadController[1].set_state(
                     motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL);
             motor_controller::MotorTriggerLSController.target_angle_with_rounds_ = 6000000;
-            motor_controller::MotorPitchLSController.target_angle_with_rounds_ = 40000;
             motor_controller::MotorYawLSController.target_angle_with_rounds_ = 40000;
 
             static UpsideState last_state = UpsideState::Idle;
@@ -439,7 +482,6 @@ do{                        \
             }
             // MotorYawLS、MotorPitchLS、MotorTriggerLS到达目标位置
             if (abs(motor_controller::MotorTriggerLSController.current_angle_with_rounds_ - 6000000) < 10000 &&
-                abs(motor_controller::MotorPitchLSController.current_angle_with_rounds_ - 40000) < 1000 &&
                 abs(motor_controller::MotorYawLSController.current_angle_with_rounds_ - 40000) < 1000) {
                 fsm.nextAction();
             }
@@ -453,7 +495,9 @@ do{                        \
             soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_autopilot_disconnect));
             // 关闭激光器
             disableLaser();
-            disableTriggerServo();
+//            disableTriggerServo();
+
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState();
         }
 
         void update(OpenFSM &fsm) const override {
@@ -462,7 +506,6 @@ do{                        \
             motor::MotorLoad[1].setNextState(motor::E_MotorState::IDLE);
 
             motor::MotorYawLS.setNextState(motor::E_MotorState::IDLE);
-            motor::MotorPitchLS.setNextState(motor::E_MotorState::IDLE);
             motor::MotorTriggerLS.setNextState(motor::E_MotorState::IDLE);
 
             // 内八触发重新标定
@@ -470,8 +513,12 @@ do{                        \
             if ((RC_Data.ch2 > 1400 && RC_Data.ch0 < 400))
                 reset_grant_ = true;
 
-            if (reset_grant_)
+            if (reset_grant_) {
                 fsm.enterState(E_Dart_State::Boot);
+                reboot_can(&hcan1);
+                reboot_can(&hcan2);
+                return;
+            }
 
             setNextStateByRemote();
         }
@@ -505,9 +552,6 @@ do{                        \
             motor_controller::MotorYawLSController.set_state(
                     motor_controller::E_PID_Velocity_Angle_Controller_State::ANGLE_CONTROL);
 
-            motor_controller::MotorPitchLSController.set_state(
-                    motor_controller::E_PID_Velocity_Angle_Controller_State::ANGLE_CONTROL);
-
             motor_controller::MotorTriggerLSController.set_state(
                     motor_controller::E_PID_Velocity_Angle_Controller_State::ANGLE_CONTROL);
 
@@ -521,6 +565,8 @@ do{                        \
             fsm.custom<Dart_FSM>()->ActionRemote_launch_complete_ = false;
 
             motor_controller::MotorLoadSyncController.reset();
+
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState();
         }
 
         void update(OpenFSM &fsm) const override {
@@ -529,13 +575,12 @@ do{                        \
             motor::MotorLoad[0].setNextState(motor::E_MotorState::RUNNING);
             motor::MotorLoad[1].setNextState(motor::E_MotorState::RUNNING);
             motor::MotorYawLS.setNextState(motor::E_MotorState::RUNNING);
-            motor::MotorPitchLS.setNextState(motor::E_MotorState::RUNNING);
             motor::MotorTriggerLS.setNextState(motor::E_MotorState::RUNNING);
 
             // 响应遥控器指令
             if (RC_Data.Switch_Left == RC_SW_UP || RC_Data.Switch_Left == RC_SW_MID) {
                 fsm.custom<Dart_FSM>()->launch_operating_ = false;
-                // 扳机锁定在初始位置，不可触发操作，可以操作Yaw、Pitch、Load电机和扳机丝杆
+                // 扳机锁定在初始位置，不可触发操作，可以操作Yaw、Load电机和扳机丝杆
                 {
                     // Yaw轴控制
                     // <--- 700 --- 900 --- 中点 --- 1100 --- 1310 --->
@@ -565,35 +610,6 @@ do{                        \
                             motor_controller::MotorYawLSController.target_velocity_ = 20;
                         else if (RC_Data.ch0 >= 1310)
                             motor_controller::MotorYawLSController.target_velocity_ = 100;
-                    }
-                }
-                // Pitch轴控制
-                {
-                    // <--- 700 --- 900 --- 中点 --- 1100 --- 1310 --->
-                    // 如果有速度，则转为速度控制模式，否则转为位置控制模式
-                    if (RC_Data.ch1 > 900 && RC_Data.ch1 < 1100) {
-                        if (motor_controller::MotorPitchLSController.state_ !=
-                            motor_controller::E_PID_Velocity_Angle_Controller_State::ANGLE_CONTROL) {
-                            motor_controller::MotorPitchLSController.set_state(
-                                    motor_controller::E_PID_Velocity_Angle_Controller_State::ANGLE_CONTROL);
-                            motor_controller::MotorPitchLSController.target_angle_with_rounds_ =
-                                    motor::MotorPitchLS.current_round_ * 8192 + motor::MotorPitchLS.current_angle_;
-                            dart_launcher_params.primary_pitch = motor_controller::MotorPitchLSController.
-                                    target_angle_with_rounds_;
-                        }
-                    } else {
-                        if (motor_controller::MotorPitchLSController.state_ !=
-                            motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL)
-                            motor_controller::MotorPitchLSController.set_state(
-                                    motor_controller::E_PID_Velocity_Angle_Controller_State::VELOCITY_CONTROL);
-                        if (RC_Data.ch1 <= 700)
-                            motor_controller::MotorPitchLSController.target_velocity_ = -100;
-                        else if (RC_Data.ch1 > 700 && RC_Data.ch1 <= 900)
-                            motor_controller::MotorPitchLSController.target_velocity_ = -20;
-                        else if (RC_Data.ch1 >= 1100 && RC_Data.ch1 < 1310)
-                            motor_controller::MotorPitchLSController.target_velocity_ = 20;
-                        else if (RC_Data.ch1 >= 1310)
-                            motor_controller::MotorPitchLSController.target_velocity_ = 100;
                     }
                 }
 
@@ -889,6 +905,9 @@ do{                        \
             dart_launcher_status.dart_state = E_Match_Actions::Enter + E_Dart_State::Match;
 
             setLoadServotoUP();
+
+
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState() + 0;
         }
 
         void update(OpenFSM &fsm) const override {
@@ -928,7 +947,7 @@ do{                        \
             motor_controller::MotorLoadController[1].target_velocity_ =
                     base_velocity - motor_controller::MotorLoadSyncController.output;
 
-            // MotorYawLS、MotorPitchLS、MotorTriggerLS、MotorLoad到达目标位置
+            // MotorYawLS、MotorTriggerLS、MotorLoad到达目标位置
             if (abs(motor_controller::MotorTriggerLSController.current_angle_with_rounds_ -
                     dart_launcher_params.primary_force) < 10000 &&
                 abs(motor_controller::MotorYawLSController.current_angle_with_rounds_ -
@@ -953,6 +972,8 @@ do{                        \
             soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_laoda));
 
             motor_controller::MotorLoadSyncController.reset();
+
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState() + 1;
         }
 
         void update(OpenFSM &fsm) const override {
@@ -1018,7 +1039,7 @@ do{                        \
                 ((RC_Data.ch0 > 1400 && RC_Data.ch2 < 400) && game_progress == 4 && (match_flag_))) {
                 launch_grant_ = true;
                 // 如果是手动发射，则不允许二连发，以防空放
-                if ((RC_Data.ch0 > 1400 && RC_Data.ch2 < 400) && (!match_flag_))
+                if (!match_flag_)
                     fsm.custom<Dart_FSM>()->ActionMatch_Wait_Continuous_Fire = false;
                     // 比赛中手动发射允许二连发
                 else
@@ -1063,8 +1084,12 @@ do{                        \
             // 比赛状态
             soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_approach));
             fsm.custom<Dart_FSM>()->ActionGeneral_Timer1_ = xTaskGetTickCount();
+            fsm.custom<Dart_FSM>()->ActionMatch_Launch_State = 0;
 
             setTriggerServotoReload();
+
+
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState() + 2;
         }
 
         void update(OpenFSM &fsm) const override {
@@ -1147,7 +1172,7 @@ do{                        \
                         setTriggerServotoReload();
                         fsm.nextAction();
                     }
-
+                    break;
                 default:
                     fsm.custom<Dart_FSM>()->ActionMatch_Launch_State = 0;
             }
@@ -1179,13 +1204,15 @@ do{                        \
 
             // 判断是否需要等待下滑
             // 从方便和装填一致性的角度来说，想飞的镖少的时候，直接按照滑台-装填-导轨1-导轨2的队列填充。
-
             fsm.custom<Dart_FSM>()->ActionReload_Slidedown_Judge = false;
             if (dart_launcher_params.dart_launch_process_offset_end -
                 dart_launcher_params.dart_launch_process_offset_begin >= 2)
                 if (dart_launcher_status.dart_launch_process -
-                    dart_launcher_params.dart_launch_process_offset_begin >= 1)
+                    dart_launcher_params.dart_launch_process_offset_begin >= 2)
                     fsm.custom<Dart_FSM>()->ActionReload_Slidedown_Judge = true;
+
+
+            dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState() + 3;
         }
 
         void update(OpenFSM &fsm) const override {
@@ -1271,9 +1298,13 @@ do{                        \
                         fsm.custom<Dart_FSM>()->ActionRemoteandReload_Reload_State = 4;
                         setLoadServotoUP();
                         setTriggerServotoReload();
+                        fsm.custom<Dart_FSM>()->ActionGeneral_Timer0_ = xTaskGetTickCount();
                     }
                     break;
                 case 4:
+                    // 再等一小段时间等待装填复位
+                    if (xTaskGetTickCount() - fsm.custom<Dart_FSM>()->ActionGeneral_Timer0_ > CONFIG_LIFT_WAIT_TIME)
+                        fsm.nextAction();
                     break;
             }
 
@@ -1321,6 +1352,8 @@ do{                        \
         openFSM_.setStates({E_Dart_State::Boot, E_Dart_State::Protect, E_Dart_State::Remote, E_Dart_State::Match});
 
         openFSM_.enterState(E_Dart_State::Boot);
+
+        dart_mcu_log("Fsm Initiated.");
     }
 
     void fsm_thread(void *parameters) {

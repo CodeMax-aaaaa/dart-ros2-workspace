@@ -9,7 +9,7 @@
 #include "dart_launcher_param.h"
 
 // 比赛模式相关
-#define CONFIG_FORCE_WAIT_FOR_GAME_PROGRESS 1
+#define CONFIG_FORCE_WAIT_FOR_GAME_PROGRESS 0
 // 开舱门自瞄时间
 #define CONFIG_AUTOAIM_TIMEOUT_MS 1000
 
@@ -20,7 +20,6 @@
 
 // 丝杆电机复位堵转速度
 #define CONFIG_TARGET_RESET_VELOCITY_YAWLS -100
-#define CONFIG_TARGET_RESET_VELOCITY_PITCHLS -100
 #define CONFIG_TARGET_RESET_VELOCITY_TRIGGERLS -5000
 #define CONFIG_GATE_VELOCITY_TRIGGERLS 1000
 #define CONFIG_GATE_CURRENT_TRIGGERLS 2000
@@ -49,7 +48,6 @@
 #define CONFIG_TIMEOUT_RESET_LOAD 1000
 
 // 电机角度限制
-#define CONFIG_MOTOR_PITCH_ANGLE_MAX 8192
 #define CONFIG_MOTOR_YAW_ANGLE_MAX 8192
 #define CONFIG_MOTOR_TRIGGER_ANGLE_MAX 8192
 #define CONFIG_MOTOR_LOAD_ANGLE_MAX 8192
@@ -61,6 +59,11 @@
 
 // 运动速度定义
 #define CONFIG_MOTOR_LOAD_OPERATION_VELOCITY_DOWNWARD 5000
+
+// Publisher定义
+#define LOG_BUF_LEN 50
+// 队列长度
+#define LOG_QUEUE_LEN 10
 
 extern DartLauncherParams dart_launcher_params;
 extern DartLauncherStatus dart_launcher_status;

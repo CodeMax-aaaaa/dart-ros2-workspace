@@ -7,7 +7,6 @@ DartLauncherParams dart_launcher_params =
 {
         .primary_yaw = 40000,
         .primary_yaw_offset = 0,
-        .primary_pitch = 40000,
         .primary_force = 6000000,
         .primary_force_offset = 0,
         .auxiliary_yaw_offsets = {0, 0, 0, 0},

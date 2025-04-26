@@ -7,7 +7,6 @@
 namespace motor {
     motor_rm MotorTriggerLS; // 扳机丝杆电机
     motor_rm MotorYawLS; // 偏航丝杆电机
-    motor_rm MotorPitchLS; // 俯仰丝杆电机
     motor_rm MotorLoad[2]; // 装填电机
 
     void update_can_array(uint8_t *aData, uint8_t id, int16_t output) {

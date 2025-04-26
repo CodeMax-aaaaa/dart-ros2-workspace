@@ -18,6 +18,11 @@
 #include <std_msgs/msg/string.h>
 #include <buzzer.h>
 #include "buzzer_examples.h"
+#include "dart_launcher_param.h"
+
+#include "FreeRTOS.h"
+#include "queue.h"
+#include "semphr.h"
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){return false;}}
 #define EXECUTE_EVERY_N_MS(MS, X)  do { \
@@ -26,6 +31,13 @@
     if (uxr_millis() - init > MS) { X; init = uxr_millis();} \
   } while (0)
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_autopilot_disconnect));}}
+
+typedef struct velocity_meter_result_t{
+    double velocity;
+    bool is_valid;
+}velocity_meter_result_t;
+
+extern velocity_meter_result_t velocity_meter_result;
 
 void microros_node_task(void);
 
@@ -43,6 +55,9 @@ void subscription_servo_callback(const void *msgin);
 
 void subscription_parameter_setting_callback(const void *msgin);
 
+// --- 日志函数原型 ---
+void dart_mcu_log(char * msg);
+
 extern rcl_allocator_t allocator;
 extern rcl_publisher_t publisher;
 extern rcl_node_t node;
@@ -52,5 +67,7 @@ extern rclc_executor_t executor;
 extern std_msgs__msg__Int64 msgInt64;
 extern std_msgs__msg__String msgString;
 extern bool micro_ros_init_successful;
+
+extern SemaphoreHandle_t xLogSemaphore;
 
 #endif //DART_MCU_DARTMCU_NODE_H
