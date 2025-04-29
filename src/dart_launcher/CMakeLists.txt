@@ -20,12 +20,14 @@ endif()
 
 # ========== Options ==========
 
-option(EXAMPLE_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
+# option(EXAMPLE_USE_EXTERNAL_JSON "Use an external JSON library" OFF)
 # option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 # ========== Options ==========
 
 # ========== General Dependencies ==========
+# json and lvgl
+add_subdirectory(thirdparty)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
@@ -35,9 +37,6 @@ find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
-
-# json and lvgl
-add_subdirectory(thirdparty)
 
 find_package(yaml-cpp REQUIRED)
 
@@ -51,6 +50,8 @@ include_directories(include)
 # ========= Add Executables ==========
 # ==== Add node_dart_param_gateway target ====
 add_executable(node_dart_param_gateway src/node_dart_param_gateway.cpp)
+target_include_directories(node_dart_param_gateway PRIVATE thirdparty/json/include)
+target_link_directories(node_dart_param_gateway PRIVATE nlohmann_json::nlohmann_json)
 ament_target_dependencies(node_dart_param_gateway rclcpp std_msgs dart_msgs std_srvs rclcpp_lifecycle)
 
 # # 看门狗

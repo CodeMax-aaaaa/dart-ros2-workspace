@@ -15,6 +15,6 @@
 	path = src/dart_launcher/thirdparty/json
 	url = git@github.com:nlohmann/json.git
 	branch = master
-[submodule "src/dart_comm_shar"]
-	path = src/dart_comm_shar
+[submodule "src/dart_comm_share"]
+	path = src/dart_comm_share
 	url = git@github.com:ChenYuWuAi/dart_comm_share.git
