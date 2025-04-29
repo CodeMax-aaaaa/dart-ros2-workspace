@@ -18,6 +18,7 @@
 #include <std_msgs/msg/float64.h>
 #include <std_msgs/msg/string.h>
 #include <std_msgs/msg/int32_multi_array.h>
+#include <dart_msgs/msg/dart_param.h>
 #include <buzzer.h>
 #include "buzzer_examples.h"
 #include "dartmcu_node.h"
