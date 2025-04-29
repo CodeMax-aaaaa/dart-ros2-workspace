@@ -1,5 +1,5 @@
 repositories:
-  control_msgs:
+  dart_msgs:
     type: git
-    url: https://github.com/ros-controls/control_msgs
-    version: master
+    url: https://github.com/ChenYuWuAi/dart_comm_share
+    version: main
