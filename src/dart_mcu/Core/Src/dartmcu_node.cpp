@@ -82,14 +82,8 @@ void *microros_zero_allocate(size_t number_of_elements, size_t size_of_element, 
 }
 
 void publish_velocity_meter_result(void *arg) {
-    double velocity = 0;
     while (1) {
-        // 等待任务通知
-        xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
-        velocity = velocity_meter_result.velocity;
-        std_msgs__msg__Float64 msg_velocity;
-        msg_velocity.data = velocity;
-        rcl_publish(&publisher_dart_velocity_meter, &msg_velocity, NULL);
+        vTaskDelay(100);
     }
 }
 
@@ -116,19 +110,19 @@ void microros_node_task(void) {
         velocity_meter_result.velocity = velocity;
         velocity_meter_result.is_valid = true;
         dart_launcher_status.last_launch_speed = velocity_meter_result.velocity;
-        dart_launcher_status.last_launch_time = rmw_uros_epoch_millis();
-        static char log[20];
-        sprintf(log, "velocity: %.2f", velocity);
-        dart_mcu_log(log);
+//        dart_launcher_status.last_launch_time = rmw_uros_epoch_millis();
+//        static char log[20];
+//        sprintf(log, "velocity: %.2f", velocity);
+//        dart_mcu_log(log);
 //        xTaskNotifyFromISR(velocity_meter_result_task_handle, 0, eNoAction, NULL);
-    }, 0.1, 0.000001);
+    }, 0.116, 0.0000005);
 
-    xTaskCreate(publish_velocity_meter_result, "publish_velocity_meter_result", 64, NULL, 5,
+    xTaskCreate(publish_velocity_meter_result, "publish_velocity_meter_result", 64, NULL, 1,
                 &velocity_meter_result_task_handle);
 
-    xTaskCreate(state_machine::fsm_thread, "fsm_thread", 256, NULL, 1, NULL);
+    xTaskCreate(state_machine::fsm_thread, "fsm_thread", 256, NULL, 11, NULL);
 
-    xTaskCreate(motor_controller::pid_control_task, "pid_control_task", 128, NULL, 6, NULL);
+    xTaskCreate(motor_controller::pid_control_task, "pid_control_task", 256, NULL, 12, NULL);
 
     set_ros_transport();
     state = WAITING_AGENT;
@@ -179,7 +173,7 @@ void microros_node_task(void) {
             default:
                 break;
         }
-        vTaskDelay(1);
+        vTaskDelay(2);
     }
 };
 
@@ -218,6 +212,12 @@ void timer2_callback(rcl_timer_t *timer, int64_t last_call_time) {
         serializeStatus(&dart_launcher_status, dart_launcher_status_data_msg.data.data);
         rcl_publish(&publisher_can, &dart_launcher_status_data_msg, nullptr);
 
+        double velocity = 0;
+
+        velocity = velocity_meter_result.velocity;
+        std_msgs__msg__Float64 msg_velocity;
+        msg_velocity.data = velocity;
+        rcl_publish(&publisher_dart_velocity_meter, &msg_velocity, NULL);
     }
 }
 
@@ -300,8 +300,8 @@ bool create_entities() {
     dart_launcher_status_data_msg.layout.dim.size = 1;
 
     // 为 dim 分配内存
-    dart_launcher_status_data_msg.layout.dim.data =
-            (std_msgs__msg__MultiArrayDimension *) pvPortMalloc(sizeof(std_msgs__msg__MultiArrayDimension));
+    static std_msgs__msg__MultiArrayDimension dim;
+    dart_launcher_status_data_msg.layout.dim.data = &dim;
 
     // 初始化维度信息
     static char label[] = "dart_launcher_status";
@@ -318,8 +318,8 @@ bool create_entities() {
 
     dart_launcher_param_data_msg.layout.dim.capacity = 1;
     dart_launcher_param_data_msg.layout.dim.size = 1;
-    dart_launcher_param_data_msg.layout.dim.data =
-            (std_msgs__msg__MultiArrayDimension *) pvPortMalloc(sizeof(std_msgs__msg__MultiArrayDimension));
+    static std_msgs__msg__MultiArrayDimension dim2;
+    dart_launcher_param_data_msg.layout.dim.data = &dim2;  // 分配内存给 dim 数组
 
     static char label2[] = "dart_launcher_parameter";
     dart_launcher_param_data_msg.layout.dim.data[0].label.data = label2;
@@ -362,8 +362,6 @@ void destroy_entities() {
     rclc_support_fini(&support);
     // 重新初始化USB设备
     // 断联
-    vPortFree(dart_launcher_status_data_msg.layout.dim.data);
-    vPortFree(dart_launcher_param_data_msg.layout.dim.data);
     USB_DEVICE_Stop();
     vTaskDelay(200);
     USB_DEVICE_Start();
@@ -440,7 +438,9 @@ void subscription_parameter_setting_callback(const void *msgin) {
     if (msgin != NULL) {
         int32_t *data = msg->data.data;
         motor_controller::MotorYawLSController.target_angle_with_rounds_ = data[0];
-        motor_controller::MotorTriggerLSController.target_angle_with_rounds_ = data[2];
+        dart_launcher_params.primary_yaw = data[0];
+        motor_controller::MotorTriggerLSController.target_angle_with_rounds_ = data[1];
+        dart_launcher_params.primary_force = data[1];
     }
 }
 

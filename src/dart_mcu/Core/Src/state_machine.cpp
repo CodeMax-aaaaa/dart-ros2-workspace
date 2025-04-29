@@ -16,6 +16,7 @@
 #include "dbus.h"
 #include "judge_receive.h"
 #include "dartmcu_node.h"
+#include "velocimeter.h"
 
 
 namespace state_machine {
@@ -160,7 +161,7 @@ do{                        \
             enterProtectModeIfMotorDisconnected();
         }
 
-        if (next_state != dart_fsm.openFSM_.focusEState()) {
+        if (next_state != dart_fsm.openFSM_.focusEState() && isRemoteOnline()) {
             dart_fsm.openFSM_.nextState(next_state);
         }
     }
@@ -222,7 +223,7 @@ do{                        \
     class ActionWaitForAllMotorOnline : public OpenFSMAction {
     public:
         void enter(OpenFSM &fsm) const override {
-//            soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_guitar_loneliness_blue_earth));
+//            soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_bokuranomachi));
             enableLoadServo();
             setLoadServotoUP();
             setTriggerServotoReload();
@@ -496,7 +497,7 @@ do{                        \
             // 关闭激光器
             disableLaser();
 //            disableTriggerServo();
-
+meter::velocity_meter.disable();
             dart_launcher_status.dart_state = dart_fsm.openFSM_.focusEState();
         }
 
@@ -859,6 +860,7 @@ do{                        \
                         launch_grant_ = true;
 
                     if (launch_grant_) {
+                        meter::velocity_meter.enable();
                         fsm.custom<Dart_FSM>()->launch_operating_ = true;
                         soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_approach));
                     }
@@ -866,9 +868,9 @@ do{                        \
                     if (!fsm.custom<Dart_FSM>()->ActionRemote_launch_complete_) {
                         base_velocity = -CONFIG_MOTOR_LOAD_OPERATION_VELOCITY_DOWNWARD;
                         if (motor_controller::MotorLoadController[0].current_angle_with_rounds_ <=
-                            CONFIG_MOTOR_LOAD_ANGLE_UP |
+                            CONFIG_MOTOR_LOAD_ANGLE_LAUNCH |
                             motor_controller::MotorLoadController[1].current_angle_with_rounds_ <=
-                            CONFIG_MOTOR_LOAD_ANGLE_UP) {
+                            CONFIG_MOTOR_LOAD_ANGLE_LAUNCH) {
                             fsm.custom<Dart_FSM>()->ActionRemote_launch_complete_ = true;
                             fsm.custom<Dart_FSM>()->ActionGeneral_Timer1_ = xTaskGetTickCount();
                             base_velocity = 0;
@@ -900,7 +902,7 @@ do{                        \
     class ActionMatch_Enter : public OpenFSMAction {
         void enter(OpenFSM &fsm) const override {
             // 比赛状态
-            soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_chunriying));
+            soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_if_i_could_be_a_constelletion));
             dart_launcher_status.dart_launch_process = dart_launcher_params.dart_launch_process_offset_begin;
             dart_launcher_status.dart_state = E_Match_Actions::Enter + E_Dart_State::Match;
 
@@ -1363,7 +1365,7 @@ do{                        \
 
         while (true) {
             dart_fsm.update();
-            vTaskDelayUntil(&last_time, pdMS_TO_TICKS(1)); // 1000Hz
+            vTaskDelayUntil(&last_time, pdMS_TO_TICKS(1)); // 200Hz
         }
         vTaskDelete(nullptr);
     }

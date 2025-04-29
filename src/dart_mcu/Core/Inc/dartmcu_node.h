@@ -30,7 +30,7 @@
     if (init == -1) { init = uxr_millis();} \
     if (uxr_millis() - init > MS) { X; init = uxr_millis();} \
   } while (0)
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){soundEffectManager.addSoundEffect(BUZZER_NOTE(buzzer_autopilot_disconnect));}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
 
 typedef struct velocity_meter_result_t{
     double velocity;
