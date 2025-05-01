@@ -5,7 +5,8 @@
 #include <camera_hal/camera_lccv.hpp>
 #include <opencv2/opencv.hpp>
 #include <iostream>
-
+#include <sstream>
+#include <string>
 namespace CameraHAL
 {
     CameraDriver_LCCV::CameraDriver_LCCV() : isOpened(false) {}
@@ -19,23 +20,16 @@ namespace CameraHAL
     {
         // 获取分辨率和帧率参数，设置默认值
         int width = 640, height = 480, framerate = 30;
-        if (params.find("Width") != params.end())
-        {
-            width = std::stoi(params["Width"]);
-        }
-        if (params.find("Height") != params.end())
-        {
-            height = std::stoi(params["Height"]);
-        }
-        if (params.find("Framerate") != params.end())
-        {
-            framerate = std::stoi(params["Framerate"]);
-        }
 
         // 配置 LCCV 相机参数
         camera.options->video_width = width;
         camera.options->video_height = height;
         camera.options->framerate = framerate;
+
+        for (const auto &param : params)
+        {
+            write(param.first, param.second);
+        }
         camera.options->verbose = true;
 
         // 启动视频流
@@ -55,21 +49,41 @@ namespace CameraHAL
 
     bool CameraDriver_LCCV::write(std::string para_name, std::string para_value)
     {
-        if (!isOpened)
+        if (para_name == "Width")
         {
-            std::cerr << "Camera is not opened" << std::endl;
-            return false;
+            camera.options->video_width = std::stoi(para_value);
+        }
+        else if (para_name == "Height")
+        {
+            camera.options->video_height = std::stoi(para_value);
+        }
+        else if (para_name == "Resolution")
+        {
+            // 用isstream读取数字 需要两个参数 width height 用逗号分隔！
+            std::istringstream iss(para_value);
+            int width, height;
+            iss >> width;
+            if (iss)
+            {
+                iss >> height;
+            }
+            else
+            {
+                std::cout << "failed to parse string to width!";
+            }
+            if (iss.fail())
+            {
+                "Error:expected string transformation";
+                return false;
+            }
+            camera.options->video_width = width;
+            camera.options->video_height = height;
+        }
+        else if (para_name == "Framerate")
+        {
+            camera.options->framerate = std::stoi(para_value);
         }
 
-        // 设置相机参数
-        if (para_name == "Exposure")
-        {
-            camera.options->exposure = std::stoi(para_value);
-        }
-        else if (para_name == "Gain")
-        {
-            camera.options->gain = std::stoi(para_value);
-        }
         else
         {
             std::cerr << "Unsupported parameter: " << para_name << std::endl;
@@ -108,13 +122,14 @@ namespace CameraHAL
         try
         {
             camera.stopVideo();
-            isOpened = false;
         }
         catch (const std::exception &e)
         {
             std::cerr << "Failed to stop LCCV camera: " << e.what() << std::endl;
             return false;
         }
+
+        isOpened = false;
 
         return true;
     }
