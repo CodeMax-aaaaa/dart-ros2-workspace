@@ -10,6 +10,8 @@
 #include "FreeRTOS.h"
 #include "dart_launcher_param.h"
 
+extern uint16_t wheel;
+
 using namespace openfsm;
 
 namespace state_machine {
